@@ -1,0 +1,15 @@
+a {
+    color: #008cba;
+    text-decoration: none;
+    line-height: inherit;
+}
+
+a:hover {
+    color: grey;
+    text-decoration: none;
+    border-bottom: 0px;
+}
+
+.card-body a {
+    color: #aaa;
+}
