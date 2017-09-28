@@ -2,4 +2,4 @@
 
 (library
   ((name        template)
-   (libraries   (logs astring fmt re))))
+   (libraries   (logs astring omd fmt re))))

@@ -43,15 +43,12 @@ let eval rules soup =
   let rec aux acc = function
     | 0 -> soup
     | n ->
-      Log.debug (fun l -> l "replaces: new iteration (%d/%d)" (n - max) max);
+      Log.debug (fun l -> l "replaces: new iteration (%d/%d)" (max - n + 1) max);
       let nacc = List.fold_left (fun acc rule ->
           replace ~all:true rule acc
         ) acc rules
       in
-      if nacc = acc then (
-        Log.debug (fun l -> l "debug: %s" nacc);
-        (* fix point *) nacc
-      ) else aux nacc (n-1)
+      if nacc = acc then (* fix point *) nacc else aux nacc (n-1)
   in
   aux soup max
 
@@ -72,7 +69,13 @@ let read_dir dir =
 
 let read_data dir =
   read_dir dir
-  |> List.map (fun (f, v) -> rule ~k:(Fmt.strf "{%% include %s %%}" f) ~v)
+  |> List.map (fun (f, v) ->
+      let v = match Filename.extension f with
+        | ".md" -> Omd.(to_html @@ of_string v)
+        | _     -> v
+      in
+      rule ~k:(Fmt.strf "{%% include %s %%}" f) ~v
+    )
 
 let parse_headers str =
   let lines = String.cuts ~sep:"\n" str in

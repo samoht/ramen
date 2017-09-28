@@ -22,5 +22,6 @@ depends: [
   "cmdliner"
   "astring"
   "re"
+  "omd"
   "alcotest" {test}
 ]
