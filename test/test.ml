@@ -27,13 +27,15 @@ let (+++) f g x = f (g x x)
 
 let pp_rule ppf r = Fmt.pf ppf "%s: %s" (Template.k r) (Template.v r)
 let rule = Alcotest.testable pp_rule (=)
+let error = Alcotest.testable Template.pp_error (=)
+let file = "test"
 
 module One = struct
 
   let check ?all template k v =
     let rule = Template.rule ~k ~v in
-    let tmpl = Template.replace ?all rule (template k) in
-    Alcotest.(check string) k (template v) tmpl
+    let tmpl = Template.replace ~file ?all rule (template k) in
+    Alcotest.(check @@ result string error) k (Ok (template v)) tmpl
 
   let simple () =
     check html "foo1" "bar";
@@ -60,20 +62,22 @@ module Many = struct
 
   let check input output rules =
     let rules = List.map (fun (k, v) -> Template.rule ~k ~v) rules in
-    Alcotest.(check string) input output (Template.eval rules input)
+    let res, errors = Template.eval ~file rules input in
+    Alcotest.(check @@ slist error compare) "errors" [] errors;
+    Alcotest.(check string) "output" output res
 
   let simple () =
-    check (html "foo bar") (html "gna gna") [
-      "foo", "bar";
-      "bar", "gna";
+    check (html "{{ foo }} {{ bar }}") (html "gna gna") [
+      "{{ foo }}", "{{ bar }}";
+      "{{ bar }}", "gna";
     ]
 
   let complex () =
-    check (html "foo") (html "hello <div>world</div>") [
-      "fo"  , "hellx";
-      "xo"  , "o bar";
-      "bar" , "<div>toto</div>";
-      "toto", "world";
+    check (html "{{ fo }}o }}") (html "hello <div>world</div>") [
+      "{{ fo }}"  , "hell{{ x";
+      "{{ xo }}"  , "o {% bar %}";
+      "{% bar %}" , "<div>{% toto %}</div>";
+      "{% toto %}", "world";
     ]
 
 end

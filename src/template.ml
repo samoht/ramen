@@ -1,32 +1,6 @@
 let src = Logs.Src.create "ramen"
 module Log = (val Logs.src_log src: Logs.LOG)
 
-(*
-open Soup
-
-let replace ?(all=false) ~k ~v soup =
-  let found = ref 0 in
-  with_stop (fun stop ->
-      soup
-      |> descendants
-      |> filter no_children
-      |> iter (fun elt ->
-          if trimmed_texts elt = [k] then (
-            incr found;
-            replace elt v;
-            if not all then (
-              Log.debug (fun l -> l "%s: found" k);
-              stop.throw ()
-            )
-          ));
-      match !found with
-      | 0 -> Log.debug (fun l -> l "%s: not found" k)
-      | 1 -> Log.debug (fun l -> l "%s: found" k)
-      | n -> Log.debug (fun l -> l "%s: %d occurences found" k n)
-    )
-
-*)
-
 open Astring
 
 type rule = { k: string; v: string }
@@ -34,23 +8,50 @@ let rule ~k ~v = { k; v }
 let k r = r.k
 let v r = r.v
 
-let replace ?(all=false) { k; v } soup =
-  let re = Re.(compile @@ str k) in
-  Re.replace_string ~all re ~by:v soup
+type error = { file: string; key: string } (* not found *)
+let err_not_found ~file key = { file; key }
 
-let eval rules soup =
+let pp_error ppf { file; key } =
+  Fmt.pf ppf "cannot find %a in %a."
+    Fmt.(styled `Underline string) key
+    Fmt.(styled `Bold string) file
+
+let context contents =
+  let re = Re.(compile @@ alt [
+      non_greedy @@ seq [str "{{ "; rep any; str " }}"];
+      non_greedy @@ seq [str "{% "; rep any; str " %}"];
+    ]) in
+  Re.matches re contents
+
+let replace ~file ?(all=false) { k; v } contents =
+  Log.debug (fun l -> l "replacing %s by %S in %s" k v file);
+  let n = ref 0 in
+  let re = Re.(compile @@ str k) in
+  let f _ = incr n; v in
+  let s = Re.replace ~all re ~f contents in
+  if !n = 0 then Error (err_not_found ~file k) else Ok s
+
+let add_error e errors =
+  if List.mem e errors then errors else List.sort compare (e :: errors)
+
+let eval ~file rules soup =
   let max = 100 in
   let rec aux acc = function
-    | 0 -> soup
+    | 0 -> acc
     | n ->
-      Log.debug (fun l -> l "replaces: new iteration (%d/%d)" (max - n + 1) max);
-      let nacc = List.fold_left (fun acc rule ->
-          replace ~all:true rule acc
-        ) acc rules
+      let context = context (fst acc) in
+      Log.info (fun l -> l "%s: context is %a" file Fmt.(list string) context);
+      let nacc = List.fold_left (fun (acc, errors) key ->
+          match List.find (fun r -> r.k = key) rules with
+          | exception Not_found -> acc, add_error (err_not_found ~file key) errors
+          | { k; v} -> match replace ~file ~all:true (rule ~k ~v) acc with
+            | Ok acc  -> acc, errors
+            | Error e -> acc, add_error e errors
+        ) acc context
       in
       if nacc = acc then (* fix point *) nacc else aux nacc (n-1)
   in
-  aux soup max
+  aux (soup, []) max
 
 let (/) = Filename.concat
 

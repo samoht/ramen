@@ -12,12 +12,18 @@ val k: rule -> string
 val v: rule -> string
 (** [v r] is [r]'s output. *)
 
-val replace: ?all:bool -> rule -> string -> string
+type error
+(** The type for templating errors. *)
+
+val pp_error: error Fmt.t
+(** Pretty-print templating errors. *)
+
+val replace: file:string -> ?all:bool -> rule -> string -> (string, error) result
 (** [replace ?all r s] replaces [r]'s input by [r]'s ouput in [s]. If
     [all] is set (by default it is not), do not stop on the first
     occurence. *)
 
-val eval: rule list -> string -> string
+val eval: file:string -> rule list -> string -> string * error list
 (** [eval r s] calls {!replace} for every bindings of [r] recursively,
     until reaching a fix point. *)
 
