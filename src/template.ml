@@ -240,16 +240,25 @@ let replace ~file context contents =
   let t = loop contents max in
   t, !errors
 
+let custom_compare d x y =
+  let ix = try Some (int_of_string x) with Failure _ -> None in
+  let iy = try Some (int_of_string y) with Failure _ -> None in
+  let r = match ix, iy with
+    | Some x, Some y -> compare x y
+    | _ -> String.compare x y
+  in
+  match d with
+  | `Up   -> r
+  | `Down -> -r
+
 let sort ~file errors loop x y =
   let default = String.compare (fst x) (fst y) in
-  match loop.Ast.order with
-  | None       -> default
-  | Some order ->
+  let with_order (d, order) =
     match snd x, snd y with
     | Data _      , Data _       -> default
     | Collection x, Collection y ->
       (match String.Map.find order x, String.Map.find order y with
-       | Some (Data x), Some (Data y) -> String.compare x y
+       | Some (Data x), Some (Data y) -> custom_compare d x y
        | None, _ | _, None  ->
          Error.R.add errors (err_invalid_order ~file order);
          default
@@ -258,6 +267,10 @@ let sort ~file errors loop x y =
          default
       )
     | _ -> default
+  in
+  match loop.Ast.order with
+  | None       -> default
+  | Some order -> with_order order
 
 let unroll ~file context contents =
   let errors = ref [] in
@@ -374,6 +387,7 @@ let parse_md ~file v =
   entry_of_page { e with v }
 
 let parse_file ~file v =
+  Log.debug (fun l -> l "parse_file %s" file);
   match Filename.extension file with
   | ".yml" -> parse_yml ~file v
   | ".md"  -> parse_md ~file v
