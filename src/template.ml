@@ -240,16 +240,25 @@ let replace ~file context contents =
   let t = loop contents max in
   t, !errors
 
+let custom_compare d x y =
+  let ix = try Some (int_of_string x) with Failure _ -> None in
+  let iy = try Some (int_of_string y) with Failure _ -> None in
+  let r = match ix, iy with
+    | Some x, Some y -> compare x y
+    | _ -> String.compare x y
+  in
+  match d with
+  | `Up   -> r
+  | `Down -> -r
+
 let sort ~file errors loop x y =
   let default = String.compare (fst x) (fst y) in
-  match loop.Ast.order with
-  | None       -> default
-  | Some order ->
+  let with_order (d, order) =
     match snd x, snd y with
     | Data _      , Data _       -> default
     | Collection x, Collection y ->
       (match String.Map.find order x, String.Map.find order y with
-       | Some (Data x), Some (Data y) -> String.compare x y
+       | Some (Data x), Some (Data y) -> custom_compare d x y
        | None, _ | _, None  ->
          Error.R.add errors (err_invalid_order ~file order);
          default
@@ -258,6 +267,10 @@ let sort ~file errors loop x y =
          default
       )
     | _ -> default
+  in
+  match loop.Ast.order with
+  | None       -> default
+  | Some order -> with_order order
 
 let unroll ~file context contents =
   let errors = ref [] in
@@ -373,9 +386,27 @@ let parse_md ~file v =
   let v = parse_md e.v in
   entry_of_page { e with v }
 
+let parse_bib ~file v =
+  match Bibtex.of_string v with
+  | None   -> Fmt.kstrf failwith "Cannot parse %s" file
+  | Some t ->
+    let entries = Bibtex.to_html_entries t in
+    let id = ref 0 in
+    let v =
+      List.fold_left (fun acc (_, e, fields) ->
+          incr id;
+          let fields = ("id", string_of_int !id) :: fields in
+          let fields = List.map (fun (k, v) -> data k v) fields in
+          Context.add acc @@ collection e fields
+        ) Context.empty entries
+    in
+    kollection (Filename.remove_extension file) v
+
 let parse_file ~file v =
+  Log.debug (fun l -> l "parse_file %s" file);
   match Filename.extension file with
   | ".yml" -> parse_yml ~file v
+  | ".bib" -> parse_bib ~file v
   | ".md"  -> parse_md ~file v
   | _      -> entry_of_page (parse_page ~file v)
 

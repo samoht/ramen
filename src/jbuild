@@ -2,7 +2,7 @@
 
 (library
   ((name        template)
-   (libraries   (logs astring omd fmt))))
+   (libraries   (logs astring omd fmt bibtex))))
 
 (ocamllex (lexer))
 (menhir ((modules (parser))))
