@@ -1,15 +1,17 @@
 title: Papers
 ---
-{% include header %}
+{{ header }}
 
-{% include navbar %}
+{{ navbar }}
 
 <div class="container">
   <div class="row">
     <div class="col">
-      {% include three.html %}
+      {{ for i in notes }}
+      <p><b>{{ i.title }}</b> are in {{ i.loc }}.
+      {{ endfor }}
     </div>
   </div>
 </div>
 
-{% include footer %}
+{{ footer }}

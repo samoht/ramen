@@ -65,21 +65,24 @@ let string_of_time () =
   Printf.sprintf "%d/%d/%d"
     t.Unix.tm_mday (t.Unix.tm_mon + 1) (t.Unix.tm_year + 1900)
 
-let extra = [
-  Template.rule ~k:"{{ date }}" ~v:(string_of_time ());
-]
+let extra =
+  Template.Context.v [
+    Template.data "date" (string_of_time ());
+  ]
 
 let run () data pages output =
   let data = Template.read_data data in
-  let pages = Template.read_pages pages in
+  Log.info (fun l -> l "data: %a" Template.Context.pp data);
+  let pages = Template.read_pages ~dir:pages in
   if not (Sys.file_exists output) then Unix.mkdir output 0o755;
   let nb_errors = ref 0 in
-  List.iter (fun (f, kvs, body) ->
-      let f = output / f in
+  List.iter (fun Template.{ file; context; body; _ } ->
+      let f = output / file in
       Log.info (fun l -> l "Creating %s." f);
-      let out, errors = Template.eval ~file:f (kvs @ data @ extra) body in
+      let context = Template.Context.(context ++ data ++ extra) in
+      let out, errors = Template.eval ~file:f context body in
       let oc = open_out f in
-      pp_html oc out;
+      pp_html oc @@ Fmt.to_to_string Template.Ast.pp out;
       flush oc;
       close_out oc;
       match errors with

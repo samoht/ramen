@@ -1,15 +1,20 @@
-a {
-    color: #008cba;
-    text-decoration: none;
-    line-height: inherit;
+/* Sticky footer styles
+-------------------------------------------------- */
+html {
+    position: relative;
+    min-height: 100%;
 }
-
-a:hover {
-    color: grey;
-    text-decoration: none;
-    border-bottom: 0px;
+body {
+  /* Margin bottom by footer height */
+    margin-bottom: 260px;
 }
-
-.card-body a {
-    color: #aaa;
+.footer {
+    position: absolute;
+    bottom: 0;
+    width: 100%;
+    padding-top: 20px;
+    /* Set the fixed height of the footer here */
+    height: 200px;
+    line-height: 40px; /* Vertically center the text there */
+    background-color: #f5f5f5;
 }
