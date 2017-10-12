@@ -1,0 +1,9 @@
+(jbuild_version 1)
+
+(library
+  ((name        bibtex)
+   (libraries   (logs str fmt))))
+
+(ocamllex (lexer))
+(ocamllex (latexscan))
+(ocamlyacc (parser))

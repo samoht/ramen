@@ -50,9 +50,11 @@ module Ast: sig
   and loop = {
     var   : string;
     map   : string;
-    order : string option;
+    order : order option;
     body  : t;
   }
+
+  and order = [`Up | `Down] * string
 
   val pp: t Fmt.t
   val dump: t Fmt.t

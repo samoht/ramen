@@ -7,8 +7,9 @@ title: Papers
 <div class="container">
   <div class="row">
     <div class="col">
-      {{ for i in notes }}
-      <p><b>{{ i.title }}</b> are in {{ i.loc }}.
+      {{ for i in test | -id }}
+      <p>[{{ i.id }}]<b>{{ i.title }}</b>. {{ i.author }}.
+         <em>{{ i.year }}<em>
       {{ endfor }}
     </div>
   </div>

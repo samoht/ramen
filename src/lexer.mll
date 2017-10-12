@@ -43,8 +43,8 @@ let syntax_error s = raise (Error s)
 }
 
 let digit = ['0'-'9']
-let alpha = ['a'-'z' 'A'-'Z' '-' '_']
-let id = alpha (alpha | digit)*
+let alpha = ['a'-'z' 'A'-'Z']
+let id = alpha (alpha | digit | '-' | '_')*
 let var = id ('.' id)*
 let newline = '\r' | '\n' | "\r\n"
 let white = [' ' '\t']+
@@ -63,6 +63,7 @@ and program t = parse
   | "endfor" { ENDFOR }
   | "in"     { IN }
   | "|"      { PIPE }
+  | "-"      { MINUS }
   | var      { VAR (Lexing.lexeme lexbuf) }
   | eof      { syntax_error "unclosed tag" }
 
