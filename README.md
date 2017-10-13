@@ -36,15 +36,19 @@ body
 
 The body can contain templates of the form:
 
-- variables `{{ VAR }}`: Ramen will replace these with their raw values defined
-  in the page header or in the data directory (see bellow).
-- loops `{{ for i in VAR }} <body> {{ enfor }}`: Ramen will expanse the body
-  for each entry in the collection `var`.
-- conditions `{{ if VAR }} <body> {{ endif }}`. Ramen will remove `<body>` if
-  `VAR` is not defined.
-- arrays `{{ xxx.[VAR].yyy }}` evaluates to `xx.yy.zz` where `yy` is the
-  contents of `VAR`. This could be used in conjunction with for loops to
-  "join" various collections.
+- **variables**: `{{ VAR }}`: Ramen will replace these with their raw
+  values defined in the page header or in the data directory (see
+  bellow).
+
+- **loops**: `{{ for i in VAR }} <body> {{ enfor }}`: Ramen will
+  expanse the body for each entry in the collection `var`.
+
+- **conditions**: `{{ if VAR }} <body> {{ endif }}`. Ramen will remove
+  `<body>` if `VAR` is not defined.
+
+- **dictionaries**: `{{ xxx.[VAR].yyy }}` evaluates to `xx.yy.zz`
+  where `yy` is the contents of `VAR`. This could be used in
+  conjunction with for loops to "join" various collections.
 
 __Note__: raw data can also contains the `{{ .. }}` quotations. They will be
 expanded recursively by Ramen.
@@ -62,4 +66,4 @@ The following file extensions are supported:
 
 ### Examples
 
-See a simple example in [./examples/bootstrap].
+See a simple example in [./examples/bootstrap][].
