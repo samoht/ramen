@@ -79,6 +79,7 @@ module Context: sig
   val empty: t
   val is_empty: t -> bool
   val add: t -> entry -> t
+  val mem: t -> string -> bool
   val find: t -> string -> entry option
   val values: t -> value String.Map.t
 end = struct
@@ -113,6 +114,10 @@ end = struct
     in
     let path = String.cuts ~sep:"." k in
     aux [] m path
+
+  let mem x k = match find x k with
+    | None   -> false
+    | Some _ -> true
 
   let v l =
     List.fold_left (fun acc { k; v } ->
@@ -165,6 +170,7 @@ let vars contents =
     | Var v  ->
       if String.Set.exists (fun k -> String.is_prefix ~affix:k v) loops then ()
       else vars := String.Set.add v !vars
+    | If c   -> aux loops c.then_
     | For l  -> aux (String.Set.add l.var loops) l.body
     | Seq s  -> List.iter (aux loops) s
   in
@@ -183,11 +189,18 @@ let subst ~file { k; v } contents =
     Log.debug (fun l -> l "replacing %a in %a" pp_key k pp_file file);
     let n = ref 0 in
     let rec aux f = function
-      | Data _ as x          -> f x
       | Var var when var = k -> incr n; f (Data v)
-      | Var _ as x           -> f x
-      | For l                -> aux (fun body -> f (For { l with body })) l.body
-      | Seq s                -> auxes (fun x -> f (Seq x)) s
+      | Data _
+      | Var _ as x -> f x
+      | Seq s as x -> auxes (fun t -> if s == t then f x else (f (Seq t))) s
+      | If c as x  ->
+        aux (fun t ->
+            if t == c.then_ then f x else f (If { c with then_=t })
+          ) c.then_
+      | For l as x ->
+        aux (fun t ->
+            if t == l.body then f x else f (For { l with body=t })
+          ) l.body
     and auxes f = function
       | []        -> f []
       | h::t as x ->
@@ -278,6 +291,9 @@ let unroll ~file context contents =
   let rec aux f = function
     | Ast.Data _ | Var _ as x -> f x
     | Seq l as s -> auxes (fun l' -> if l' == l then f s else f (Seq l')) l
+    | If c       ->
+      if not (Context.mem context c.test) then f empty
+      else aux (fun t -> f t) c.then_
     | For loop   ->
       match Context.find context loop.map with
       | None ->

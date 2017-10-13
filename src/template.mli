@@ -44,6 +44,7 @@ module Ast: sig
   type t =
     | Data of string
     | Var of string
+    | If of cond
     | For of loop
     | Seq of t list
 
@@ -55,6 +56,11 @@ module Ast: sig
   }
 
   and order = [`Up | `Down] * string
+
+  and cond = {
+    test : string;
+    then_: t;
+  }
 
   val pp: t Fmt.t
   val dump: t Fmt.t

@@ -212,8 +212,33 @@ module For = struct
     in
     let str, e = Template.eval ~file ctx template in
     Alcotest.(check @@ slist error compare) "errors" [] e;
-    Fmt.pr "XXX %a\n%!" Template.Ast.dump str;
     Alcotest.(check ast) "body" body str
+
+end
+
+module If = struct
+
+  let ctx =
+    let open Template in
+    Context.v [
+      collection "toto" [
+        data "name" "Jean Valjean";
+      ]]
+
+  let f = Template.Ast.parse
+
+  let eval x =
+    let x, y = Template.eval ~file:"test" ctx x in
+    Alcotest.(check @@ slist error compare) "errors" [] y;
+    x
+
+  let simple () =
+    List.iteri (fun i (x, y) ->
+        Alcotest.(check ast) (string_of_int i) (f y) (eval @@ f x)
+      )[
+      "Hello {{ if toto.name }}world!{{ endif }}", "Hello world!";
+      "Hi {{ if calvi }}Jean{{ endif }}"         , "Hi ";
+    ]
 
 end
 
@@ -239,5 +264,9 @@ let () =
     ];
     "for", [
       "simple", `Quick, For.simple;
+    ];
+    "if", [
+      "simple", `Quick, If.simple;
     ]
+
   ]

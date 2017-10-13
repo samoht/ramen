@@ -61,6 +61,8 @@ and program t = parse
   | newline  { Lexing.new_line lexbuf; program t lexbuf }
   | "for"    { FOR }
   | "endfor" { ENDFOR }
+  | "if"     { IF }
+  | "endif"  { ENDIF }
   | "in"     { IN }
   | "|"      { PIPE }
   | "-"      { MINUS }
