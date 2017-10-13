@@ -40,7 +40,7 @@ The body can contain templates of the form:
   values defined in the page header or in the data directory (see
   bellow).
 
-- **loops**: `{{ for i in VAR }} <body> {{ enfor }}`: Ramen will
+- **loops**: `{{ for i in VAR }} <body> {{ endfor }}`: Ramen will
   expanse the body for each entry in the collection `var`.
 
 - **conditions**: `{{ if VAR }} <body> {{ endif }}`. Ramen will remove
