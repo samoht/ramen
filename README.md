@@ -66,5 +66,4 @@ The following file extensions are supported:
 
 ### Examples
 
-See the [examples/](simple https://github.com/samoht/ramen/tree/master/examples)
-folder.
+See the [examples/](https://github.com/samoht/ramen/tree/master/examples) folder.
