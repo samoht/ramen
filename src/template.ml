@@ -364,6 +364,38 @@ let parse_yml ~file v =
   let k = Filename.chop_extension file in
   kollection k (parse_headers v)
 
+let parse_json ~file v =
+  let d = Ezjsonm.from_string v in
+  let string = function
+    | `Bool b   -> string_of_bool b
+    | `String s -> s
+    | `Float f  -> Fmt.to_to_string Fmt.float f
+    | `Null     -> ""
+  in
+  let rec value k f = function
+    | `O o  -> obj (fun v -> f (kollection k v)) o
+    | `A a  -> arr 0 (fun v -> f (kollection k v)) a
+    | `Null | `Bool _ | `String _ | `Float _ as v -> f (data k (string v))
+  and obj f = function
+    | []       -> f Context.empty
+    | (k,v)::t ->
+      value k (fun v ->
+          obj (fun t ->
+              f (Context.add t v)
+            ) t
+        ) v
+  and arr n f = function
+    | []   -> f Context.empty
+    | h::t ->
+      let k = string_of_int n in
+      value k (fun h ->
+          arr (n+1) (fun t ->
+              f (Context.add t h)
+            ) t
+        ) h
+  in
+  value (Filename.remove_extension file) (fun x -> x) d
+
 type page = {
   file   : string;
   context: context;
@@ -405,9 +437,10 @@ let parse_md ~file v =
 let parse_file ~file v =
   Log.debug (fun l -> l "parse_file %s" file);
   match Filename.extension file with
-  | ".yml" -> parse_yml ~file v
-  | ".md"  -> parse_md ~file v
-  | _      -> entry_of_page (parse_page ~file v)
+  | ".yml"  -> parse_yml ~file v
+  | ".json" -> parse_json ~file v
+  | ".md"   -> parse_md ~file v
+  | _       -> entry_of_page (parse_page ~file v)
 
 let read_files f dir =
   Log.debug (fun l -> l "read_files %s" dir);

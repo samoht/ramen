@@ -24,5 +24,6 @@ depends: [
   "re"
   "omd"
   "menhir"
+  "ezjsonm"
   "alcotest" {test}
 ]

@@ -155,17 +155,19 @@ module Data = struct
     close_in ic;
     s
 
-  let files = [
-    "foo.x"    , "xcxcxxc";
-    "bar.x"    , "dsasasaddasdas asdasdaasad asdas";
-    "foo/bar.x", "test test test test";
-    "toto.yml" , "foo: bar\nbar: toto\n";
-  ]
-
-  let read () =
+  let test files ctx =
     let test_dir = "_tests" in
     init test_dir files;
     let data = Template.read_data test_dir in
+    Alcotest.(check context) "data" ctx data
+
+  let simple () =
+    let files = [
+      "foo.x"    , "xcxcxxc";
+      "bar.x"    , "dsasasaddasdas asdasdaasad asdas";
+      "foo/bar.x", "test test test test";
+      "toto.yml" , "foo: bar\nbar: toto\n";
+    ] in
     let ctx = Template.(Context.v [
         data "bar" @@ List.assoc "bar.x" files;
         data "foo" @@ List.assoc "foo.x" files;
@@ -176,8 +178,28 @@ module Data = struct
           data "foo" "bar";
           data "bar" "toto";
         ]
-      ]) in
-    Alcotest.(check context) "data" data ctx
+      ])
+    in
+    test files ctx
+
+  let json () =
+    let files = [
+      "test.json"    ,
+      {|{
+        "foo": "bar",
+        "toto": [41, 2, 13]
+        }|};
+    ] in
+    let ctx = Template.(Context.v [
+        collection "test" [
+          data "foo" "bar";
+          collection "toto" [
+            data "0" "41";
+            data "1" "2";
+            data "2" "13"
+          ]]]
+      ) in
+    test files ctx
 
 end
 
@@ -260,7 +282,8 @@ let () =
       "both"   , `Quick, Page.both;
     ];
     "data", [
-      "read", `Quick, Data.read;
+      "simple", `Quick, Data.simple;
+      "json"  , `Quick, Data.json;
     ];
     "for", [
       "simple", `Quick, For.simple;
