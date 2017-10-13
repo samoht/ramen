@@ -38,10 +38,13 @@ The body can contain templates of the form:
 
 - variables `{{ VAR }}`: Ramen will replace these with their raw values defined
   in the page header or in the data directory (see bellow).
-- loops `{{ for i in VAR }} <body> {{ enfor }}: Ramen will expanse the body
+- loops `{{ for i in VAR }} <body> {{ enfor }}`: Ramen will expanse the body
   for each entry in the collection `var`.
 - conditions `{{ if VAR }} <body> {{ endif }}`. Ramen will remove `<body>` if
   `VAR` is not defined.
+
+__Note__: raw data can also contains the `{{ .. }}` quotations. They will be
+expanded recursively by Ramen.
 
 ### Support File Extensions
 
@@ -51,4 +54,5 @@ The following file extensions are supported:
 - `<file>.md`: will be transformed into the raw data `<file>` when markdown has
   been translated to HTML.
 - `<file>.yml`: will be transformed into the collection `<file>`. Note: only
-   very limited support for yaml at the moment (no nesting, only key-value)
+   very limited support for yaml at the moment (no nesting, only key-value).
+- every other files will be considered as raw data.
