@@ -46,9 +46,19 @@ The body can contain templates of the form:
 - **conditions**: `{{ if VAR }} <body> {{ endif }}`. Ramen will remove
   `<body>` if `VAR` is not defined.
 
-- **dictionaries**: `{{ xxx.[VAR].yyy }}` evaluates to `xx.yy.zz`
-  where `yy` is the contents of `VAR`. This could be used in
+- **dictionaries**: `{{ xxx.[VAR].yyy }}` evaluates to `xxx.v.yyy`
+  where `v` is the contents of `VAR`. This could be used in
   conjunction with for loops to "join" various collections.
+  For example, if you have two collections `books` and `people`,
+  you can cross-reference them using:
+  ````
+  {{for i in books}}
+    <div class="book">
+      <div class="title">t.title</div>
+      <div class="author">{{people.[i.author].name}}</div>
+    </div>
+  {{endfor}}
+  ````
 
 __Note__: raw data can also contains the `{{ .. }}` quotations. They will be
 expanded recursively by Ramen.
