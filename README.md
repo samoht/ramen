@@ -54,7 +54,7 @@ The body can contain templates of the form:
   ````
   {{for i in books}}
     <div class="book">
-      <div class="title">t.title</div>
+      <div class="title">{{t.title}}</div>
       <div class="author">{{people.[i.author].name}}</div>
     </div>
   {{endfor}}
