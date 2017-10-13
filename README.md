@@ -51,7 +51,7 @@ The body can contain templates of the form:
   conjunction with for loops to "join" various collections.
   For example, if you have two collections `books` and `people`,
   you can cross-reference them using:
-  ````
+  ````html
   {{for i in books}}
     <div class="book">
       <div class="title">{{t.title}}</div>
