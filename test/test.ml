@@ -264,6 +264,51 @@ module If = struct
 
 end
 
+module Get = struct
+
+  let ctx =
+    let open Template in
+    Context.v [
+      collection "people" [
+        collection "jean" [
+          data "name" "Jean Valjean";
+          data "age"  "99";
+          data "id"   "1";
+        ];
+        collection "luc" [
+          data "name" "Toto";
+          data "age"  "42";
+          data "id"   "2";
+        ];
+      ];
+      collection "truc" [
+        collection "one" [
+          data "owner" "jean";
+        ];
+        collection "two" [
+          data "owner" "luc";
+        ]
+      ]
+    ]
+
+  let f = Template.Ast.parse
+
+  let eval x =
+    let x, y = Template.eval ~file:"test" ctx x in
+    Alcotest.(check @@ slist error compare) "errors" [] y;
+    x
+
+  let simple () =
+    List.iteri (fun i (x, y) ->
+        Alcotest.(check ast) (string_of_int i) (f y) (eval @@ f x)
+      )[
+      "Hello {{ people.[truc.one.owner].name }}", "Hello Jean Valjean";
+      "{{for i in truc}}{{people.[i.owner].name}} {{endfor}}",
+      "Jean Valjean Toto ";
+    ]
+
+end
+
 let () =
   Alcotest.run "www" [
     "one", [
@@ -290,6 +335,8 @@ let () =
     ];
     "if", [
       "simple", `Quick, If.simple;
+    ];
+    "get", [
+      "simple", `Quick, Get.simple;
     ]
-
   ]

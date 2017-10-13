@@ -43,14 +43,14 @@ end
 module Ast: sig
   type t =
     | Data of string
-    | Var of string
+    | Var of var
     | If of cond
     | For of loop
     | Seq of t list
 
   and loop = {
     var   : string;
-    map   : string;
+    map   : var;
     order : order option;
     body  : t;
   }
@@ -58,11 +58,17 @@ module Ast: sig
   and order = [`Up | `Down] * string
 
   and cond = {
-    test : string;
+    test : var;
     then_: t;
   }
 
-  val pp: t Fmt.t
+  and var = id list
+
+  and id =
+    | Id of string
+    | Get of var
+
+val pp: t Fmt.t
   val dump: t Fmt.t
   val equal: t -> t -> bool
   val parse: string -> t

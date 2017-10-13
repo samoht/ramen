@@ -44,8 +44,7 @@ let syntax_error s = raise (Error s)
 
 let digit = ['0'-'9']
 let alpha = ['a'-'z' 'A'-'Z']
-let id = alpha (alpha | digit | '-' | '_')*
-let var = id ('.' id)*
+let var = (alpha | digit | '-' | '_')+
 let newline = '\r' | '\n' | "\r\n"
 let white = [' ' '\t']+
 
@@ -59,6 +58,7 @@ and program t = parse
   | "}}"     { t.mode <- `Text; text t lexbuf }
   | white    { program t lexbuf }
   | newline  { Lexing.new_line lexbuf; program t lexbuf }
+  | '.'      { DOT }
   | "for"    { FOR }
   | "endfor" { ENDFOR }
   | "if"     { IF }
@@ -66,7 +66,9 @@ and program t = parse
   | "in"     { IN }
   | "|"      { PIPE }
   | "-"      { MINUS }
-  | var      { VAR (Lexing.lexeme lexbuf) }
+  | "["      { LBRA }
+  | "]"      { RBRA }
+  | var      { let v = Lexing.lexeme lexbuf in p t "VAR %S" v; VAR v }
   | eof      { syntax_error "unclosed tag" }
 
 {

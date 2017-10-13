@@ -167,12 +167,21 @@ let vars contents =
   let vars = ref String.Set.empty in
   let rec aux loops = function
     | Data _ -> ()
-    | Var v  ->
-      if String.Set.exists (fun k -> String.is_prefix ~affix:k v) loops then ()
-      else vars := String.Set.add v !vars
     | If c   -> aux loops c.then_
     | For l  -> aux (String.Set.add l.var loops) l.body
     | Seq s  -> List.iter (aux loops) s
+    | Var v  -> aux_var loops v
+  and aux_var loops v =
+    match Ast.name v with
+    | Some v ->
+      if String.Set.exists (fun k -> String.is_prefix ~affix:k v) loops
+      then ()
+      else vars := String.Set.add v !vars
+    | None   ->
+      List.iter (function
+          | Id _  -> ()
+          | Get v -> aux_var loops v
+        ) v
   in
   aux String.Set.empty contents;
   String.Set.elements !vars
@@ -188,11 +197,14 @@ let subst ~file { k; v } contents =
     let open Ast in
     Log.debug (fun l -> l "replacing %a in %a" pp_key k pp_file file);
     let n = ref 0 in
-    let rec aux f = function
-      | Var var when var = k -> incr n; f (Data v)
-      | Data _
-      | Var _ as x -> f x
-      | Seq s as x -> auxes (fun t -> if s == t then f x else (f (Seq t))) s
+    let rec aux (f: t -> t) = function
+      | Var v as x  ->
+        auxv (function
+          | `Var v' -> if v == v' then f x else f (Var v')
+          | `Data v -> f (Data v)
+          ) v
+      | Data _ as x -> f x
+      | Seq s as x -> auxes (fun s' -> if s == s' then f x else (f (Seq s'))) s
       | If c as x  ->
         aux (fun t ->
             if t == c.then_ then f x else f (If { c with then_=t })
@@ -201,6 +213,23 @@ let subst ~file { k; v } contents =
         aux (fun t ->
             if t == l.body then f x else f (For { l with body=t })
           ) l.body
+    and auxv f var = match Ast.name var with
+      | Some s when s = k -> incr n; f (`Data v)
+      | _                 -> auxids (fun x -> f (`Var x)) var
+    and auxids f = function
+      | []                   -> f []
+      | Id _ as x :: t as l  ->
+        auxids (fun t' -> if t == t' then f l else f (x :: t')) t
+      | Get g :: t as l      ->
+        auxv (fun g' ->
+            auxids (fun t' ->
+                match g' with
+                | `Var g' when g' == g ->
+                  if t == t' then f l else f (Get g' :: t')
+                | `Data v -> f (Id v :: t')
+                | `Var g' -> f (Get g' :: t')
+              ) t
+          ) g
     and auxes f = function
       | []        -> f []
       | h::t as x ->
@@ -292,29 +321,35 @@ let unroll ~file context contents =
     | Ast.Data _ | Var _ as x -> f x
     | Seq l as s -> auxes (fun l' -> if l' == l then f s else f (Seq l')) l
     | If c       ->
-      if not (Context.mem context c.test) then f empty
-      else aux (fun t -> f t) c.then_
+      (match Ast.name c.test with
+       | None   -> f empty
+       | Some v ->
+         if not (Context.mem context v) then f empty
+         else aux (fun t -> f t) c.then_)
     | For loop   ->
-      match Context.find context loop.map with
-      | None ->
-        Error.R.add errors (err_invalid_key ~file loop.map);
-        f empty
-      | Some { v = Data _; _ } ->
-        Error.R.add errors (err_collection_is_needed ~file loop.map);
-        f empty
-      | Some { v = Collection c; _ } ->
-        let entries = String.Map.bindings c in
-        let sort = sort ~file errors loop in
-        let entries = List.sort sort entries |> List.rev in
-        List.fold_left (fun acc (k, v) ->
-            Log.debug (fun l -> l "unrolling %s in %a" k Ast.dump loop.body);
-            let context = Context.(add empty) { k = loop.var; v } in
-            let z, es = replace ~file context loop.body in
-            Log.debug (fun l -> l "unrolling is %a" Ast.dump z);
-            Error.R.union errors es;
-            (z :: acc)
-          ) [] entries
-        |> fun s -> f (Seq s)
+      match Ast.name loop.map with
+      | None   -> f empty (* FIXME: errors *)
+      | Some v ->
+        match Context.find context v with
+        | None ->
+          Error.R.add errors (err_invalid_key ~file v);
+          f empty
+        | Some { v = Data _; _ } ->
+          Error.R.add errors (err_collection_is_needed ~file v);
+          f empty
+        | Some { v = Collection c; _ } ->
+          let entries = String.Map.bindings c in
+          let sort = sort ~file errors loop in
+          let entries = List.sort sort entries |> List.rev in
+          List.fold_left (fun acc (k, v) ->
+              Log.debug (fun l -> l "unrolling %s in %a" k Ast.dump loop.body);
+              let context = Context.add context { k = loop.var; v } in
+              let z, es = replace ~file context loop.body in
+              Log.debug (fun l -> l "unrolling is %a" Ast.dump z);
+              Error.R.union errors es;
+              (z :: acc)
+            ) [] entries
+          |> fun s -> f (Seq s)
   and auxes f = function
     | []        -> f []
     | h::t as x ->
@@ -473,3 +508,20 @@ let read_data root =
   aux ""
 
 let read_pages ~dir = read_files parse_page dir
+
+(*
+    | Get g      ->
+      aux (fun n ->
+          let n = Ast.normalize n in
+          match n with
+          (* FIXME: Ast.normalize is really dumb *)
+          | Seq [Data ""; Var n; Data ""] ->
+            (match Context.find context n with
+             | Some {v=Data s; _} -> f (Var (Fmt.strf "%s.%s" g.base s))
+             | _ -> Error.R.add errors (err_invalid_key ~file n); f empty)
+          | _ ->
+            let get = Fmt.to_to_string Ast.dump (Get {g with n}) in
+            Error.R.add errors (err_invalid_get ~file get);
+            f empty
+        ) g.n
+                    *)

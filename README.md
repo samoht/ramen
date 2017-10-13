@@ -42,6 +42,9 @@ The body can contain templates of the form:
   for each entry in the collection `var`.
 - conditions `{{ if VAR }} <body> {{ endif }}`. Ramen will remove `<body>` if
   `VAR` is not defined.
+- arrays `{{ xxx.[VAR].yyy }}` evaluates to `xx.yy.zz` where `yy` is the
+  contents of `VAR`. This could be used in conjunction with for loops to
+  "join" various collections.
 
 __Note__: raw data can also contains the `{{ .. }}` quotations. They will be
 expanded recursively by Ramen.
@@ -56,3 +59,7 @@ The following file extensions are supported:
 - `<file>.yml`: will be transformed into the collection `<file>`. Note: only
    very limited support for yaml at the moment (no nesting, only key-value).
 - every other files will be considered as raw data.
+
+### Examples
+
+See a simple example in [./examples/bootstrap].
