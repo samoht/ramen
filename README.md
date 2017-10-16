@@ -54,14 +54,17 @@ The body can contain templates of the form:
 - **loops**: `{{ for i in VAR }} <body> {{ endfor }}`: Ramen will
   expanse the body for each entry in the collection `var`.
 
-- **conditions**: `{{ if cond1 }} <body1> {{ elif cond2 }} <body2> {{
-  endif }}`. Ramen will pick the first `<bodyN>` such that `condN` is
+- **conditions**: `{{ if cond1 }} <body_1> ... {{ elif cond_n }} <body_n> {{
+  endif }}`. Ramen will pick the first `<body_i>` such that `cond_i` is
   satisfied (or it will use an empty string if none of the conditions
   are true). Conditions are a `&&`-separated list of conjonctions of
   either a single variable `var` (to check if this variablie is
   defined in the current context) or variable equality `(var1 = var2)`
   (to check if both variables points to the same contents -- they
-  could be collections). For instance:
+  could be collections). Simple negations are also supported,
+  using `!var` and `(x != y)`.
+
+  For instance:
 
   ```html
   {{ if i.title && (i = site.page) }}

@@ -143,6 +143,7 @@ type loc = { file: string; key: string }
 type error =
   | Invalid_key of loc
   | Invalid_order of loc
+  | Var_not_fully_defined of loc
   | Data_is_needed of loc
   | Collection_is_needed of loc
 
@@ -150,6 +151,9 @@ let err_invalid_key ~file key = Invalid_key { file; key }
 let err_invalid_order ~file key = Invalid_order { file; key }
 let err_data_is_needed ~file key = Data_is_needed { file; key }
 let err_collection_is_needed ~file key = Collection_is_needed { file; key }
+
+let err_not_fully_defined ~file v =
+  Fmt.kstrf (fun key -> Var_not_fully_defined { file; key }) "%a" Ast.pp_var v
 
 let pp_error ppf = function
   | Invalid_key { file; key } ->
@@ -163,6 +167,9 @@ let pp_error ppf = function
       pp_key key pp_file file
   | Collection_is_needed { file; key } ->
     Fmt.pf ppf "They key %a in %a should be of type 'collection'."
+      pp_key key pp_file file
+  | Var_not_fully_defined { file; key } ->
+    Fmt.pf ppf "The variable %a is not fully defined in %a."
       pp_key key pp_file file
 
 let vars contents =
@@ -317,17 +324,30 @@ let sort ~file errors loop x y =
   | None       -> default
   | Some order -> with_order order
 
-let eval_test ~context = function
-  | Ast.Def t ->
-    (match Ast.name t with None -> false | Some v -> Context.mem context v)
-  | Ast.Eq (x, y) ->
-    if Ast.equal_var x y then true
-    else match Ast.name x, Ast.name y with
-      | Some x, Some y ->
-        (match Context.find context x, Context.find context y with
-         | Some x, Some y -> equal_value x.v y.v
-         | _ -> false)
-      | _ -> false
+let eval_test ~file ~context ~errors test =
+  Log.debug (fun l -> l "eval_test %a" Ast.pp_test test);
+  let err x = Error.R.add errors (err_not_fully_defined ~file x); false in
+  let rec aux k = function
+    | Ast.Ndef t     -> aux (fun x -> k (not x)) Ast.(Def t)
+    | Ast.Neq (x, y) -> aux (fun x -> k (not x)) Ast.(Eq (x, y))
+    | Ast.Def t      ->
+      (match Ast.name t with
+       | None   -> k (err t)
+       | Some v -> k (Context.mem context v))
+    | Ast.Eq (x, y) ->
+      Ast.equal_var x y ||
+      match Ast.name x, Ast.name y with
+      | Some nx, Some ny ->
+        (match Context.find context nx, Context.find context ny with
+         | Some x, Some y -> k (equal_value x.v y.v)
+         | None  , None   -> k (err x && err y)
+         | None  , _      -> k (err x)
+         | _     , None   -> k (err y))
+      | None, None -> k (err x && err y)
+      | None, _    -> k (err x)
+      | _   , None -> k (err y)
+  in
+  aux (fun x -> x) test
 
 let unroll ~file context contents =
   let errors = ref [] in
@@ -336,7 +356,7 @@ let unroll ~file context contents =
     | Ast.Data _ | Var _ as x -> f x
     | Seq l as s -> auxes (fun l' -> if l' == l then f s else f (Seq l')) l
     | If c       ->
-      if List.for_all (eval_test ~context) c.test
+      if List.for_all (eval_test ~file ~context ~errors) c.test
       then aux (fun t -> f t) c.then_
       else auxelif (fun t -> f t) c.else_
     | For loop   ->

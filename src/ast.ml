@@ -23,7 +23,9 @@ and cond = {
 
 and test =
   | Def of var
+  | Ndef of var
   | Eq of var * var
+  | Neq of var * var
 
 and order = [`Up | `Down] * string
 
@@ -55,7 +57,9 @@ and pp_ands ppf x = Fmt.(list ~sep:(unit " && ") pp_test) ppf x
 
 and pp_test ppf = function
   | Def x     -> pp_var ppf x
+  | Ndef x    -> Fmt.pf ppf "!%a" pp_var x
   | Eq (x, y) -> Fmt.pf ppf "(%a = %a)" pp_var x pp_var y
+  | Neq(x, y) -> Fmt.pf ppf "(%a != %a)" pp_var x pp_var y
 
 and pp_elif ppf = function
   | None   -> Fmt.string ppf "{{ endif }}"
@@ -86,7 +90,9 @@ and dump_ands ppf t = Fmt.(Dump.list dump_test) ppf t
 
 and dump_test ppf = function
   | Def t     -> Fmt.pf ppf "@[<hov 2>Def %a@]" pp_var t
+  | Ndef t    -> Fmt.pf ppf "@[<hov 2>Ndef %a@]" pp_var t
   | Eq (x, y) -> Fmt.pf ppf "@[<hov 2>Eq (%a,@ %a)@]" pp_var x pp_var y
+  | Neq(x, y) -> Fmt.pf ppf "@[<hov 2>Neq (%a,@ %a)@]" pp_var x pp_var y
 
 and dump_order ppf (t, s) = match t with
   | `Up   -> Fmt.string ppf s

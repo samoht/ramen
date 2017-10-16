@@ -66,6 +66,8 @@ and program t = parse
   | "endif"  { ENDIF }
   | "&&"     { AND }
   | "="      { EQ }
+  | "!"      { BANG }
+  | "!="     { NEQ }
   | "in"     { IN }
   | "|"      { PIPE }
   | "-"      { MINUS }

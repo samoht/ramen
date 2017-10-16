@@ -6,7 +6,7 @@ open Ast
 %token DOT
 %token FOR IN ENDFOR PIPE MINUS
 %token IF ELIF ENDIF
-%token AND EQ
+%token AND EQ NEQ BANG
 %token LBRA RBRA
 %token LPAR RPAR
 %token EOF
@@ -31,8 +31,10 @@ elif:
   | ENDIF                { None }
 
 cond:
-  | var                  { Def $1 }
-  | LPAR var EQ var RPAR { Eq ($2, $4) }
+  | var                   { Def $1 }
+  | BANG var              { Ndef $2 }
+  | LPAR var EQ var RPAR  { Eq ($2, $4) }
+  | LPAR var NEQ var RPAR { Neq ($2, $4) }
 
 test:
   | separated_nonempty_list(AND, cond) { $1 }
