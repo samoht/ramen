@@ -243,6 +243,7 @@ module If = struct
   let ctx =
     let open Template in
     Context.v [
+      data "foo" "x";
       collection "toto" [
         data "name" "Jean Valjean";
       ]]
@@ -260,6 +261,14 @@ module If = struct
       )[
       "Hello {{ if toto.name }}world!{{ endif }}", "Hello world!";
       "Hi {{ if calvi }}Jean{{ endif }}"         , "Hi ";
+    ]
+
+  let many () =
+    List.iteri (fun i (x, y) ->
+        Alcotest.(check ast) (string_of_int i) (f y) (eval @@ f x)
+      )[
+      "{{if toto.name && foo}}hello!{{endif}}" , "hello!";
+      "{{if calvi}}Jean{{elif foo}}yo{{endif}}", "yo";
     ]
 
 end
@@ -335,6 +344,7 @@ let () =
     ];
     "if", [
       "simple", `Quick, If.simple;
+      "many"  , `Quick, If.many;
     ];
     "get", [
       "simple", `Quick, Get.simple;

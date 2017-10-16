@@ -62,7 +62,9 @@ and program t = parse
   | "for"    { FOR }
   | "endfor" { ENDFOR }
   | "if"     { IF }
+  | "elif"   { ELIF }
   | "endif"  { ENDIF }
+  | "&&"     { AND }
   | "in"     { IN }
   | "|"      { PIPE }
   | "-"      { MINUS }

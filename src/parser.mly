@@ -5,7 +5,8 @@ open Ast
 %token <string> VAR DATA
 %token DOT
 %token FOR IN ENDFOR PIPE MINUS
-%token IF ENDIF
+%token IF ELIF ENDIF
+%token AND
 %token LBRA RBRA
 %token EOF
 
@@ -20,9 +21,16 @@ main:
 expr:
   | var                { Var $1 }
   | DATA               { Data $1 }
-  | IF var exprs ENDIF { If { test=$2; then_=$3 } }
+  | IF cond exprs elif { If { test=$2; then_=$3; else_= $4 } }
   | FOR VAR IN var ordering exprs ENDFOR
                        { For { var=$2; map=$4; order=$5; body=$6 } }
+
+elif:
+  | ELIF cond exprs elif { Some { test=$2; then_=$3; else_= $4 } }
+  | ENDIF                { None }
+
+cond:
+  | separated_nonempty_list(AND, var) { $1 }
 
 var:
   | separated_nonempty_list(DOT, id) { $1 }

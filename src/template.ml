@@ -319,6 +319,10 @@ let sort ~file errors loop x y =
   | None       -> default
   | Some order -> with_order order
 
+let is_valid ~context t = match Ast.name t with
+  | None -> false
+  | Some v -> Context.mem context v
+
 let unroll ~file context contents =
   let errors = ref [] in
   let empty = Ast.Data "" in
@@ -326,11 +330,9 @@ let unroll ~file context contents =
     | Ast.Data _ | Var _ as x -> f x
     | Seq l as s -> auxes (fun l' -> if l' == l then f s else f (Seq l')) l
     | If c       ->
-      (match Ast.name c.test with
-       | None   -> f empty
-       | Some v ->
-         if not (Context.mem context v) then f empty
-         else aux (fun t -> f t) c.then_)
+      if List.for_all (is_valid ~context) c.test
+      then aux (fun t -> f t) c.then_
+      else auxelif (fun t -> f t) c.else_
     | For loop   ->
       match Ast.name loop.map with
       | None   -> f empty (* FIXME: errors *)
@@ -367,6 +369,9 @@ let unroll ~file context contents =
               else f (h' :: t')
             ) t
         ) h
+  and auxelif f = function
+    | None   -> f empty
+    | Some c -> aux (fun t -> f t) (If c)
   in
   let r = aux (fun x -> x) contents in
   r, !errors
@@ -511,20 +516,3 @@ let read_data root =
   aux ""
 
 let read_pages ~dir = read_files parse_page dir
-
-(*
-    | Get g      ->
-      aux (fun n ->
-          let n = Ast.normalize n in
-          match n with
-          (* FIXME: Ast.normalize is really dumb *)
-          | Seq [Data ""; Var n; Data ""] ->
-            (match Context.find context n with
-             | Some {v=Data s; _} -> f (Var (Fmt.strf "%s.%s" g.base s))
-             | _ -> Error.R.add errors (err_invalid_key ~file n); f empty)
-          | _ ->
-            let get = Fmt.to_to_string Ast.dump (Get {g with n}) in
-            Error.R.add errors (err_invalid_get ~file get);
-            f empty
-        ) g.n
-                    *)

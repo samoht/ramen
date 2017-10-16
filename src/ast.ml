@@ -16,8 +16,9 @@ and loop = {
 }
 
 and cond = {
-  test : var;
+  test : var list;
   then_: t;
+  else_: cond option;
 }
 
 and order = [`Up | `Down] * string
@@ -44,7 +45,13 @@ and pp_loop ppf t =
   Fmt.pf ppf "{{ for %s in %a%t }}%a{{ endfor }}" t.var pp_var t.map o pp t.body
 
 and pp_cond ppf t =
-  Fmt.pf ppf "{{ if %a }}%a{{ endif }}" pp_var t.test pp t.then_
+  Fmt.pf ppf "{{ if %a }}%a%a" pp_test t.test pp t.then_ pp_elif t.else_
+
+and pp_test ppf x = Fmt.(list ~sep:(unit " && ") pp_var) ppf x
+
+and pp_elif ppf = function
+  | None   -> Fmt.string ppf "{{ endif }}"
+  | Some c -> pp_cond ppf c
 
 and pp_var ppf t = Fmt.(list ~sep:(unit ".") pp_id) ppf t
 
@@ -64,7 +71,8 @@ and dump_loop ppf t =
     t.var dump_var t.map Fmt.(Dump.option dump_order) t.order dump t.body
 
 and dump_cond ppf t =
-  Fmt.pf ppf "{test=%a;@ then_=%a}" dump_var t.test dump t.then_
+  Fmt.pf ppf "{test=%a;@ then_=%a;@ else_=%a}"
+    pp_test t.test dump t.then_ Fmt.(Dump.option dump_cond) t.else_
 
 and dump_order ppf (t, s) = match t with
   | `Up   -> Fmt.string ppf s
@@ -98,8 +106,13 @@ and equal_order x y = match x, y with
   | _ -> false
 
 and equal_cond x y =
-  equal_var x.test y.test
+  List.length x.test = List.length y.test
+  && List.for_all2 equal_var x.test y.test
   && equal x.then_ y.then_
+  && match x.else_, y.else_ with
+  | None  , None   -> true
+  | Some x, Some y -> equal_cond x y
+  | _ -> false
 
 and equal_var x y =
   List.length x = List.length y

@@ -13,8 +13,9 @@ and loop = {
 }
 
 and cond = {
-  test : var;
+  test : var list;
   then_: t;
+  else_: cond option;
 }
 
 and order = [`Up | `Down] * string

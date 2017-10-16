@@ -38,7 +38,13 @@ module Context: sig
   val (++): t -> t -> t
   (** [x ++ y] is the union of [x] and [y]. *)
 
+  val add: t -> entry -> t
+  (** [add t e] adds the entry in [t]. *)
+
 end
+
+val kollection: string -> Context.t -> entry
+(** Same as {!collection} but for contexts. *)
 
 module Ast: sig
   type t =
@@ -58,8 +64,9 @@ module Ast: sig
   and order = [`Up | `Down] * string
 
   and cond = {
-    test : var;
+    test : var list;
     then_: t;
+    else_: cond option;
   }
 
   and var = id list
