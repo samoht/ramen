@@ -13,9 +13,16 @@ and loop = {
 }
 
 and cond = {
-  test : var;
+  test : test list;
   then_: t;
+  else_: cond option;
 }
+
+and test =
+  | Def of var
+  | Ndef of var
+  | Eq of var * var
+  | Neq of var * var
 
 and order = [`Up | `Down] * string
 
@@ -29,3 +36,6 @@ val pp: t Fmt.t
 val dump: t Fmt.t
 val equal: t -> t -> bool
 val name: var -> string option
+val equal_var: var -> var -> bool
+val pp_var: var Fmt.t
+val pp_test: test Fmt.t

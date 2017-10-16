@@ -45,10 +45,6 @@ and entries = entry list
 
 and entry = { k: string; v: value }
 
-let equal_entry equal_v x y =
-  x == y ||
-  String.equal x.k y.k && equal_v x.v y.v
-
 let rec pp_entries pp_data ppf t =
   Fmt.vbox ~indent:0 (Fmt.list ~sep:(Fmt.unit "") (pp_entry pp_data)) ppf t
 
@@ -62,10 +58,12 @@ and pp_entry pp_data ppf { k; v } =
 
 let data k v = { k; v = Data v }
 
-let rec equal_entries x y =
+let rec equal_entry x y =
+  x == y || (String.equal x.k y.k && equal_value x.v y.v)
+
+and equal_entries x y =
   x == y ||
-  List.length x = List.length y
-  && List.for_all2 (equal_entry equal_value) x y
+  List.length x = List.length y && List.for_all2 equal_entry x y
 
 and equal_value x y =
   x == y ||
@@ -145,6 +143,7 @@ type loc = { file: string; key: string }
 type error =
   | Invalid_key of loc
   | Invalid_order of loc
+  | Var_not_fully_defined of loc
   | Data_is_needed of loc
   | Collection_is_needed of loc
 
@@ -152,6 +151,9 @@ let err_invalid_key ~file key = Invalid_key { file; key }
 let err_invalid_order ~file key = Invalid_order { file; key }
 let err_data_is_needed ~file key = Data_is_needed { file; key }
 let err_collection_is_needed ~file key = Collection_is_needed { file; key }
+
+let err_not_fully_defined ~file v =
+  Fmt.kstrf (fun key -> Var_not_fully_defined { file; key }) "%a" Ast.pp_var v
 
 let pp_error ppf = function
   | Invalid_key { file; key } ->
@@ -165,6 +167,9 @@ let pp_error ppf = function
       pp_key key pp_file file
   | Collection_is_needed { file; key } ->
     Fmt.pf ppf "They key %a in %a should be of type 'collection'."
+      pp_key key pp_file file
+  | Var_not_fully_defined { file; key } ->
+    Fmt.pf ppf "The variable %a is not fully defined in %a."
       pp_key key pp_file file
 
 let vars contents =
@@ -319,6 +324,31 @@ let sort ~file errors loop x y =
   | None       -> default
   | Some order -> with_order order
 
+let eval_test ~file ~context ~errors test =
+  Log.debug (fun l -> l "eval_test %a" Ast.pp_test test);
+  let err x = Error.R.add errors (err_not_fully_defined ~file x); false in
+  let rec aux k = function
+    | Ast.Ndef t     -> aux (fun x -> k (not x)) Ast.(Def t)
+    | Ast.Neq (x, y) -> aux (fun x -> k (not x)) Ast.(Eq (x, y))
+    | Ast.Def t      ->
+      (match Ast.name t with
+       | None   -> k (err t)
+       | Some v -> k (Context.mem context v))
+    | Ast.Eq (x, y) ->
+      Ast.equal_var x y ||
+      match Ast.name x, Ast.name y with
+      | Some nx, Some ny ->
+        (match Context.find context nx, Context.find context ny with
+         | Some x, Some y -> k (equal_value x.v y.v)
+         | None  , None   -> k (err x && err y)
+         | None  , _      -> k (err x)
+         | _     , None   -> k (err y))
+      | None, None -> k (err x && err y)
+      | None, _    -> k (err x)
+      | _   , None -> k (err y)
+  in
+  aux (fun x -> x) test
+
 let unroll ~file context contents =
   let errors = ref [] in
   let empty = Ast.Data "" in
@@ -326,11 +356,9 @@ let unroll ~file context contents =
     | Ast.Data _ | Var _ as x -> f x
     | Seq l as s -> auxes (fun l' -> if l' == l then f s else f (Seq l')) l
     | If c       ->
-      (match Ast.name c.test with
-       | None   -> f empty
-       | Some v ->
-         if not (Context.mem context v) then f empty
-         else aux (fun t -> f t) c.then_)
+      if List.for_all (eval_test ~file ~context ~errors) c.test
+      then aux (fun t -> f t) c.then_
+      else auxelif (fun t -> f t) c.else_
     | For loop   ->
       match Ast.name loop.map with
       | None   -> f empty (* FIXME: errors *)
@@ -367,6 +395,9 @@ let unroll ~file context contents =
               else f (h' :: t')
             ) t
         ) h
+  and auxelif f = function
+    | None   -> f empty
+    | Some c -> aux (fun t -> f t) (If c)
   in
   let r = aux (fun x -> x) contents in
   r, !errors
@@ -511,20 +542,3 @@ let read_data root =
   aux ""
 
 let read_pages ~dir = read_files parse_page dir
-
-(*
-    | Get g      ->
-      aux (fun n ->
-          let n = Ast.normalize n in
-          match n with
-          (* FIXME: Ast.normalize is really dumb *)
-          | Seq [Data ""; Var n; Data ""] ->
-            (match Context.find context n with
-             | Some {v=Data s; _} -> f (Var (Fmt.strf "%s.%s" g.base s))
-             | _ -> Error.R.add errors (err_invalid_key ~file n); f empty)
-          | _ ->
-            let get = Fmt.to_to_string Ast.dump (Get {g with n}) in
-            Error.R.add errors (err_invalid_get ~file get);
-            f empty
-        ) g.n
-                    *)
