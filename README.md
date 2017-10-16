@@ -39,30 +39,37 @@ Ramen predefines a number of "special" collections:
 Every template in pages has the following structure:
 
 ```
-var1: value1
-var2: value2
+var_1: value_1
+var_2: value_2
 ---
 body
 ```
 
 The body can contain templates of the form:
 
-- **variables**: `{{ VAR }}`: Ramen will replace these with their raw
+- **variables**: `{{ var }}`: Ramen will replace these with their raw
   values defined in the page header or in the data directory (see
-  bellow).
+  bellow). Variables are alpha-numeric characters with `-` and `_`.
+  Full variables can contain dots, to explore collections. For instance,
+  if `foo` has two keys `a` and `b` (as for instance their exists two files `
+  data/foo/a` and  `data/foo/b`) the contents of these could be
+  accessed in template bodies using `foo.a` and `foo.b`.
 
-- **loops**: `{{ for i in VAR }} <body> {{ endfor }}`: Ramen will
+  __Note:__ when reading files in the `data/` directory, Ramen will
+  remove extensions, so `foo/a.html` will be available using `foo.a`.
+
+- **loops**: `{{ for i in var }} <body> {{ endfor }}`: Ramen will
   expanse the body for each entry in the collection `var`.
 
-- **conditions**: `{{ if cond1 }} <body_1> ... {{ elif cond_n }} <body_n> {{
+- **conditions**: `{{ if cond_1 }} <body_1> ... {{ elif cond_n }} <body_n> {{
   endif }}`. Ramen will pick the first `<body_i>` such that `cond_i` is
   satisfied (or it will use an empty string if none of the conditions
   are true). Conditions are a `&&`-separated list of conjonctions of
   either a single variable `var` (to check if this variablie is
-  defined in the current context) or variable equality `(var1 = var2)`
+  defined in the current context) or variable equality `(var_1 = var_2)`
   (to check if both variables points to the same contents -- they
   could be collections). Simple negations are also supported,
-  using `!var` and `(x != y)`.
+  using `!var` and `(var_1 != var_2)`.
 
   For instance:
 
