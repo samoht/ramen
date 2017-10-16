@@ -163,15 +163,15 @@ module Data = struct
 
   let simple () =
     let files = [
-      "foo.x"    , "xcxcxxc";
       "bar.x"    , "dsasasaddasdas asdasdaasad asdas";
-      "foo/bar.x", "test test test test";
+      "foo.x"    , "xcxcxxc";
+      "fooo/bar.x", "test test test test";
       "toto.yml" , "foo: bar\nbar: toto\n";
     ] in
     let ctx = Template.(Context.v [
         data "bar" @@ List.assoc "bar.x" files;
         data "foo" @@ List.assoc "foo.x" files;
-        collection "foo" [
+        collection "fooo" [
           data "bar" "test test test test";
         ];
         collection "toto" [

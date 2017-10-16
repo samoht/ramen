@@ -17,11 +17,15 @@ A Ramen website consists of 3 directories:
 
 There are 2 kinds of data:
 
-- raw data: Ramen will use these to complete template variables. Example of raw
-  data could either be a raw file or a header value.
-- collections: Ramen will use these to expanse for loops. `foo.bar` denotes
+- **raw data**: Ramen will use these to complete template variables. Example of
+  raw data could either be a raw file or a header value.
+
+- **collections**: Ramen will use these to expanse for loops. `foo.bar` denotes
   the entry `bar` in the collection `foo`. These are built from directories
   in `data/` or from structured files (with `.yml` or `.json` extensions).
+  Collection are ordered:
+  - when built from files, using lexicographic order.
+  - when built from JSON or Yaml, using the declaration order.
 
 ### Syntax of Templates
 
