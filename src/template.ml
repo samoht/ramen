@@ -37,12 +37,22 @@ let pp_key = Fmt.(styled `Bold string)
 
 (* ENTRIES *)
 
+
 type value = Data of string | Collection of entries
-and entries = value String.Map.t
 
-type entry = { k: string; v: value }
+and entries = entry list
+(* we use a list here to preserve collection orders. *)
 
-let rec pp_value pp_data ppf = function
+and entry = { k: string; v: value }
+
+let equal_entry equal_v x y =
+  x == y ||
+  String.equal x.k y.k && equal_v x.v y.v
+
+let rec pp_entries pp_data ppf t =
+  Fmt.vbox ~indent:0 (Fmt.list ~sep:(Fmt.unit "") (pp_entry pp_data)) ppf t
+
+and pp_value pp_data ppf = function
   | Data s       -> pp_data ppf s
   | Collection c ->
     Fmt.pf ppf "{%a}" Fmt.(vbox ~indent:2 (pp_entries pp_data)) c
@@ -50,22 +60,19 @@ let rec pp_value pp_data ppf = function
 and pp_entry pp_data ppf { k; v } =
   Fmt.pf ppf "@[%a => %a@]@," pp_key k (pp_value pp_data) v
 
-and pp_entries pp_data ppf t =
-  Fmt.vbox ~indent:0
-    (String.Map.pp ~sep:(Fmt.unit "") (fun ppf (k, v) ->
-         pp_entry pp_data ppf { k; v }
-       )) ppf t
-
 let data k v = { k; v = Data v }
 
-let rec value_equal x y =
+let rec equal_entries x y =
+  x == y ||
+  List.length x = List.length y
+  && List.for_all2 (equal_entry equal_value) x y
+
+and equal_value x y =
   x == y ||
   match x, y with
   | Data x      , Data y       -> String.equal x y
-  | Collection x, Collection y -> entries_equal x y
+  | Collection x, Collection y -> equal_entries x y
   | _ -> false
-
-and entries_equal x y = String.Map.equal value_equal x y
 
 (* CONTEXT *)
 
@@ -75,42 +82,42 @@ module Context: sig
   val dump: t Fmt.t
   val equal: t -> t -> bool
   val v: entry list -> t
-  val (++): t -> t -> t
-  val empty: t
   val is_empty: t -> bool
   val add: t -> entry -> t
   val mem: t -> string -> bool
   val find: t -> string -> entry option
-  val values: t -> value String.Map.t
+  val entries: t -> entry list
+  val (++): t -> t -> t
 end = struct
-  type t = entries
-  let dump = pp_entries (fun ppf d -> Fmt.pf ppf "%S" d)
-  let pp = pp_entries (fun ppf _ -> Fmt.string ppf ".")
-  let equal = entries_equal
-  let is_empty x = String.Map.is_empty x
-  let empty = String.Map.empty
-  let (++) = String.Map.union (fun _ x _ -> Some x)
-  let add m e = String.Map.add e.k e.v m
-  let values x = x
+  type t = entries (* reverse order *)
+  let dump ppf t = pp_entries (fun ppf d -> Fmt.pf ppf "%S" d) ppf (List.rev t)
+  let pp ppf t = pp_entries (fun ppf _ -> Fmt.string ppf ".") ppf (List.rev t)
+  let is_empty x = x = []
+  let equal = equal_entries
+  let entries x = List.rev x
+  let v x = (* FIXME: check for duplicates *) List.rev x
+
+  let add m x = x :: m
+  let (++) x y = List.rev_append y (List.rev x)
 
   let find m k =
     let return x m =
-      match String.Map.find x m with
-      | None   -> None
-      | Some v -> Some { k; v }
+      match List.find (fun e -> String.equal e.k x) m with
+      | exception Not_found -> None
+      | v                   -> Some { v with k }
     in
     let rec aux path m = function
       | []   -> None
       | [k]  -> return k m
       | h::t ->
-        match String.Map.find h m with
-        | None -> None
-        | Some (Data _) ->
+        match List.find (fun { k; _ } -> String.equal k h) m with
+        | exception Not_found     -> None
+        | { v = Collection m; _ } -> aux (h :: path) m t
+        | { v = Data _; _ }       ->
           Log.err (fun l ->
               l "%s is not a collection (longest valid prefix is: %a)"
                 k Fmt.(list ~sep:(unit ".") string) (List.rev path) );
           None
-        | Some (Collection m) -> aux (h :: path) m t
     in
     let path = String.cuts ~sep:"." k in
     aux [] m path
@@ -119,17 +126,15 @@ end = struct
     | None   -> false
     | Some _ -> true
 
-  let v l =
-    List.fold_left (fun acc { k; v } ->
-        if String.Map.mem k acc then
-          Log.info (fun l ->
-              l "Entry %s is duplicated, picking the last one." k);
-        String.Map.add k v acc
-      ) String.Map.empty l
 end
 
-let collection k l = { k; v = Collection Context.(values @@ v l) }
-let kollection k c = { k; v = Collection (Context.values c) }
+let collection k l = { k; v = Collection Context.(entries @@ v l) }
+let kollection k c = { k; v = Collection (Context.entries c) }
+
+let find m k =
+  match List.find (fun x -> x.k = k) m with
+  | exception Not_found -> None
+  | e                   -> Some e.v
 
 type context = Context.t
 
@@ -294,12 +299,12 @@ let custom_compare d x y =
   | `Down -> -r
 
 let sort ~file errors loop x y =
-  let default = String.compare (fst x) (fst y) in
+  let default = String.compare x.k y.k in
   let with_order (d, order) =
-    match snd x, snd y with
+    match x.v, y.v with
     | Data _      , Data _       -> default
     | Collection x, Collection y ->
-      (match String.Map.find order x, String.Map.find order y with
+      (match find x order, find y order with
        | Some (Data x), Some (Data y) -> custom_compare d x y
        | None, _ | _, None  ->
          Error.R.add errors (err_invalid_order ~file order);
@@ -338,10 +343,13 @@ let unroll ~file context contents =
           Error.R.add errors (err_collection_is_needed ~file v);
           f empty
         | Some { v = Collection c; _ } ->
-          let entries = String.Map.bindings c in
-          let sort = sort ~file errors loop in
-          let entries = List.sort sort entries |> List.rev in
-          List.fold_left (fun acc (k, v) ->
+          let entries = match loop.order with
+            | None   -> List.rev c
+            | Some _ ->
+              let sort = sort ~file errors loop in
+              List.sort sort c |> List.rev
+          in
+          List.fold_left (fun acc { k; v } ->
               Log.debug (fun l -> l "unrolling %s in %a" k Ast.dump loop.body);
               let context = Context.add context { k = loop.var; v } in
               let z, es = replace ~file context loop.body in
@@ -389,8 +397,10 @@ let parse_headers str =
   List.fold_left (fun acc line ->
       match kv line with
       | None   -> acc
-      | Some e -> Context.add acc e
-    ) Context.empty lines
+      | Some e -> e :: acc
+    ) [] lines
+  |> List.rev
+  |> Context.v
 
 let parse_yml ~file v =
   (* FIXME: we only support 1-level deep yaml files *)
@@ -408,26 +418,17 @@ let parse_json ~file v =
     | `Null     -> ""
   in
   let rec value k f = function
-    | `O o  -> obj (fun v -> f (kollection k v)) o
-    | `A a  -> arr 0 (fun v -> f (kollection k v)) a
+    | `O o  -> obj [] (fun v -> f (kollection k v)) o
+    | `A a  -> arr [] (fun v -> f (kollection k v)) a
     | `Null | `Bool _ | `String _ | `Float _ as v -> f (data k (string v))
-  and obj f = function
-    | []       -> f Context.empty
-    | (k,v)::t ->
-      value k (fun v ->
-          obj (fun t ->
-              f (Context.add t v)
-            ) t
-        ) v
-  and arr n f = function
-    | []   -> f Context.empty
+  and obj acc f = function
+    | []       -> f (Context.v @@ List.rev acc)
+    | (k,v)::t -> value k (fun v -> obj (v :: acc) f t) v
+  and arr acc f = function
+    | []   -> f (Context.v @@ List.rev acc)
     | h::t ->
-      let k = string_of_int n in
-      value k (fun h ->
-          arr (n+1) (fun t ->
-              f (Context.add t h)
-            ) t
-        ) h
+      let k = string_of_int (List.length acc) in
+      value k (fun v -> arr (v :: acc) f t) h
   in
   value (Filename.remove_extension file) (fun x -> x) d
 
@@ -503,7 +504,9 @@ let read_data root =
       |> List.filter (fun x -> Sys.is_directory (root / x))
     in
     let dirs = List.map (fun dir -> kollection dir (aux dir)) dirs in
-    Context.v (files @ dirs)
+    let all = files @ dirs in
+    let all = List.sort (fun x y -> String.compare x.k y.k) all in
+    Context.v all
   in
   aux ""
 
