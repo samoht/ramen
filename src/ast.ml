@@ -16,10 +16,14 @@ and loop = {
 }
 
 and cond = {
-  test : var list;
+  test : test list;
   then_: t;
   else_: cond option;
 }
+
+and test =
+  | Def of var
+  | Eq of var * var
 
 and order = [`Up | `Down] * string
 
@@ -45,9 +49,13 @@ and pp_loop ppf t =
   Fmt.pf ppf "{{ for %s in %a%t }}%a{{ endfor }}" t.var pp_var t.map o pp t.body
 
 and pp_cond ppf t =
-  Fmt.pf ppf "{{ if %a }}%a%a" pp_test t.test pp t.then_ pp_elif t.else_
+  Fmt.pf ppf "{{ if %a }}%a%a" pp_ands t.test pp t.then_ pp_elif t.else_
 
-and pp_test ppf x = Fmt.(list ~sep:(unit " && ") pp_var) ppf x
+and pp_ands ppf x = Fmt.(list ~sep:(unit " && ") pp_test) ppf x
+
+and pp_test ppf = function
+  | Def x     -> pp_var ppf x
+  | Eq (x, y) -> Fmt.pf ppf "(%a = %a)" pp_var x pp_var y
 
 and pp_elif ppf = function
   | None   -> Fmt.string ppf "{{ endif }}"
@@ -72,7 +80,13 @@ and dump_loop ppf t =
 
 and dump_cond ppf t =
   Fmt.pf ppf "{test=%a;@ then_=%a;@ else_=%a}"
-    pp_test t.test dump t.then_ Fmt.(Dump.option dump_cond) t.else_
+   dump_ands t.test dump t.then_ Fmt.(Dump.option dump_cond) t.else_
+
+and dump_ands ppf t = Fmt.(Dump.list dump_test) ppf t
+
+and dump_test ppf = function
+  | Def t     -> Fmt.pf ppf "@[<hov 2>Def %a@]" pp_var t
+  | Eq (x, y) -> Fmt.pf ppf "@[<hov 2>Eq (%a,@ %a)@]" pp_var x pp_var y
 
 and dump_order ppf (t, s) = match t with
   | `Up   -> Fmt.string ppf s
@@ -106,13 +120,21 @@ and equal_order x y = match x, y with
   | _ -> false
 
 and equal_cond x y =
-  List.length x.test = List.length y.test
-  && List.for_all2 equal_var x.test y.test
+  equal_tests x.test y.test
   && equal x.then_ y.then_
   && match x.else_, y.else_ with
   | None  , None   -> true
   | Some x, Some y -> equal_cond x y
   | _ -> false
+
+and equal_test x y = match x, y with
+  | Eq (a, b), Eq (c, d) -> equal_var a c && equal_var b d
+  | Def x    , Def y     -> equal_var x y
+  | _ -> false
+
+and equal_tests x y =
+  List.length x = List.length y
+  && List.for_all2 equal_test x y
 
 and equal_var x y =
   List.length x = List.length y

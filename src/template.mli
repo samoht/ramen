@@ -64,10 +64,14 @@ module Ast: sig
   and order = [`Up | `Down] * string
 
   and cond = {
-    test : var list;
+    test : test list;
     then_: t;
     else_: cond option;
   }
+
+  and test =
+    | Def of var
+    | Eq of var * var
 
   and var = id list
 

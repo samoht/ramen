@@ -65,11 +65,14 @@ and program t = parse
   | "elif"   { ELIF }
   | "endif"  { ENDIF }
   | "&&"     { AND }
+  | "="      { EQ }
   | "in"     { IN }
   | "|"      { PIPE }
   | "-"      { MINUS }
   | "["      { LBRA }
   | "]"      { RBRA }
+  | "("      { LPAR }
+  | ")"      { RPAR }
   | var      { let v = Lexing.lexeme lexbuf in p t "VAR %S" v; VAR v }
   | eof      { syntax_error "unclosed tag" }
 

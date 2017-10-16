@@ -45,10 +45,6 @@ and entries = entry list
 
 and entry = { k: string; v: value }
 
-let equal_entry equal_v x y =
-  x == y ||
-  String.equal x.k y.k && equal_v x.v y.v
-
 let rec pp_entries pp_data ppf t =
   Fmt.vbox ~indent:0 (Fmt.list ~sep:(Fmt.unit "") (pp_entry pp_data)) ppf t
 
@@ -62,10 +58,12 @@ and pp_entry pp_data ppf { k; v } =
 
 let data k v = { k; v = Data v }
 
-let rec equal_entries x y =
+let rec equal_entry x y =
+  x == y || (String.equal x.k y.k && equal_value x.v y.v)
+
+and equal_entries x y =
   x == y ||
-  List.length x = List.length y
-  && List.for_all2 (equal_entry equal_value) x y
+  List.length x = List.length y && List.for_all2 equal_entry x y
 
 and equal_value x y =
   x == y ||
@@ -319,9 +317,17 @@ let sort ~file errors loop x y =
   | None       -> default
   | Some order -> with_order order
 
-let is_valid ~context t = match Ast.name t with
-  | None -> false
-  | Some v -> Context.mem context v
+let eval_test ~context = function
+  | Ast.Def t ->
+    (match Ast.name t with None -> false | Some v -> Context.mem context v)
+  | Ast.Eq (x, y) ->
+    if Ast.equal_var x y then true
+    else match Ast.name x, Ast.name y with
+      | Some x, Some y ->
+        (match Context.find context x, Context.find context y with
+         | Some x, Some y -> equal_value x.v y.v
+         | _ -> false)
+      | _ -> false
 
 let unroll ~file context contents =
   let errors = ref [] in
@@ -330,7 +336,7 @@ let unroll ~file context contents =
     | Ast.Data _ | Var _ as x -> f x
     | Seq l as s -> auxes (fun l' -> if l' == l then f s else f (Seq l')) l
     | If c       ->
-      if List.for_all (is_valid ~context) c.test
+      if List.for_all (eval_test ~context) c.test
       then aux (fun t -> f t) c.then_
       else auxelif (fun t -> f t) c.else_
     | For loop   ->
