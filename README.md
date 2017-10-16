@@ -55,7 +55,7 @@ The body can contain templates of the form:
   data/foo/a` and  `data/foo/b`) the contents of these could be
   accessed in template bodies using `foo.a` and `foo.b`.
 
-  __Note:__ when reading files in the `data/` directory, Ramen will
+  _Note:_ when reading files in the `data/` directory, Ramen will
   remove extensions, so `foo/a.html` will be available using `foo.a`.
 
 - **loops**: `{{ for i in var }} <body> {{ endfor }}`: Ramen will
@@ -95,7 +95,7 @@ The body can contain templates of the form:
   {{endfor}}
   ````
 
-__Note__: raw data can also contains the `{{ .. }}` quotations. They will be
+_Note_: raw data can also contains the `{{ .. }}` quotations. They will be
 expanded recursively by Ramen.
 
 ### Support File Extensions
@@ -103,8 +103,11 @@ expanded recursively by Ramen.
 The following file extensions are supported:
 
 - `<file>.json`: will be transformed into the collection `<file>`.
+
 - `<file>.md`: will be transformed into the raw data `<file>` when markdown has
-  been translated to HTML.
+  been translated to HTML. If the file has some headers, they will be available
+  using `<file>.<var>` -- the body of the file will be in `<file>.body`.
+
 - `<file>.yml`: will be transformed into the collection `<file>`. Note: only
    very limited support for yaml at the moment (no nesting, only key-value).
 - every other files will be considered as raw data.
