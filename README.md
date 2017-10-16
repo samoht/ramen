@@ -27,6 +27,13 @@ There are 2 kinds of data:
   - when built from files, using lexicographic order.
   - when built from JSON or Yaml, using the declaration order.
 
+Ramen predefines a number of "special" collections:
+
+| collection | description |
+|------------|-------------|
+| `pages`    | contents of the `pages/` directory. The contents of `pages/foo.*` is stored into `pages.foo` (see markdown special rules bellow) |
+| `site`     | global variables such as: `site.date` (the current date) and `site.page` (the current page being built). |
+
 ### Syntax of Templates
 
 Every template in pages has the following structure:
@@ -47,8 +54,22 @@ The body can contain templates of the form:
 - **loops**: `{{ for i in VAR }} <body> {{ endfor }}`: Ramen will
   expanse the body for each entry in the collection `var`.
 
-- **conditions**: `{{ if VAR }} <body> {{ endif }}`. Ramen will remove
-  `<body>` if `VAR` is not defined.
+- **conditions**: `{{ if cond1 }} <body1> {{ elif cond2 }} <body2> {{
+  endif }}`. Ramen will pick the first `<bodyN>` such that `condN` is
+  satisfied (or it will use an empty string if none of the conditions
+  are true). Conditions are a `&&`-separated list of conjonctions of
+  either a single variable `var` (to check if this variablie is
+  defined in the current context) or variable equality `(var1 = var2)`
+  (to check if both variables points to the same contents -- they
+  could be collections). For instance:
+
+  ```html
+  {{ if i.title && (i = site.page) }}
+    <div class="nav active">{{i.title}}</div>
+  {{ elif i.title }}
+    <div class"nav">{{i.title}}<div>
+  {{ endif }}
+  ```
 
 - **dictionaries**: `{{ xxx.[VAR].yyy }}` evaluates to `xxx.v.yyy`
   where `v` is the contents of `VAR`. This could be used in
