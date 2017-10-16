@@ -71,7 +71,12 @@ let extra =
   ]
 
 let run () data pages output =
-  let data = Template.read_data data in
+  let data =
+    let base = Template.read_data data in
+    let pages = Template.read_data pages in
+    let pages = Template.kollection "pages" pages in
+    Template.Context.add base pages
+  in
   Log.info (fun l -> l "data: %a" Template.Context.pp data);
   let ps = Template.read_pages ~dir:pages in
   if not (Sys.file_exists output) then Unix.mkdir output 0o755;

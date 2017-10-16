@@ -12,8 +12,12 @@
   </button>
   <div class="collapse navbar-collapse" id="navbarSupportedContent">
     <div class="navbar-nav">
-      <a class="nav-link nav-item active" href="index.html">Home</a>
-      <a class="nav-link nav-item" href="papers.html">Papers</a>
+    {{ for i in pages }}
+      {{ if i.title && (i = site.page) }}
+      <a class="nav-link nav-item active" href="{{i.permalink}}">{{i.title}}</a>
+      {{ elif i.title }}
+      <a class="nav-link nav-item" href="{{i.permalink}}">{{i.title}}</a>
+      {{ endif }}
     </div>
   </div>
   </div>
