@@ -21,7 +21,7 @@ module Ast = struct
     | Lexer.Error msg ->
       Log.err (fun l -> l "%a: %s\n" pp_position lexbuf msg);
       failwith "syntax error"
-    | Parsing.Parse_error ->
+    | Parser.Error ->
       Log.err (fun l -> l "%a: syntax error\n%!" pp_position lexbuf);
       failwith "parse error"
 
@@ -111,11 +111,7 @@ end = struct
         match List.find (fun { k; _ } -> String.equal k h) m with
         | exception Not_found     -> None
         | { v = Collection m; _ } -> aux (h :: path) m t
-        | { v = Data _; _ }       ->
-          Log.err (fun l ->
-              l "%s is not a collection (longest valid prefix is: %a)"
-                k Fmt.(list ~sep:(unit ".") string) (List.rev path) );
-          None
+        | { v = Data _; _ }       -> None
     in
     let path = String.cuts ~sep:"." k in
     aux [] m path
