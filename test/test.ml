@@ -47,7 +47,9 @@ module One = struct
 
   let check template k v =
     let e = Template.data k v in
-    let tmpl = Template.subst ~file e (template @@ key k) in
+    let tmpl =
+      Template.subst ~file ~context:Template.Context.empty e (template @@ key k)
+    in
     Alcotest.(check @@ result ast error) k (Ok (template v)) tmpl
 
   let simple () =
@@ -75,7 +77,7 @@ module Many = struct
 
   let check input output ctx =
     let ctx = simple_context ctx in
-    let res, errors = Template.eval ~file ctx input in
+    let res, errors = Template.eval ~file ~context:ctx input in
     Alcotest.(check @@ slist error compare) "errors" [] errors;
     Alcotest.(check ast) "output" output res
 
@@ -232,7 +234,7 @@ module For = struct
       Fmt.strf "Test: %s%s" (one "Jean Valjean" "99") (one "Monique" "42")
       |> Template.Ast.parse
     in
-    let str, e = Template.eval ~file ctx template in
+    let str, e = Template.eval ~file ~context:ctx template in
     Alcotest.(check @@ slist error compare) "errors" [] e;
     Alcotest.(check ast) "body" body str
 
@@ -252,7 +254,7 @@ module If = struct
   let f = Template.Ast.parse
 
   let eval x =
-    let x, y = Template.eval ~file:"test" ctx x in
+    let x, y = Template.eval ~file:"test" ~context:ctx x in
     Alcotest.(check @@ slist error compare) "errors" [] y;
     x
 
@@ -318,7 +320,7 @@ module Get = struct
   let f = Template.Ast.parse
 
   let eval x =
-    let x, y = Template.eval ~file:"test" ctx x in
+    let x, y = Template.eval ~file:"test" ~context:ctx x in
     Alcotest.(check @@ slist error compare) "errors" [] y;
     x
 

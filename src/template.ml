@@ -46,15 +46,14 @@ and entries = entry list
 and entry = { k: string; v: value }
 
 let rec pp_entries pp_data ppf t =
-  Fmt.vbox ~indent:0 (Fmt.list ~sep:(Fmt.unit "") (pp_entry pp_data)) ppf t
+  Fmt.hvbox ~indent:0 (Fmt.list ~sep:Fmt.cut (pp_entry pp_data)) ppf t
 
 and pp_value pp_data ppf = function
   | Data s       -> pp_data ppf s
-  | Collection c ->
-    Fmt.pf ppf "{%a}" Fmt.(vbox ~indent:2 (pp_entries pp_data)) c
+  | Collection c -> pp_entries pp_data ppf c
 
 and pp_entry pp_data ppf { k; v } =
-  Fmt.pf ppf "@[%a => %a@]@," pp_key k (pp_value pp_data) v
+  Fmt.pf ppf "@[{%a => %a}@] " pp_key k (pp_value pp_data) v
 
 let data k v = { k; v = Data v }
 
@@ -77,6 +76,7 @@ and equal_value x y =
 module Context: sig
   type t
   val pp: t Fmt.t
+  val empty: t
   val dump: t Fmt.t
   val equal: t -> t -> bool
   val v: entry list -> t
@@ -89,14 +89,25 @@ module Context: sig
 end = struct
   type t = entries (* reverse order *)
   let dump ppf t = pp_entries (fun ppf d -> Fmt.pf ppf "%S" d) ppf (List.rev t)
-  let pp ppf t = pp_entries (fun ppf _ -> Fmt.string ppf ".") ppf (List.rev t)
+  let pp ppf t = pp_entries (fun ppf _ -> Fmt.string ppf "...") ppf (List.rev t)
   let is_empty x = x = []
   let equal = equal_entries
   let entries x = List.rev x
+  let empty = []
   let v x = (* FIXME: check for duplicates *) List.rev x
 
-  let add m x = x :: m
-  let (++) x y = List.rev_append y (List.rev x)
+  let err_duplicated_key x =
+    Fmt.kstrf failwith "duplicated key: %a" pp_key x.k
+
+  let add m x =
+    if not (List.exists (equal_entry x) m) then x :: m
+    else err_duplicated_key x
+
+  let (++) x y =
+    List.iter (fun x ->
+        if List.exists (equal_entry x) y then err_duplicated_key x)
+      x;
+    List.rev_append y (List.rev x)
 
   let find m k =
     let return x m =
@@ -134,7 +145,7 @@ type context = Context.t
 
 (* ERRORS *)
 
-type loc = { file: string; key: string }
+type loc = { file: string; key: string; context: context }
 
 type error =
   | Invalid_key of loc
@@ -143,30 +154,38 @@ type error =
   | Data_is_needed of loc
   | Collection_is_needed of loc
 
-let err_invalid_key ~file key = Invalid_key { file; key }
-let err_invalid_order ~file key = Invalid_order { file; key }
-let err_data_is_needed ~file key = Data_is_needed { file; key }
-let err_collection_is_needed ~file key = Collection_is_needed { file; key }
+let err_invalid_key ~file ~context key = Invalid_key { file; key; context }
+let err_invalid_order ~file ~context key = Invalid_order { file; key; context }
+let err_data_is_needed ~file ~context key = Data_is_needed { file; key; context }
 
-let err_not_fully_defined ~file v =
-  Fmt.kstrf (fun key -> Var_not_fully_defined { file; key }) "%a" Ast.pp_var v
+let err_collection_is_needed ~file ~context key =
+  Collection_is_needed { file; key; context }
+
+let err_not_fully_defined ~file ~context v =
+  Fmt.kstrf
+    (fun key -> Var_not_fully_defined { file; key; context })
+    "%a" Ast.pp_var v
 
 let pp_error ppf = function
-  | Invalid_key { file; key } ->
-    Fmt.pf ppf "cannot find the key %a in %a."
-      pp_key key pp_file file
-  | Invalid_order { file; key } ->
-    Fmt.pf ppf "The key %a is not a valid sort order in %a."
-      pp_key key pp_file file
-  | Data_is_needed { file; key } ->
-    Fmt.pf ppf "The key %a in %a should be of type 'data'."
-      pp_key key pp_file file
-  | Collection_is_needed { file; key } ->
-    Fmt.pf ppf "They key %a in %a should be of type 'collection'."
-      pp_key key pp_file file
-  | Var_not_fully_defined { file; key } ->
-    Fmt.pf ppf "The variable %a is not fully defined in %a."
-      pp_key key pp_file file
+  | Invalid_key { file; key; context } ->
+    Fmt.pf ppf "cannot find the key %a in %a. The current context is %a."
+      pp_key key pp_file file Context.pp context
+  | Invalid_order { file; key; context } ->
+    Fmt.pf ppf "The key %a is not a valid sort order in %a. \
+                The current context is %a."
+      pp_key key pp_file file Context.pp context
+  | Data_is_needed { file; key; context } ->
+    Fmt.pf ppf "The key %a in %a should be of type 'data'.
+                 The current context is %a."
+      pp_key key pp_file file Context.pp context
+  | Collection_is_needed { file; key; context } ->
+    Fmt.pf ppf "They key %a in %a should be of type 'collection'.
+                 The current context is %a."
+      pp_key key pp_file file Context.pp context
+  | Var_not_fully_defined { file; key; context } ->
+    Fmt.pf ppf "The variable %a is not fully defined in %a.
+                 The current context is %a."
+      pp_key key pp_file file Context.pp context
 
 let vars contents =
   let open Ast in
@@ -196,9 +215,9 @@ let pp_vars = Fmt.(list ~sep:(unit ", ") string)
 
 (* ENGINE *)
 
-let subst ~file { k; v } contents =
+let subst ~file ~context { k; v } contents =
   match v with
-  | Collection _ -> Error (err_data_is_needed ~file k)
+  | Collection _ -> Error (err_data_is_needed ~context ~file k)
   | Data v       ->
     let open Ast in
     Log.debug (fun l -> l "replacing %a in %a" pp_key k pp_file file);
@@ -247,7 +266,7 @@ let subst ~file { k; v } contents =
           ) h
     in
     let s = aux (fun x -> x) contents in
-    if !n = 0 then Error (err_invalid_key ~file k) else Ok s
+    if !n = 0 then Error (err_invalid_key ~file ~context k) else Ok s
 
 module Error = struct
 
@@ -263,7 +282,7 @@ module Error = struct
 
 end
 
-let replace ~file context contents =
+let replace ~file ~context contents =
   Log.debug (fun l -> l "replace %a %a" Context.pp context Ast.pp contents);
   let errors = ref [] in
   let aux acc =
@@ -271,8 +290,8 @@ let replace ~file context contents =
     Log.debug (fun l -> l "vars in %s: %a" file pp_vars vars);
     List.fold_left (fun acc key ->
         match Context.find context key with
-        | None   -> Error.R.add errors (err_invalid_key ~file key); acc
-        | Some e -> match subst ~file e acc with
+        | None   -> Error.R.add errors (err_invalid_key ~file ~context key); acc
+        | Some e -> match subst ~file ~context e acc with
           | Error e -> Error.R.add errors e; acc
           | Ok acc  -> acc
 
@@ -299,7 +318,7 @@ let custom_compare d x y =
   | `Up   -> r
   | `Down -> -r
 
-let sort ~file errors loop x y =
+let sort ~file ~context ~errors loop x y =
   let default = String.compare x.k y.k in
   let with_order (d, order) =
     match x.v, y.v with
@@ -308,10 +327,10 @@ let sort ~file errors loop x y =
       (match find x order, find y order with
        | Some (Data x), Some (Data y) -> custom_compare d x y
        | None, _ | _, None  ->
-         Error.R.add errors (err_invalid_order ~file order);
+         Error.R.add errors (err_invalid_order ~file ~context order);
          default
        | Some (Collection _), _ | _, Some (Collection _) ->
-         Error.R.add errors (err_data_is_needed ~file order);
+         Error.R.add errors (err_data_is_needed ~file ~context order);
          default
       )
     | _ -> default
@@ -322,7 +341,10 @@ let sort ~file errors loop x y =
 
 let eval_test ~file ~context ~errors test =
   Log.debug (fun l -> l "eval_test %a" Ast.pp_test test);
-  let err x = Error.R.add errors (err_not_fully_defined ~file x); false in
+  let err x =
+    Error.R.add errors (err_not_fully_defined ~file ~context x);
+    false
+  in
   let rec aux k = function
     | Ast.Ndef t     -> aux (fun x -> k (not x)) Ast.(Def t)
     | Ast.Neq (x, y) -> aux (fun x -> k (not x)) Ast.(Eq (x, y))
@@ -345,7 +367,7 @@ let eval_test ~file ~context ~errors test =
   in
   aux (fun x -> x) test
 
-let unroll ~file context contents =
+let unroll ~file ~context contents =
   let errors = ref [] in
   let empty = Ast.Data "" in
   let rec aux f = function
@@ -361,22 +383,22 @@ let unroll ~file context contents =
       | Some v ->
         match Context.find context v with
         | None ->
-          Error.R.add errors (err_invalid_key ~file v);
+          Error.R.add errors (err_invalid_key ~file ~context v);
           f empty
         | Some { v = Data _; _ } ->
-          Error.R.add errors (err_collection_is_needed ~file v);
+          Error.R.add errors (err_collection_is_needed ~file ~context v);
           f empty
         | Some { v = Collection c; _ } ->
           let entries = match loop.order with
             | None   -> List.rev c
             | Some _ ->
-              let sort = sort ~file errors loop in
+              let sort = sort ~file ~context ~errors loop in
               List.sort sort c |> List.rev
           in
           List.fold_left (fun acc { k; v } ->
               Log.debug (fun l -> l "unrolling %s in %a" k Ast.dump loop.body);
               let context = Context.add context { k = loop.var; v } in
-              let z, es = replace ~file context loop.body in
+              let z, es = replace ~file ~context loop.body in
               Log.debug (fun l -> l "unrolling is %a" Ast.dump z);
               Error.R.union errors es;
               (z :: acc)
@@ -398,11 +420,11 @@ let unroll ~file context contents =
   let r = aux (fun x -> x) contents in
   r, !errors
 
-let eval ~file context contents =
+let eval ~file ~context contents =
   let rec aux (acc, errors) =
     Log.debug (fun l -> l "eval %a" Ast.dump acc);
-    let nacc, es1 = replace ~file context acc in
-    let nacc, es2 = unroll ~file context nacc in
+    let nacc, es1 = replace ~file ~context acc in
+    let nacc, es2 = unroll ~file ~context nacc in
     let nacc = Ast.normalize nacc in
     let nerrors = Error.(union errors (union es1 es2)) in
     if nacc == acc && nerrors = errors then (acc, errors)
@@ -498,7 +520,7 @@ let parse_md ~file v =
   entry_of_page { e with v }
 
 let parse_file ~file v =
-  Log.debug (fun l -> l "parse_file %s" file);
+  Log.info (fun l -> l "parse_file %s" file);
   match Filename.extension file with
   | ".yml"  -> parse_yml ~file v
   | ".json" -> parse_json ~file v
@@ -510,6 +532,7 @@ let read_files f dir =
   let files =
     Sys.readdir dir
     |> Array.to_list
+    |> List.filter (fun x -> not (String.is_suffix ~affix:"~" x))
     |> List.filter (fun x -> not (Sys.is_directory (dir / x)))
   in
   List.fold_left (fun acc file ->

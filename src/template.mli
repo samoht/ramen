@@ -23,6 +23,9 @@ module Context: sig
   type t
   (** The type for templating context. *)
 
+  val empty: t
+  (** The empty context. *)
+
   val pp: t Fmt.t
   (** [pp] is the pretty-printer for contextes. *)
 
@@ -63,12 +66,12 @@ type error
 val pp_error: error Fmt.t
 (** Pretty-print templating errors. *)
 
-val subst: file:string -> entry -> Ast.t -> (Ast.t, error) result
+val subst: file:string -> context:Context.t -> entry -> Ast.t -> (Ast.t, error) result
 (** [replace ?all r s] replaces [r]'s key by [r]'s value in [s] if [r]
     is a data entry. If [all] is set (by default it is not), do not
     stop on the first occurence. *)
 
-val eval: file:string -> context -> Ast.t -> Ast.t * error list
+val eval: file:string -> context:Context.t -> Ast.t -> Ast.t * error list
 (** [eval c t] evaluates [t] calls using the context [t]. *)
 
 (** {1 Contexts} *)
