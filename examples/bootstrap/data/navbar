@@ -14,10 +14,11 @@
     <div class="navbar-nav">
     {{ for i in pages }}
       {{ if i.title && (i = site.page) }}
-      <a class="nav-link nav-item active" href="{{i.permalink}}">{{i.title}}</a>
+      <a class="nav-link nav-item active" href="{{i.url}}">{{i.title}}</a>
       {{ elif i.title }}
-      <a class="nav-link nav-item" href="{{i.permalink}}">{{i.title}}</a>
+      <a class="nav-link nav-item" href="{{i.url}}">{{i.title}}</a>
       {{ endif }}
+    {{ endfor }}
     </div>
   </div>
   </div>

@@ -3,6 +3,15 @@ module Log = (val Logs.src_log src: Logs.LOG)
 
 open Astring
 
+let save_to_temp_file ~file str =
+  let file = Filename.concat "/tmp/ramen" file in
+  let dir  = Filename.dirname file in
+  let _ = Sys.command ("mkdir -p " ^ dir) in
+  let oc = open_out_bin file in
+  output_string oc str;
+  close_out oc;
+  file
+
 module Ast = struct
 
   include Ast
@@ -16,14 +25,15 @@ module Ast = struct
 
   let parse ~file str =
     let lexbuf = Lexing.from_string str in
+    let err msg =
+      let f = save_to_temp_file ~file str in
+      Fmt.(pf stderr) "%a: %s\n.%!" (pp_position f) lexbuf msg;
+      exit 1
+    in
     try Parser.main Lexer.(token @@ v ()) lexbuf
     with
-    | Lexer.Error msg ->
-      Fmt.(pf stderr) "%a: %s\n%!" (pp_position file) lexbuf msg;
-      exit 1
-    | Parser.Error ->
-      Fmt.(pf stderr) "%a: syntax error\n%!" (pp_position file) lexbuf;
-      exit 1
+    | Lexer.Error msg -> err msg
+    | Parser.Error -> err "syntax error"
 
   (* FIXME: very dumb *)
   let normalize ~file t =
@@ -187,16 +197,44 @@ let pp_error ppf = function
                  The current context is %a."
       pp_key key pp_file file Context.pp context
 
+let equal_error x y =
+  let (=) x y = x.file = y.file && x.key = y.key in
+  match x, y with
+  | Invalid_key x          , Invalid_key y           -> x = y
+  | Invalid_order x        , Invalid_order y         -> x = y
+  | Data_is_needed x       , Data_is_needed y        -> x = y
+  | Collection_is_needed x , Collection_is_needed y  -> x = y
+  | Var_not_fully_defined x, Var_not_fully_defined y -> x = y
+  | _ -> false
+
+let opt_iter f = function
+  | None   -> ()
+  | Some x -> f x
+
 let vars contents =
   let open Ast in
   let vars = ref String.Set.empty in
-  let rec aux loops = function
+  let add_var v acc = match Ast.name v with
+    | None   -> acc
+    | Some v -> String.Set.add v acc
+  in
+  let rec vars_of_test acc = function
+    | []          -> acc
+    | Def x  :: t -> vars_of_test (add_var x acc) t
+    | Ndef x :: t -> vars_of_test (add_var x acc) t
+    | _      :: t -> vars_of_test acc t
+  in
+  let rec t loops = function
     | Data _ -> ()
-    | If c   -> aux loops c.then_
-    | For l  -> aux (String.Set.add l.var loops) l.body
-    | Seq s  -> List.iter (aux loops) s
-    | Var v  -> aux_var loops v
-  and aux_var loops v =
+    | If c   -> cond loops c
+    | For l  -> t (String.Set.add l.var loops) l.body
+    | Seq s  -> List.iter (t loops) s
+    | Var v  -> var loops v
+  and cond loops c =
+    let loops = vars_of_test loops c.test in
+    t loops c.then_;
+    opt_iter (cond loops) c.else_
+  and var loops v =
     match Ast.name v with
     | Some v ->
       if String.Set.exists (fun k -> String.is_prefix ~affix:k v) loops
@@ -205,15 +243,33 @@ let vars contents =
     | None   ->
       List.iter (function
           | Id _  -> ()
-          | Get v -> aux_var loops v
+          | Get v -> var loops v
         ) v
   in
-  aux String.Set.empty contents;
+  t String.Set.empty contents;
   String.Set.elements !vars
 
 let pp_vars = Fmt.(list ~sep:(unit ", ") string)
 
 (* ENGINE *)
+
+module Acc = struct
+
+  let option f k = function
+    | None as x   -> k x
+    | Some y as x -> f (fun y' -> if y == y' then k x else k (Some y')) y
+
+  let rec list f k = function
+    | [] as x   -> k x
+    | h::t as x ->
+      f (fun h' ->
+          list f (fun t' ->
+              if h == h' && t == t' then k x
+              else k (h' :: t')
+            ) t
+        ) h
+
+end
 
 let subst ~file ~context { k; v } contents =
   match v with
@@ -222,32 +278,54 @@ let subst ~file ~context { k; v } contents =
     let open Ast in
     Log.debug (fun l -> l "replacing %a in %a" pp_key k pp_file file);
     let n = ref 0 in
-    let rec aux (f: t -> t) = function
+    let rec t k = function
       | Var v as x  ->
-        auxv (function
-          | `Var v' -> if v == v' then f x else f (Var v')
-          | `Data v -> f (Data v)
+        var (function
+          | `Var v' -> if v == v' then k x else k (Var v')
+          | `Data v -> k (Data v)
           ) v
-      | Data _ as x -> f x
-      | Seq s as x -> auxes (fun s' -> if s == s' then f x else (f (Seq s'))) s
-      | If c as x  ->
-        aux (fun t ->
-            if t == c.then_ then f x else f (If { c with then_=t })
-          ) c.then_
-      | For l as x ->
-        aux (fun t ->
-            if t == l.body then f x else f (For { l with body=t })
-          ) l.body
-    and auxv f var = match Ast.name var with
+      | Data _ as x -> k x
+      | Seq s as x  ->
+        Acc.list t (fun s' -> if s == s' then k x else k (Seq s')) s
+      | If c as x   -> cond (fun c' -> if c == c' then k x else k (If c')) c
+      | For l as x  -> loop (fun l' -> if l == l' then k x else k (For l')) l
+    and loop k l =
+      t (fun t -> if t == l.body then k l else k { l with body=t }) l.body
+    and cond k c =
+      Acc.list test (fun test ->
+          t (fun then_ ->
+              Acc.option cond (fun else_ ->
+                  if test == c.test && then_ == c.then_ && else_ = c.else_
+                  then k c
+                  else k { test; then_; else_ }
+                ) c.else_
+            ) c.then_
+          ) c.test
+    and test k t = match t with
+      | Def x      -> ids (fun x' -> if x == x' then k t else k (Def x')) x
+      | Ndef x     -> ids (fun x' -> if x == x' then k t else k (Ndef x')) x
+      | Eq (x, y)  ->
+        ids (fun x' ->
+            ids (fun y' ->
+                if x' == x && y' = y then k t else k (Eq (x', y'))
+              ) y
+          ) x
+      | Neq (x, y) ->
+        ids (fun x' ->
+            ids (fun y' ->
+                if x' == x && y' = y then k t else k (Neq (x', y'))
+              ) y
+          ) x
+    and var f vv = match Ast.name vv with
       | Some s when s = k -> incr n; f (`Data v)
-      | _                 -> auxids (fun x -> f (`Var x)) var
-    and auxids f = function
+      | _                 -> ids (fun x -> f (`Var x)) vv
+    and ids f = function
       | []                   -> f []
       | Id _ as x :: t as l  ->
-        auxids (fun t' -> if t == t' then f l else f (x :: t')) t
+        ids (fun t' -> if t == t' then f l else f (x :: t')) t
       | Get g :: t as l      ->
-        auxv (fun g' ->
-            auxids (fun t' ->
+        var (fun g' ->
+            ids (fun t' ->
                 match g' with
                 | `Var g' when g' == g ->
                   if t == t' then f l else f (Get g' :: t')
@@ -255,23 +333,15 @@ let subst ~file ~context { k; v } contents =
                 | `Var g' -> f (Get g' :: t')
               ) t
           ) g
-    and auxes f = function
-      | []        -> f []
-      | h::t as x ->
-        aux (fun h' ->
-            auxes (fun t' ->
-                if h == h' && t == t' then f x
-                else f (h' :: t')
-              ) t
-          ) h
     in
-    let s = aux (fun x -> x) contents in
+    let s = t (fun x -> x) contents in
     if !n = 0 then Error (err_invalid_key ~file ~context k) else Ok s
 
 module Error = struct
 
   let add errors e =
-    if List.mem e errors then errors else List.sort compare (e :: errors)
+    if List.exists (equal_error e) errors then errors
+    else List.sort compare (e :: errors)
 
   let union x y = List.fold_left add x y
 
@@ -283,7 +353,6 @@ module Error = struct
 end
 
 let replace ~file ~context contents =
-  Log.debug (fun l -> l "replace %a %a" Context.pp context Ast.pp contents);
   let errors = ref [] in
   let aux acc =
     let vars = vars acc in
@@ -367,7 +436,7 @@ let eval_test ~file ~context ~errors test =
   in
   aux (fun x -> x) test
 
-let unroll ~file ~context contents =
+let rec unroll ~file ~context contents =
   let errors = ref [] in
   let empty = Ast.Data "" in
   let rec aux f = function
@@ -397,8 +466,9 @@ let unroll ~file ~context contents =
           in
           List.fold_left (fun acc { k; v } ->
               Log.debug (fun l -> l "unrolling %s in %a" k Ast.dump loop.body);
+              let file = Fmt.strf "%s[%s=%s]" file loop.var k in
               let context = Context.add context { k = loop.var; v } in
-              let z, es = replace ~file ~context loop.body in
+              let z, es = unroll ~file ~context loop.body in
               Log.debug (fun l -> l "unrolling is %a" Ast.dump z);
               Error.R.union errors es;
               (z :: acc)
@@ -421,8 +491,14 @@ let unroll ~file ~context contents =
   r, !errors
 
 let eval ~file ~context contents =
+  let n = ref 0 in
   let rec aux (acc, errors) =
-    Log.debug (fun l -> l "eval %a" Ast.dump acc);
+    let temp_file () =
+      incr n;
+      save_to_temp_file ~file:(Fmt.strf "%s.%d" file !n) @@
+      Fmt.to_to_string Ast.pp acc
+    in
+    Log.debug (fun l -> l "eval %s" @@ temp_file ());
     let nacc, es1 = replace ~file ~context acc in
     let nacc, es2 = unroll ~file ~context nacc in
     let nacc = Ast.normalize ~file nacc in

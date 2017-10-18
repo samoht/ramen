@@ -82,10 +82,11 @@ let run () data pages output =
   if not (Sys.file_exists output) then Unix.mkdir output 0o755;
   let nb_errors = ref 0 in
   List.iter (fun Template.{ file; context; body; _ } ->
-      let f = output / file in
+      (* FIXME: support subdirs *)
+      let f = output / Filename.basename file in
       Log.info (fun l -> l "Creating %s." f);
       let context = Template.Context.(context ++ data ++ extra) in
-      let out, errors = Template.eval ~file:(pages / file) ~context body in
+      let out, errors = Template.eval ~file ~context body in
       let oc = open_out f in
       pp_html oc @@ Fmt.to_to_string Template.Ast.pp out;
       flush oc;

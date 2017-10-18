@@ -63,7 +63,8 @@ and pp_test ppf = function
 
 and pp_elif ppf = function
   | None   -> Fmt.string ppf "{{ endif }}"
-  | Some c -> pp_cond ppf c
+  | Some t ->
+    Fmt.pf ppf "{{ elif %a }}%a%a" pp_ands t.test pp t.then_ pp_elif t.else_
 
 and pp_var ppf t = Fmt.(list ~sep:(unit ".") pp_id) ppf t
 
