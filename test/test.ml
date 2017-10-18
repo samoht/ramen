@@ -32,10 +32,10 @@ let error = Alcotest.testable Template.pp_error (=)
 let file = "test"
 
 let ast =
-  let equal x y =Template.Ast.(equal (normalize x) (normalize y)) in
+  let equal x y =Template.Ast.(equal (normalize ~file x) (normalize ~file y)) in
   Alcotest.testable Template.Ast.dump equal
 
-let parse fmt = Format.ksprintf Template.Ast.parse fmt
+let parse fmt = Format.ksprintf Template.Ast.(parse ~file) fmt
 
 let html x = parse "<html><head></head><body>%s</body></html>" x
 
@@ -228,11 +228,11 @@ module For = struct
     let template =
       Fmt.strf "Test: {{ for i in toto | name }}%s{{ endfor }}"
         (one "{{ i.name }}" "{{ i.age }}")
-      |> Template.Ast.parse
+      |> Template.Ast.(parse ~file)
     in
     let body =
       Fmt.strf "Test: %s%s" (one "Jean Valjean" "99") (one "Monique" "42")
-      |> Template.Ast.parse
+      |> Template.Ast.(parse ~file)
     in
     let str, e = Template.eval ~file ~context:ctx template in
     Alcotest.(check @@ slist error compare) "errors" [] e;
@@ -251,7 +251,7 @@ module If = struct
         data "name" "Jean Valjean";
       ]]
 
-  let f = Template.Ast.parse
+  let f = Template.Ast.parse ~file
 
   let eval x =
     let x, y = Template.eval ~file:"test" ~context:ctx x in
@@ -317,7 +317,7 @@ module Get = struct
       ]
     ]
 
-  let f = Template.Ast.parse
+  let f = Template.Ast.parse ~file
 
   let eval x =
     let x, y = Template.eval ~file:"test" ~context:ctx x in

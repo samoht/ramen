@@ -7,27 +7,27 @@ module Ast = struct
 
   include Ast
 
-  open Lexing
+  let pp_position file ppf lexbuf =
+    let p = Lexing.lexeme_start_p lexbuf in
+    Fmt.pf ppf
+      "File \"%s\", line %d, character %d"
+      file p.Lexing.pos_lnum
+      (p.Lexing.pos_cnum - p.Lexing.pos_bol)
 
-  let pp_position ppf lexbuf =
-    let pos = lexbuf.lex_curr_p in
-    Fmt.pf ppf "%s:%d:%d" pos.pos_fname
-      pos.pos_lnum (pos.pos_cnum - pos.pos_bol + 1)
-
-  let parse str =
+  let parse ~file str =
     let lexbuf = Lexing.from_string str in
     try Parser.main Lexer.(token @@ v ()) lexbuf
     with
     | Lexer.Error msg ->
-      Log.err (fun l -> l "%a: %s\n" pp_position lexbuf msg);
-      failwith "syntax error"
+      Fmt.(pf stderr) "%a: %s\n%!" (pp_position file) lexbuf msg;
+      exit 1
     | Parser.Error ->
-      Log.err (fun l -> l "%a: syntax error\n%!" pp_position lexbuf);
-      failwith "parse error"
+      Fmt.(pf stderr) "%a: syntax error\n%!" (pp_position file) lexbuf;
+      exit 1
 
   (* FIXME: very dumb *)
-  let normalize t =
-    let t' = parse (Fmt.to_to_string pp t) in
+  let normalize ~file t =
+    let t' = parse ~file (Fmt.to_to_string pp t) in
     if t = t' then t else t'
 
 end
@@ -425,7 +425,7 @@ let eval ~file ~context contents =
     Log.debug (fun l -> l "eval %a" Ast.dump acc);
     let nacc, es1 = replace ~file ~context acc in
     let nacc, es2 = unroll ~file ~context nacc in
-    let nacc = Ast.normalize nacc in
+    let nacc = Ast.normalize ~file nacc in
     let nerrors = Error.(union errors (union es1 es2)) in
     if nacc == acc && nerrors = errors then (acc, errors)
     else aux (nacc, nerrors)
@@ -455,7 +455,7 @@ let parse_yml ~file v =
   (* FIXME: we only support 1-level deep yaml files *)
   (* from foo.yml we create:
      - foo -> collection( (k1->data(v1), ..., kn->data(vn) ) *)
-  let k = Filename.chop_extension file in
+  let k = Filename.(remove_extension @@ basename file) in
   kollection k (parse_headers v)
 
 let parse_json ~file v =
@@ -479,7 +479,8 @@ let parse_json ~file v =
       let k = string_of_int (List.length acc) in
       value k (fun v -> arr (v :: acc) f t) h
   in
-  value (Filename.remove_extension file) (fun x -> x) d
+  let k = Filename.(remove_extension @@ basename file) in
+  value k (fun x -> x) d
 
 type page = {
   file   : string;
@@ -490,7 +491,7 @@ type page = {
 
 let parse_page ~file v =
   let return h v =
-    let body = Ast.parse v in
+    let body = Ast.parse ~file v in
     let context = parse_headers h in
     { file; context; body; v }
   in
@@ -506,7 +507,7 @@ let parse_page ~file v =
     return h t
 
 let entry_of_page page =
-  let k = Filename.remove_extension page.file in
+  let k = Filename.(remove_extension @@ basename page.file) in
   if Context.is_empty page.context then
     data k page.v
   else
@@ -520,7 +521,7 @@ let parse_md ~file v =
   entry_of_page { e with v }
 
 let parse_file ~file v =
-  Log.info (fun l -> l "parse_file %s" file);
+  Log.info (fun l -> l "Parsing %s" file);
   match Filename.extension file with
   | ".yml"  -> parse_yml ~file v
   | ".json" -> parse_json ~file v
@@ -539,7 +540,7 @@ let read_files f dir =
       let ic = open_in (dir / file) in
       let v = really_input_string ic (in_channel_length ic) in
       close_in ic;
-      f ~file v :: acc
+      f ~file:(dir / file) v :: acc
     ) [] files
 
 let read_data root =

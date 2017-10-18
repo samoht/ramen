@@ -51,8 +51,8 @@ val kollection: string -> Context.t -> entry
 
 module Ast: sig
   include (module type of Ast)
-  val parse: string -> t
-  val normalize: t -> t
+  val parse: file:string -> string -> t
+  val normalize: file:string -> t -> t
 end
 
 type context = Context.t
