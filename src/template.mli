@@ -26,6 +26,9 @@ module Context: sig
   val empty: t
   (** The empty context. *)
 
+  val is_empty: t -> bool
+  (** [is_empty t] is true iff [t] is equal to {!empty}. *)
+
   val pp: t Fmt.t
   (** [pp] is the pretty-printer for contextes. *)
 
@@ -66,11 +69,6 @@ type error
 val pp_error: error Fmt.t
 (** Pretty-print templating errors. *)
 
-val subst: file:string -> context:Context.t -> entry -> Ast.t -> (Ast.t, error) result
-(** [replace ?all r s] replaces [r]'s key by [r]'s value in [s] if [r]
-    is a data entry. If [all] is set (by default it is not), do not
-    stop on the first occurence. *)
-
 val eval: file:string -> context:Context.t -> Ast.t -> Ast.t * error list
 (** [eval c t] evaluates [t] calls using the context [t]. *)
 
@@ -87,6 +85,10 @@ type page = {
   body   : Ast.t;
   v      : string; (** raw body *)
 }
+
+val context_of_page: page -> Context.t
+(** [entry_of_page p] is the context corresponding [p]'s context and
+    adding the binding "body" to [p]'s body. *)
 
 val parse_page: file:string -> string -> page
 (** [parse_page ~file s] parses [s] as a page -- a page has a header,

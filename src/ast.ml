@@ -24,12 +24,14 @@ and cond = {
 and test =
   | Def of var
   | Ndef of var
-  | Eq of var * var
-  | Neq of var * var
+  | Eq of var_or_data * var_or_data
+  | Neq of var_or_data * var_or_data
 
 and order = [`Up | `Down] * string
 
 and var = id list
+
+and var_or_data = [`Var of var | `Data of string]
 
 and id =
   | Id of string
@@ -58,8 +60,8 @@ and pp_ands ppf x = Fmt.(list ~sep:(unit " && ") pp_test) ppf x
 and pp_test ppf = function
   | Def x     -> pp_var ppf x
   | Ndef x    -> Fmt.pf ppf "!%a" pp_var x
-  | Eq (x, y) -> Fmt.pf ppf "(%a = %a)" pp_var x pp_var y
-  | Neq(x, y) -> Fmt.pf ppf "(%a != %a)" pp_var x pp_var y
+  | Eq (x, y) -> Fmt.pf ppf "(%a = %a)" pp_var_or_data x pp_var_or_data y
+  | Neq(x, y) -> Fmt.pf ppf "(%a != %a)" pp_var_or_data x pp_var_or_data y
 
 and pp_elif ppf = function
   | None   -> Fmt.string ppf "{{ endif }}"
@@ -67,6 +69,10 @@ and pp_elif ppf = function
     Fmt.pf ppf "{{ elif %a }}%a%a" pp_ands t.test pp t.then_ pp_elif t.else_
 
 and pp_var ppf t = Fmt.(list ~sep:(unit ".") pp_id) ppf t
+
+and pp_var_or_data ppf = function
+  | `Var v  -> pp_var ppf v
+  | `Data d -> Fmt.string ppf d
 
 and pp_id ppf = function
   | Id s  -> Fmt.string ppf s
@@ -92,8 +98,10 @@ and dump_ands ppf t = Fmt.(Dump.list dump_test) ppf t
 and dump_test ppf = function
   | Def t     -> Fmt.pf ppf "@[<hov 2>Def %a@]" pp_var t
   | Ndef t    -> Fmt.pf ppf "@[<hov 2>Ndef %a@]" pp_var t
-  | Eq (x, y) -> Fmt.pf ppf "@[<hov 2>Eq (%a,@ %a)@]" pp_var x pp_var y
-  | Neq(x, y) -> Fmt.pf ppf "@[<hov 2>Neq (%a,@ %a)@]" pp_var x pp_var y
+  | Eq (x, y) ->
+    Fmt.pf ppf "@[<hov 2>Eq (%a,@ %a)@]" pp_var_or_data x pp_var_or_data y
+  | Neq(x, y) ->
+    Fmt.pf ppf "@[<hov 2>Neq (%a,@ %a)@]" pp_var_or_data x pp_var_or_data y
 
 and dump_order ppf (t, s) = match t with
   | `Up   -> Fmt.string ppf s
@@ -135,7 +143,9 @@ and equal_cond x y =
   | _ -> false
 
 and equal_test x y = match x, y with
-  | Eq (a, b), Eq (c, d) -> equal_var a c && equal_var b d
+  | Neq (a,b), Neq(c,d)
+  | Eq (a, b), Eq (c, d) -> equal_var_or_data a c && equal_var_or_data b d
+  | Ndef x   , Ndef y
   | Def x    , Def y     -> equal_var x y
   | _ -> false
 
@@ -146,6 +156,11 @@ and equal_tests x y =
 and equal_var x y =
   List.length x = List.length y
   && List.for_all2 id_equal x y
+
+and equal_var_or_data x y = match x, y with
+  | `Var x , `Var y  -> equal_var x y
+  | `Data x, `Data y -> String.equal x y
+  | _ -> false
 
 and id_equal x y = match x, y with
   | Id x , Id y  -> String.equal x y

@@ -5,7 +5,7 @@
           <div class="col-8">
           <blockquote class="blockquote text-center">
           <p class="mb-0">Made by <a href="https://github.com/samoht/ramen">Ramen.</a></p>
-          <div class="blockquote-footer">Last modified {{ date }}.</div>
+          <div class="blockquote-footer">Last modified {{ site.date }}.</div>
           </div>
         </div>
       </div>

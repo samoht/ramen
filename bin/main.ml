@@ -65,29 +65,53 @@ let string_of_time () =
   Printf.sprintf "%d/%d/%d"
     t.Unix.tm_mday (t.Unix.tm_mon + 1) (t.Unix.tm_year + 1900)
 
-let extra =
+let date = string_of_time ()
+
+let site page =
   Template.Context.v [
-    Template.data "date" (string_of_time ());
+    Template.collection "site" [
+      Template.data       "date" date;
+      Template.kollection "page" page;
+    ]
   ]
 
+let basename page =
+  (* FIXME: support subdirs *)
+  Filename.basename page.Template.file
+
+let with_url context page =
+  let url = Template.data "url" (basename page) in
+  Template.Context.add context url
+
 let run () data pages output =
+  let pages = Template.read_pages ~dir:pages in
+  let pages =
+    List.map (fun page ->
+        page, with_url (Template.context_of_page page) page
+      ) pages
+  in
   let data =
-    let base = Template.read_data data in
-    let pages = Template.read_data pages in
-    let pages = Template.kollection "pages" pages in
-    Template.Context.add base pages
+    let data = Template.read_data data in
+    let pages =
+      List.map (fun (p, c) ->
+          let k = Filename.remove_extension @@ Filename.basename p.Template.file in
+          Template.kollection k c
+        ) pages
+    in
+    let pages = Template.collection "pages" pages in
+    Template.Context.add data pages
   in
   Log.info (fun l -> l "data: %a" Template.Context.pp data);
-  let ps = Template.read_pages ~dir:pages in
   if not (Sys.file_exists output) then Unix.mkdir output 0o755;
   let nb_errors = ref 0 in
-  List.iter (fun Template.{ file; context; body; _ } ->
-      (* FIXME: support subdirs *)
-      let f = output / Filename.basename file in
-      Log.info (fun l -> l "Creating %s." f);
-      let context = Template.Context.(context ++ data ++ extra) in
+  List.iter (fun (page, ctx) ->
+      let {Template.context; file; body; _} = page in
+      let output = output / basename page in
+      Log.info (fun l -> l "Creating %s." output);
+      let site = site ctx in
+      let context = Template.Context.(context ++ data ++ site) in
       let out, errors = Template.eval ~file ~context body in
-      let oc = open_out f in
+      let oc = open_out output in
       pp_html oc @@ Fmt.to_to_string Template.Ast.pp out;
       flush oc;
       close_out oc;
@@ -99,8 +123,8 @@ let run () data pages output =
             Fmt.epr "%a %a\n%!"
               Fmt.(styled `Red string) "[error]" Template.pp_error e
           ) errors;
-    ) ps;
-  Fmt.pr "%a" (pp_pages output) ps;
+    ) pages;
+  Fmt.pr "%a" (pp_pages output) pages;
   if !nb_errors > 0 then exit 1
 
 let run =

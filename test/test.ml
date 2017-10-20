@@ -47,10 +47,9 @@ module One = struct
 
   let check template k v =
     let e = Template.data k v in
-    let tmpl =
-      Template.subst ~file ~context:Template.Context.empty e (template @@ key k)
-    in
-    Alcotest.(check @@ result ast error) k (Ok (template v)) tmpl
+    let context = Template.Context.v [e] in
+    let tmpl, _ = Template.eval ~file ~context (template @@ key k) in
+    Alcotest.(check ast) k (template v) tmpl
 
   let simple () =
     check html "foo1" "bar";
@@ -169,6 +168,7 @@ module Data = struct
       "foo.x"    , "xcxcxxc";
       "fooo/bar.x", "test test test test";
       "toto.yml" , "foo: bar\nbar: toto\n";
+      "zzzz/bar.x", "test test test test";
     ] in
     let ctx = Template.(Context.v [
         data "bar" @@ List.assoc "bar.x" files;
@@ -179,7 +179,10 @@ module Data = struct
         collection "toto" [
           data "foo" "bar";
           data "bar" "toto";
-        ]
+        ];
+        collection "zzzz" [
+          data "bar" "test test test test";
+        ];
       ])
     in
     test files ctx
@@ -211,19 +214,34 @@ module For = struct
     let open Template in
     Context.v [
       collection "toto" [
-        collection "foo" [
-          data "name" "Jean Valjean";
-          data "age"  "99";
-          data "id"   "1";
-        ];
         collection "bar" [
           data "name" "Monique";
           data "age"  "42";
           data "id"   "2";
         ];
+        collection "foo" [
+          data "name" "Jean Valjean";
+          data "age"  "99";
+          data "id"   "1";
+        ];
       ]]
 
   let simple () =
+    let one name age = Fmt.strf "Hi my name is %s and I am %s\n" name age in
+    let template =
+      Fmt.strf "Test: {{ for i in toto }}%s{{ endfor }}"
+        (one "{{ i.name }}" "{{ i.age }}")
+      |> Template.Ast.(parse ~file)
+    in
+    let body =
+      Fmt.strf "Test: %s%s" (one "Monique" "42") (one "Jean Valjean" "99")
+      |> Template.Ast.(parse ~file)
+    in
+    let str, e = Template.eval ~file ~context:ctx template in
+    Alcotest.(check @@ slist error compare) "errors" [] e;
+    Alcotest.(check ast) "body" body str
+
+  let by_name () =
     let one name age = Fmt.strf "Hi my name is %s and I am %s\n" name age in
     let template =
       Fmt.strf "Test: {{ for i in toto | name }}%s{{ endfor }}"
@@ -286,7 +304,6 @@ module If = struct
       "{{if !foo}}hello!{{endif}}"          , "";
       "{{if (foo != toto.name)}}yo{{endif}}", "yo";
     ]
-
 
 end
 
@@ -357,7 +374,8 @@ let () =
       "json"  , `Quick, Data.json;
     ];
     "for", [
-      "simple", `Quick, For.simple;
+      "simple" , `Quick, For.simple;
+      "by name", `Quick, For.by_name;
     ];
     "if", [
       "simple", `Quick, If.simple;

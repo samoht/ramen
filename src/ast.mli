@@ -21,12 +21,14 @@ and cond = {
 and test =
   | Def of var
   | Ndef of var
-  | Eq of var * var
-  | Neq of var * var
+  | Eq of var_or_data * var_or_data
+  | Neq of var_or_data * var_or_data
 
 and order = [`Up | `Down] * string
 
 and var = id list
+
+and var_or_data = [`Var of var | `Data of string]
 
 and id =
   | Id of string
@@ -38,4 +40,5 @@ val equal: t -> t -> bool
 val name: var -> string option
 val equal_var: var -> var -> bool
 val pp_var: var Fmt.t
+val pp_var_or_data: var_or_data Fmt.t
 val pp_test: test Fmt.t

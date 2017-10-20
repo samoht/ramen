@@ -40,6 +40,9 @@ let add_newline t l =
 
 exception Error of string
 let syntax_error s = raise (Error s)
+
+exception Unclosed_tag
+let unclosed_tag () = raise Unclosed_tag
 }
 
 let digit = ['0'-'9']
@@ -76,7 +79,7 @@ and program t = parse
   | "("      { LPAR }
   | ")"      { RPAR }
   | var      { let v = Lexing.lexeme lexbuf in p t "VAR %S" v; VAR v }
-  | eof      { syntax_error "unclosed tag" }
+  | eof      { unclosed_tag () }
 
 {
 
