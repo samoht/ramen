@@ -15,19 +15,19 @@ $ opam install ramen
 $ ramen
 ```
 
-### Help
-
 Check `ramen --help` for more details.
-
-```
-Usage: ramen [--data=<path>] [--pages=<path>] [--site=<path>] [-v]
-```
 
 ## Manual
 
 ### Filesystem structure
 
-A Ramen website consists of 3 directories:
+The CLI help message for Ramen says:
+
+```
+Usage: ramen [--data=<path>] [--pages=<path>] [--site=<path>] [-v]
+```
+
+These three directories are:
 
 - `site/`: the generated website, created by Ramen. Do not edit the files
   there. Just copy that directory to your live website.
