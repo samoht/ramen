@@ -62,7 +62,9 @@ The body can contain templates of the form:
   accessed in template bodies using `foo.a` and `foo.b`.
 
   _Note:_ when reading files in the `data/` directory, Ramen will
-  remove extensions, so `foo/a.html` will be available using `foo.a`.
+  remove the extensions it understands (see
+  [bellow](https://github.com/samoht/ramen#supported-file-extensions)),
+  so the contents of `foo/a.md` will be available using `foo.a.body`.
 
 - **loops**: `{{ for i in var }} <body> {{ endfor }}`: Ramen will
   expanse the body for each entry in the collection `var`.
@@ -104,7 +106,7 @@ The body can contain templates of the form:
 _Note_: raw data can also contains the `{{ .. }}` quotations. They will be
 expanded recursively by Ramen.
 
-### Support File Extensions
+### Supported File Extensions
 
 The following file extensions are supported:
 
