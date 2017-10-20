@@ -7,7 +7,7 @@ RUN opam install ramen --deps -t
 
 ADD . /src/
 RUN opam update ramen
-RUN opam install ramen -t
+RUN opam install ramen -tv
 RUN sudo cp /home/opam/.opam/4.04.2/bin/ramen /usr/local/bin
 
 FROM alpine
@@ -15,4 +15,4 @@ FROM alpine
 COPY --from=build /usr/local/bin/ramen /usr/local/bin
 
 WORKDIR /data
-ENTRYPOINT /usr/local/bin/ramen
+ENTRYPOINT ["/usr/local/bin/ramen"]

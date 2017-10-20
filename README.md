@@ -4,6 +4,12 @@
 Usage: ramen [--data=<path>] [--pages=<path>] [--site=<path>] [-v]
 ```
 
+With [Docker](www.docker.com):
+
+```
+$ docker run -v `pwd`:/data samoht/ramen
+``
+
 ### Filesystem structure
 
 A Ramen website consists of 3 directories:
