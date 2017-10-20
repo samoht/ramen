@@ -36,7 +36,7 @@ Ramen predefines the `global` collection, with the following contents:
 
 | global | description |
 |--------|-------------|
-| `sit.date`  | the date of build. |
+| `site.date`  | the date of build. |
 | `site.pages`| contents of the `pages/` directory. |
 | `site.page` | the current page being built. |
 
