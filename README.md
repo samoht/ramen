@@ -1,14 +1,29 @@
 ## Ramen -- A minimal tool to build static websites
 
-```
-Usage: ramen [--data=<path>] [--pages=<path>] [--site=<path>] [-v]
-```
+## Usage
 
-With [Docker](www.docker.com):
+With [Docker](https://www.docker.com/):
 
 ```
 $ docker run -v `pwd`:/data samoht/ramen
 ```
+
+With [opam](https://opam.ocaml.org):
+
+```
+$ opam install ramen
+$ ramen
+```
+
+### Help
+
+Check `ramen --help` for more details.
+
+```
+Usage: ramen [--data=<path>] [--pages=<path>] [--site=<path>] [-v]
+```
+
+## Manual
 
 ### Filesystem structure
 
