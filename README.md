@@ -8,9 +8,12 @@ Usage: ramen [--data=<path>] [--pages=<path>] [--site=<path>] [-v]
 
 A Ramen website consists of 3 directories:
 
-- `site/`: the generated website, created by Ramen.
+- `site/`: the generated website, created by Ramen. Do not edit the files
+  there. Just copy that directory to your live website.
+
 - `pages/`: the base templates. All the templates in that directory
   will be processed by Ramen and the results will be copied into `site/`.
+
 - `data/`: the data read by Ramen used to feed the templates in `pages/`.
 
 ### Data Types
@@ -25,14 +28,17 @@ There are 2 kinds of data:
   in `data/` or from structured files (with `.yml` or `.json` extensions).
   Collection are ordered:
   - when built from files, using lexicographic order.
-  - when built from JSON or Yaml, using the declaration order.
+  - when built from JSON or Yaml, using the order in which items are declared.
 
-Ramen predefines a number of "special" collections:
+### Global Variables
 
-| collection | description |
-|------------|-------------|
-| `pages`    | contents of the `pages/` directory. The contents of `pages/foo.*` is stored into `pages.foo` (see markdown special rules bellow) |
-| `site`     | global variables such as: `site.date` (the current date) and `site.page` (the current page being built). |
+Ramen predefines the `global` collection, with the following contents:
+
+| global | description |
+|--------|-------------|
+| `sit.date`  | the date of build. |
+| `site.pages`| contents of the `pages/` directory. |
+| `site.page` | the current page being built. |
 
 ### Syntax of Templates
 
@@ -104,12 +110,14 @@ The following file extensions are supported:
 
 - `<file>.json`: will be transformed into the collection `<file>`.
 
-- `<file>.md`: will be transformed into the raw data `<file>` when markdown has
-  been translated to HTML. If the file has some headers, they will be available
-  using `<file>.<var>` -- the body of the file will be in `<file>.body`.
+- `<file>.md`: will convert `<file>`'s body from HTML to markdown and will
+  make it available as `<file>.body`.
+  If the file has some headers, they will be available
+  using `<file>.<var>`.
 
 - `<file>.yml`: will be transformed into the collection `<file>`. Note: only
    very limited support for yaml at the moment (no nesting, only key-value).
+
 - every other files will be considered as raw data.
 
 ### Examples

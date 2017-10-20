@@ -67,11 +67,18 @@ let string_of_time () =
 
 let date = string_of_time ()
 
-let site page =
+let site ~pages ~page =
+  let pages =
+    List.map (fun (p, c) ->
+        let k = Filename.remove_extension @@ Filename.basename p.Template.file in
+        Template.kollection k c
+      ) pages
+  in
   Template.Context.v [
     Template.collection "site" [
-      Template.data       "date" date;
-      Template.kollection "page" page;
+      Template.data       "date"  date;
+      Template.kollection "page"  page;
+      Template.collection "pages" pages;
     ]
   ]
 
@@ -84,22 +91,12 @@ let with_url context page =
   Template.Context.add context url
 
 let run () data pages output =
+  let data  = Template.read_data data in
   let pages = Template.read_pages ~dir:pages in
   let pages =
     List.map (fun page ->
         page, with_url (Template.context_of_page page) page
       ) pages
-  in
-  let data =
-    let data = Template.read_data data in
-    let pages =
-      List.map (fun (p, c) ->
-          let k = Filename.remove_extension @@ Filename.basename p.Template.file in
-          Template.kollection k c
-        ) pages
-    in
-    let pages = Template.collection "pages" pages in
-    Template.Context.add data pages
   in
   Log.info (fun l -> l "data: %a" Template.Context.pp data);
   if not (Sys.file_exists output) then Unix.mkdir output 0o755;
@@ -108,7 +105,7 @@ let run () data pages output =
       let {Template.context; file; body; _} = page in
       let output = output / basename page in
       Log.info (fun l -> l "Creating %s." output);
-      let site = site ctx in
+      let site = site ~pages ~page:ctx in
       let context = Template.Context.(context ++ data ++ site) in
       let out, errors = Template.eval ~file ~context body in
       let oc = open_out output in
