@@ -2,7 +2,7 @@
 
 (library
   ((name        template)
-   (libraries   (logs astring omd fmt rresult ezjsonm))))
+   (libraries   (logs astring omd fmt ezjsonm))))
 
 (ocamllex (lexer))
 (menhir ((modules (parser))))
