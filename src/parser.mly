@@ -4,6 +4,7 @@ open Ast
 
 %token <string> VAR DATA
 %token DOT
+%token COLON COMMA
 %token FOR IN ENDFOR PIPE MINUS
 %token IF ELIF ENDIF
 %token AND EQ NEQ BANG
@@ -21,7 +22,7 @@ main:
 
 expr:
   | var                { Var $1 }
-  | DATA               { Data $1 }
+  | DATA               { Text $1 }
   | IF test exprs elif { If { test=$2; then_=$3; else_= $4 } }
   | FOR VAR IN var ordering exprs ENDFOR
                        { For { var=$2; map=$4; order=$5; body=$6 } }
@@ -42,9 +43,16 @@ test:
 var:
   | separated_nonempty_list(DOT, id) { $1 }
 
+param:
+  | VAR COLON var { ($1, `Var $3) }
+
+params:
+  | separated_nonempty_list(COMMA, param) { $1 }
+
 id:
-  | VAR           { Id $1 }
-  | LBRA var RBRA { Get $2 }
+  | VAR                  { Id $1 }
+  | VAR LPAR params RPAR { App ($1, $3) }
+  | LBRA var RBRA        { Get $2 }
 
 ordering:
   |                { None }

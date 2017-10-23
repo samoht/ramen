@@ -68,6 +68,8 @@ and program t = parse
   | "elif"   { ELIF }
   | "endif"  { ENDIF }
   | "&&"     { AND }
+  | ":"      { COLON }
+  | ","      { COMMA }
   | "="      { EQ }
   | "!"      { BANG }
   | "!="     { NEQ }

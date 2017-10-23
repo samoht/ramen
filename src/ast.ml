@@ -2,7 +2,7 @@ let src = Logs.Src.create "ramen"
 module Log = (val Logs.src_log src: Logs.LOG)
 
 type t =
-  | Data of string
+  | Text of string
   | Var of var
   | If of cond
   | For of loop
@@ -24,21 +24,24 @@ and cond = {
 and test =
   | Def of var
   | Ndef of var
-  | Eq of var_or_data * var_or_data
-  | Neq of var_or_data * var_or_data
+  | Eq of var_or_text * var_or_text
+  | Neq of var_or_text * var_or_text
 
 and order = [`Up | `Down] * string
 
 and var = id list
 
-and var_or_data = [`Var of var | `Data of string]
+and var_or_text = [`Var of var | `Text of string]
 
 and id =
   | Id of string
+  | App of string * params
   | Get of var
 
+and params = (string * var_or_text) list
+
 let rec pp ppf = function
-  | Data s -> Fmt.string ppf s
+  | Text s -> Fmt.string ppf s
   | Var v  -> Fmt.pf ppf "{{ %a }}" pp_var v
   | Seq l  -> Fmt.(list ~sep:(unit "") pp) ppf l
   | If c   -> pp_cond ppf c
@@ -60,8 +63,8 @@ and pp_ands ppf x = Fmt.(list ~sep:(unit " && ") pp_test) ppf x
 and pp_test ppf = function
   | Def x     -> pp_var ppf x
   | Ndef x    -> Fmt.pf ppf "!%a" pp_var x
-  | Eq (x, y) -> Fmt.pf ppf "(%a = %a)" pp_var_or_data x pp_var_or_data y
-  | Neq(x, y) -> Fmt.pf ppf "(%a != %a)" pp_var_or_data x pp_var_or_data y
+  | Eq (x, y) -> Fmt.pf ppf "(%a = %a)" pp_var_or_text x pp_var_or_text y
+  | Neq(x, y) -> Fmt.pf ppf "(%a != %a)" pp_var_or_text x pp_var_or_text y
 
 and pp_elif ppf = function
   | None   -> Fmt.string ppf "{{ endif }}"
@@ -70,16 +73,21 @@ and pp_elif ppf = function
 
 and pp_var ppf t = Fmt.(list ~sep:(unit ".") pp_id) ppf t
 
-and pp_var_or_data ppf = function
+and pp_param ppf (n, v) = Fmt.pf ppf "%s: %a" n pp_var_or_text v
+
+and pp_params ppf t = Fmt.(list ~sep:(unit ", ")) pp_param ppf t
+
+and pp_var_or_text ppf = function
   | `Var v  -> pp_var ppf v
-  | `Data d -> Fmt.string ppf d
+  | `Text d -> Fmt.pf ppf "%S" d
 
 and pp_id ppf = function
-  | Id s  -> Fmt.string ppf s
-  | Get v -> Fmt.pf ppf "[%a]" pp_var v
+  | Id s       -> Fmt.string ppf s
+  | App (n, p) -> Fmt.pf ppf "%s(%a)" n pp_params p
+  | Get v      -> Fmt.pf ppf "[%a]" pp_var v
 
 let rec dump ppf = function
-  | Data s -> Fmt.pf ppf "@[<hov 2>Data %S@]" s
+  | Text s -> Fmt.pf ppf "@[<hov 2>Text %S@]" s
   | Var v  -> Fmt.pf ppf "@[<hov 2>Var %a@]" dump_var v
   | Seq l  -> Fmt.pf ppf "@[<hov 2>Seq %a@]" Fmt.(Dump.list dump) l
   | If c   -> Fmt.pf ppf "@[<hov 2>If %a@]" dump_cond c
@@ -96,12 +104,12 @@ and dump_cond ppf t =
 and dump_ands ppf t = Fmt.(Dump.list dump_test) ppf t
 
 and dump_test ppf = function
-  | Def t     -> Fmt.pf ppf "@[<hov 2>Def %a@]" pp_var t
-  | Ndef t    -> Fmt.pf ppf "@[<hov 2>Ndef %a@]" pp_var t
+  | Def t     -> Fmt.pf ppf "@[<hov 2>Def %a@]" dump_var t
+  | Ndef t    -> Fmt.pf ppf "@[<hov 2>Ndef %a@]" dump_var t
   | Eq (x, y) ->
-    Fmt.pf ppf "@[<hov 2>Eq (%a,@ %a)@]" pp_var_or_data x pp_var_or_data y
+    Fmt.pf ppf "@[<hov 2>Eq (%a,@ %a)@]" dump_var_or_text x dump_var_or_text y
   | Neq(x, y) ->
-    Fmt.pf ppf "@[<hov 2>Neq (%a,@ %a)@]" pp_var_or_data x pp_var_or_data y
+    Fmt.pf ppf "@[<hov 2>Neq (%a,@ %a)@]" dump_var_or_text x dump_var_or_text y
 
 and dump_order ppf (t, s) = match t with
   | `Up   -> Fmt.string ppf s
@@ -109,19 +117,32 @@ and dump_order ppf (t, s) = match t with
 
 and dump_var ppf t = Fmt.(Dump.list dump_id) ppf t
 
+and dump_param ppf (n, v) = Fmt.pf ppf "(%S, %a)" n dump_var_or_text v
+
+and dump_params ppf t = Fmt.(Dump.list dump_param) ppf t
+
+and dump_var_or_text ppf = function
+  | `Text s -> Fmt.pf ppf "@[<hov 2>`Text %S@]" s
+  | `Var v  -> Fmt.pf ppf "@[<hov 2>`Var %a@]" dump_var v
+
 and dump_id ppf = function
-  | Id s  -> Fmt.pf ppf "@[<hov 2>Id %S@]" s
-  | Get v -> Fmt.pf ppf "@[<hov 2>Get %a@]" dump_var v
+  | Id s       -> Fmt.pf ppf "@[<hov 2>Id %S@]" s
+  | App (n, p) -> Fmt.pf ppf "@[<hov 2>{name=%s;@ params=%a}@]" n dump_params p
+  | Get v      -> Fmt.pf ppf "@[<hov 2>Get %a@]" dump_var v
+
+let equal_list eq x y =
+  List.length x = List.length y
+  && List.for_all2 eq x y
 
 let rec equal x y =
   x == y ||
   match x, y with
-  | Data x, Data y -> String.equal x y
+  | Text x, Text y -> String.equal x y
   | Var x , Var y  -> equal_var x y
-  | Seq x , Seq y  -> List.length x = List.length y && List.for_all2 equal x y
+  | Seq x , Seq y  -> equal_list equal x y
   | For x , For y  -> equal_loop x y
   | If  x , If y   -> equal_cond x y
-  | _ -> false
+  | Text _, _ | Var _, _ | Seq _, _ | For _, _ | If _, _ -> false
 
 and equal_loop x y =
   String.equal x.var y.var
@@ -144,32 +165,34 @@ and equal_cond x y =
 
 and equal_test x y = match x, y with
   | Neq (a,b), Neq(c,d)
-  | Eq (a, b), Eq (c, d) -> equal_var_or_data a c && equal_var_or_data b d
+  | Eq (a, b), Eq (c, d) -> equal_var_or_text a c && equal_var_or_text b d
   | Ndef x   , Ndef y
   | Def x    , Def y     -> equal_var x y
-  | _ -> false
+  | Neq _, _ | Eq _, _ | Ndef _, _ | Def _, _ -> false
 
-and equal_tests x y =
-  List.length x = List.length y
-  && List.for_all2 equal_test x y
+and equal_tests x y = equal_list equal_test x y
 
-and equal_var x y =
-  List.length x = List.length y
-  && List.for_all2 id_equal x y
+and equal_var x y = equal_list equal_id x y
 
-and equal_var_or_data x y = match x, y with
+and equal_param x y =
+  String.equal (fst x) (fst y) && equal_var_or_text (snd x) (snd y)
+
+and equal_var_or_text x y = match x, y with
   | `Var x , `Var y  -> equal_var x y
-  | `Data x, `Data y -> String.equal x y
-  | _ -> false
+  | `Text x, `Text y -> String.equal x y
+  | `Var _, _ | `Text _, _ -> false
 
-and id_equal x y = match x, y with
+and equal_id x y = match x, y with
   | Id x , Id y  -> String.equal x y
   | Get x, Get y -> equal_var x y
-  | _ -> false
+  | App (a,b), App (c,d) ->
+    String.equal a c && equal_list equal_param b d
+  | Id _, _ | Get _, _ | App _, _ -> false
 
 let name var =
   let rec aux acc = function
     | []        -> Some (String.concat "." (List.rev acc))
+    | App (x, _) :: t
     | Id x :: t -> aux (x :: acc) t
     | _         -> None
   in
