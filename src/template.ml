@@ -536,7 +536,7 @@ let parse_file ~file v =
   | ".md"   -> parse_md ~file v
   | _       ->
     let k = Filename.(remove_extension @@ basename file) in
-    data k v
+    kollection k (context_of_page @@ parse_page ~file v)
 
 let read_dir f dir =
   Log.debug (fun l -> l "Reading directory %s" dir);
