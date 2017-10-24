@@ -430,15 +430,19 @@ let eval ~file ~context contents =
       | Some c -> cond ctx k c
 
   and var ctx k v =
-    match eval_var ~file ~context:ctx ~errors v with
-    | None             -> k (`Var v)
-    | Some (p, Data d) ->
+    let replace p d =
       Log.info (fun l -> l "Replacing %a in %a." pp_ids p pp_file file);
       k (`Text d)
-    | Some _  ->
-      err err_data_is_needed ~context:ctx (Var v) "%s" (string_of_var v);
-      k (`Var v)
-
+    in
+    match eval_var ~file ~context:ctx ~errors v with
+    | None                   -> k (`Var v)
+    | Some (p, Data d)       -> replace p d
+    | Some (p, Collection c) ->
+      match Context.find c "body" with
+      | Some (Data d) -> replace p d
+      | _             ->
+        err err_data_is_needed ~context:ctx (Var v) "%s" (string_of_var v);
+        k (`Var v)
   in
   let r = t context (fun x -> x) contents in
   r, !errors
