@@ -330,6 +330,11 @@ module If = struct
       "{{if (foo != toto.name)}}yo{{endif}}", "yo";
     ]
 
+  let else_ () =
+    test [
+      "{{if !foo}}hello!{{else}}By!{{endif}}", "By!";
+      "{{if foo}}hello!{{else}}By!{{endif}}" , "hello!";
+    ]
 end
 
 module Get = struct
@@ -440,6 +445,7 @@ let () =
       "many"  , `Quick, If.many;
       "equal" , `Quick, If.equal;
       "neg"   , `Quick, If.neg;
+      "else"  , `Quick, If.else_;
     ];
     "get", [
       "simple", `Quick, Get.simple;
