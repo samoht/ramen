@@ -86,10 +86,10 @@ The body can contain templates of the form:
 
   When reading files in the `data/` directory, Ramen always removes
   the file extensions to build the variable names:
-  the contents of `foo/a.html` is available as `foo.a`. In some cases (see
+  the contents of `foo/a.html` is available as `foo.a.body`.
+  In some cases (see
   [bellow](https://github.com/samoht/ramen#supported-file-extensions) for details),
-  the contents is available in a `body` sub-field, e.g. the contents of
-  `foo/a.md` is available as `foo.a.body`.
+  the contents is pre-processed.
 
   Raw data can also contains the `{{ .. }}` quotations. They are
   expanded recursively by Ramen.

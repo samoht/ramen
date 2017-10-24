@@ -310,7 +310,8 @@ let eval_var ~file ~context ~errors v =
     | Id h::t ->
       find ctx (fun c ->
           collection h (fun ctx ->
-              var (Context.v ctx) k t
+              var (Context.v ctx) k t >|= fun (p, v) ->
+              h :: p, v
             ) c
         ) h
     | App (h, p)::t ->
@@ -324,7 +325,8 @@ let eval_var ~file ~context ~errors v =
                 List.filter (fun {k; _} -> not (List.mem_assoc k p)) ctx
               in
               let ctx = List.rev_map (param h) p @ ctx in
-              var (Context.v ctx) k t
+              var (Context.v ctx) k t >|= fun (p, v) ->
+              h :: p, v
             ) c
         ) h
   and param h (k, v) = match v with
@@ -430,15 +432,19 @@ let eval ~file ~context contents =
       | Some c -> cond ctx k c
 
   and var ctx k v =
-    match eval_var ~file ~context:ctx ~errors v with
-    | None             -> k (`Var v)
-    | Some (p, Data d) ->
+    let replace p d =
       Log.info (fun l -> l "Replacing %a in %a." pp_ids p pp_file file);
       k (`Text d)
-    | Some _  ->
-      err err_data_is_needed ~context:ctx (Var v) "%s" (string_of_var v);
-      k (`Var v)
-
+    in
+    match eval_var ~file ~context:ctx ~errors v with
+    | None                   -> k (`Var v)
+    | Some (p, Data d)       -> replace p d
+    | Some (p, Collection c) ->
+      match Context.find c "body" with
+      | Some (Data d) -> replace p d
+      | _             ->
+        err err_data_is_needed ~context:ctx (Var v) "%s" (string_of_var v);
+        k (`Var v)
   in
   let r = t context (fun x -> x) contents in
   r, !errors
@@ -536,7 +542,7 @@ let parse_file ~file v =
   | ".md"   -> parse_md ~file v
   | _       ->
     let k = Filename.(remove_extension @@ basename file) in
-    data k v
+    kollection k (context_of_page @@ parse_page ~file v)
 
 let read_dir f dir =
   Log.debug (fun l -> l "Reading directory %s" dir);

@@ -170,18 +170,19 @@ module Data = struct
       "toto.yml" , "foo: bar\nbar: toto\n";
       "zzzz/bar.x", "test test test test";
     ] in
+    let file f x = Template.(collection f [data "body" x]) in
     let ctx = Template.(Context.v [
-        data "bar" @@ List.assoc "bar.x" files;
-        data "foo" @@ List.assoc "foo.x" files;
+        file "bar" @@ List.assoc "bar.x" files;
+        file "foo" @@ List.assoc "foo.x" files;
         collection "fooo" [
-          data "bar" "test test test test";
+          file "bar" "test test test test";
         ];
         collection "toto" [
           data "foo" "bar";
           data "bar" "toto";
         ];
         collection "zzzz" [
-          data "bar" "test test test test";
+          file "bar" "test test test test";
         ];
       ])
     in
