@@ -49,7 +49,7 @@ let setup_log =
   Term.(const setup_log $ Fmt_cli.style_renderer () $ Logs_cli.level ())
 
 let pp_html oc page =
-  let out = page |> Soup.parse |> Soup.pretty_print in
+  let out = page (* |> Soup.parse |> Soup.pretty_print *) in
   Fmt.pf (Format.formatter_of_out_channel oc) "%s" out
 
 let pp_pages dir ppf x =
