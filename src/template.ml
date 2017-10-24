@@ -310,7 +310,8 @@ let eval_var ~file ~context ~errors v =
     | Id h::t ->
       find ctx (fun c ->
           collection h (fun ctx ->
-              var (Context.v ctx) k t
+              var (Context.v ctx) k t >|= fun (p, v) ->
+              h :: p, v
             ) c
         ) h
     | App (h, p)::t ->
@@ -324,7 +325,8 @@ let eval_var ~file ~context ~errors v =
                 List.filter (fun {k; _} -> not (List.mem_assoc k p)) ctx
               in
               let ctx = List.rev_map (param h) p @ ctx in
-              var (Context.v ctx) k t
+              var (Context.v ctx) k t >|= fun (p, v) ->
+              h :: p, v
             ) c
         ) h
   and param h (k, v) = match v with
