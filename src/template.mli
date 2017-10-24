@@ -69,7 +69,8 @@ type error
 val pp_error: error Fmt.t
 (** Pretty-print templating errors. *)
 
-val eval: file:string -> context:Context.t -> Ast.t -> Ast.t * error list
+val eval: file:string -> context:Context.t -> ?failfast:bool ->
+  Ast.t -> Ast.t * error list
 (** [eval c t] evaluates [t] calls using the context [t]. *)
 
 (** {1 Contexts} *)

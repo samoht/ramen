@@ -29,6 +29,14 @@ let output =
   in
   Arg.(value & opt string "site" doc)
 
+let failfast =
+  let doc =
+    Arg.info ~docv:"DIR"
+      ~doc:"Fail on the first error instead of trying to continue."
+      ["failfast"; "e"]
+  in
+  Arg.(value & flag doc)
+
 let setup_log style_renderer level =
   Fmt_tty.setup_std_outputs ?style_renderer ();
   Logs.set_level level;
@@ -90,7 +98,7 @@ let with_url context page =
   let url = Template.data "url" (basename page) in
   Template.Context.add context url
 
-let run () data pages output =
+let run () data pages output failfast =
   let data  = Template.read_data data in
   let pages = Template.read_pages ~dir:pages in
   let pages =
@@ -107,7 +115,7 @@ let run () data pages output =
       Log.info (fun l -> l "Creating %s." output);
       let site = site ~pages ~page:ctx in
       let context = Template.Context.(context ++ data ++ site) in
-      let out, errors = Template.eval ~file ~context body in
+      let out, errors = Template.eval ~file ~context ~failfast body in
       let oc = open_out output in
       pp_html oc @@ Fmt.to_to_string Template.Ast.pp out;
       flush oc;
@@ -131,7 +139,7 @@ let run =
     `S "AUTHOR";
     `P "Thomas Gazagnaire <thomas@gazagnaire.org>";
   ] in
-  Term.(const run $ setup_log $ data $ pages $ output),
+  Term.(const run $ setup_log $ data $ pages $ output $ failfast),
   Term.info ~man "ramen" ~version:"%%VERSION%%"
 
 let () = match Term.eval run with

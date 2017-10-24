@@ -231,13 +231,23 @@ end
 
 module Error = struct
 
-  let add errors e =
+  type t = {
+    mutable v: error list;
+    failfast : bool;
+  }
+
+  let v ?(failfast=false) () = { v=[]; failfast }
+
+  let add' errors e =
     if List.exists (equal_error e) errors then errors
     else List.sort compare (e :: errors)
 
-  module R = struct
-    let add errors e = errors := add !errors e
-  end
+  let add errors e =
+    errors.v <- add' errors.v e;
+    if errors.failfast then (
+      Log.err (fun l -> l "%a" pp_error e);
+      exit 1
+    )
 
 end
 
@@ -262,10 +272,10 @@ let sort ~file ~context ~errors loop x y =
       (match Context.find x order, Context.find y order with
        | Some (Data x), Some (Data y) -> custom_compare d x y
        | None, _ | _, None  ->
-         Error.R.add errors (err_invalid_order order loc);
+         Error.add errors (err_invalid_order order loc);
          default
        | Some (Collection _), _ | _, Some (Collection _) ->
-         Error.R.add errors (err_data_is_needed order loc);
+         Error.add errors (err_data_is_needed order loc);
          default
       )
     | _ -> default
@@ -283,15 +293,15 @@ let eval_var ~file ~context ~errors v =
   let (>|=) x f = match x with None -> None | Some x -> Some (f x) in
   let find ctx k h = match Context.find ctx h with
     | Some x-> k x
-    | None  -> Error.R.add errors (err_invalid_key h loc); None
+    | None  -> Error.add errors (err_invalid_key h loc); None
   in
   let collection h k = function
     | Collection c -> k c
-    | Data _ -> Error.R.add errors (err_collection_is_needed h loc); None
+    | Data _ -> Error.add errors (err_collection_is_needed h loc); None
   in
   let data h k = function
     | Data d       -> k d
-    | Collection _ -> Error.R.add errors (err_data_is_needed h loc); None
+    | Collection _ -> Error.add errors (err_data_is_needed h loc); None
   in
   let rec var ctx k = function
     | []       -> None
@@ -319,7 +329,7 @@ let eval_var ~file ~context ~errors v =
           collection h (fun ctx ->
               List.iter (fun (n, _) ->
                   if not (List.exists (fun {k; _} -> k = n) ctx) then
-                    Error.R.add errors (err_invalid_key n loc)
+                    Error.add errors (err_invalid_key n loc)
                 ) p;
               let ctx =
                 List.filter (fun {k; _} -> not (List.mem_assoc k p)) ctx
@@ -335,7 +345,7 @@ let eval_var ~file ~context ~errors v =
       match var context (fun v -> Some ([h], v)) v with
       | Some (_, v) -> {k; v}
       | None        ->
-        Error.R.add errors (err_param_is_needed h k loc);
+        Error.add errors (err_param_is_needed h k loc);
         {k; v=Data ""}
   in
   var context (fun x -> Some ([], x)) v
@@ -344,7 +354,7 @@ let eval_test ~file ~context ~errors t =
   let open Ast in
   Log.debug (fun l -> l "eval test: %a" Ast.pp_test t);
   let var_is_defined v =
-    let errors = ref [] in
+    let errors = Error.v () in
     match eval_var ~file ~context ~errors v with
     | None   -> false
     | Some _ -> true
@@ -368,13 +378,13 @@ let eval_test ~file ~context ~errors t =
   in
   aux (fun x -> x) t
 
-let eval ~file ~context contents =
+let eval ~file ~context ?(failfast=false) contents =
   let open Ast in
-  let errors = ref [] in
+  let errors = Error.v ~failfast () in
   let err ~context e t fmt =
     Fmt.kstrf (fun x ->
         let loc = loc ~file ~context t in
-        Error.R.add errors (e x loc)
+        Error.add errors (e x loc)
       ) fmt
   in
   let normalize = Ast.normalize ~file in
@@ -447,7 +457,7 @@ let eval ~file ~context contents =
         k (`Var v)
   in
   let r = t context (fun x -> x) contents in
-  r, !errors
+  r, errors.Error.v
 
 let (/) = Filename.concat
 
