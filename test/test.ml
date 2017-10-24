@@ -256,6 +256,31 @@ module For = struct
     Alcotest.(check @@ slist error compare) "errors" [] e;
     Alcotest.(check ast) "body" body str
 
+
+  let f = Template.Ast.parse ~file
+
+  let eval x =
+    let x, y = Template.eval ~file:"test" ~context:ctx x in
+    Alcotest.(check @@ slist error compare) "errors" [] y;
+    x
+
+  let test l =
+    List.iteri (fun i (x, y) ->
+        Alcotest.(check ast) (string_of_int i) (f y) (eval @@ f x)
+      ) l
+
+  let first () =
+    test [
+      "{{ for i in toto if (i = toto.first) i.name endif endfor }}",
+      "Monique"
+    ]
+
+  let last () =
+    test [
+      "{{ for i in toto if (i = toto.last) i.name endif endfor }}",
+      "Jean Valjean"
+    ]
+
 end
 
 module If = struct
@@ -407,6 +432,8 @@ let () =
     "for", [
       "simple" , `Quick, For.simple;
       "by name", `Quick, For.by_name;
+      "first"  , `Quick, For.first;
+      "last"   , `Quick, For.last;
     ];
     "if", [
       "simple", `Quick, If.simple;
