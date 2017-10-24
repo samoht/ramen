@@ -34,7 +34,7 @@ These three directories are:
   Copy that directory to your live website to put your static website live.
 
 - `pages/`: the base templates. All the templates in that directory
-  will be processed by Ramen and the expanded results will be copied into
+  are processed by Ramen and the expanded results are copied into
   `site/`.
 
 - `data/`: the data read by Ramen used to feed the templates in `pages/`.
@@ -43,10 +43,10 @@ These three directories are:
 
 There are 2 kinds of data:
 
-- **raw data**: Ramen will use these to complete template variables. Example of
+- **raw data**: Ramen uses these to complete template variables. Example of
   raw data could either be a raw file or a header value.
 
-- **collections**: Ramen will use these to expanse for loops. `foo.bar` denotes
+- **collections**: Ramen uses these to expand for loops. `foo.bar` denotes
   the entry `bar` in the collection `foo`. These are built from directories
   in `data/` or from structured files (with `.yml` or `.json` extensions).
   Collection are ordered:
@@ -76,7 +76,7 @@ body
 
 The body can contain templates of the form:
 
-- **variables**: `{{ var }}`: Ramen will replace these with their raw
+- **variables**: `{{ var }}`: Ramen replaces these with their raw
   values defined in the page header or in the data directory (see
   bellow). Variables are alpha-numeric characters with `-` and `_`.
   Full variables can contain dots, to explore collections. For instance,
@@ -84,17 +84,36 @@ The body can contain templates of the form:
   data/foo/a` and  `data/foo/b`) the contents of these could be
   accessed in template bodies using `foo.a` and `foo.b`.
 
-  _Note:_ when reading files in the `data/` directory, Ramen will
-  remove the extensions it understands (see
-  [bellow](https://github.com/samoht/ramen#supported-file-extensions)),
-  so the contents of `foo/a.md` will be available using `foo.a.body`.
+  When reading files in the `data/` directory, Ramen always removes
+  the file extensions to build the variable names:
+  the contents of `foo/a.html` is available as `foo.a`. In some cases (see
+  [bellow](https://github.com/samoht/ramen#supported-file-extensions) for details),
+  the contents is available in a `body` sub-field, e.g. the contents of
+  `foo/a.md` is available as `foo.a.body`.
 
-- **loops**: `{{ for i in var }} <body> {{ endfor }}`: Ramen will
-  expanse the body for each entry in the collection `var`.
+  Raw data can also contains the `{{ .. }}` quotations. They are
+  expanded recursively by Ramen.
+
+- **loops**: `{{ for i in var }} <body> {{ endfor }}`: Ramen
+  expands the body for each entry in the collection `var`.
+
+  For instance, if `data/foo` contains two files `data/foo/a.md` and
+  `data/foo/b.md` which contains `toto` and `titi` respectively, then:
+
+  ```html
+  {{ for i in foo }}
+  Hello {{ i.body }}.
+  {{ endfor }}
+  ```
+  is equivalent to:
+  ```html
+  Hello toto.
+  Hello titi.
+  ```
 
 - **conditions**: `{{ if cond_1 }} <body_1> ... {{ elif cond_n }} <body_n> {{
-  endif }}`. Ramen will pick the first `<body_i>` such that `cond_i` is
-  satisfied (or it will use an empty string if none of the conditions
+  endif }}`. Ramen picks the first `<body_i>` such that `cond_i` is
+  satisfied (or it uses an empty string if none of the conditions
   are true). Conditions are a `&&`-separated list of conjonctions of
   either a single variable `var` (to check if this variablie is
   defined in the current context) or variable equality `(var_1 = var_2)`
@@ -146,25 +165,21 @@ The body can contain templates of the form:
   <ul>
   ```
 
-
-_Note_: raw data can also contains the `{{ .. }}` quotations. They will be
-expanded recursively by Ramen.
-
 ### Supported File Extensions
 
 The following file extensions are supported:
 
-- `<file>.json`: will be transformed into the collection `<file>`.
+- `<file>.json`: the file is transformed into the collection `<file>`.
 
-- `<file>.md`: will convert `<file>`'s body from HTML to markdown and will
-  make it available as `<file>.body`.
-  If the file has some headers, they will be available
-  using `<file>.<var>`.
+- `<file>.md`: the file's body is converted from HTML to markdown and is
+  made available as `<file>.body`.
+  If the file has some headers, they are available using `<file>.<var>`.
 
-- `<file>.yml`: will be transformed into the collection `<file>`. Note: only
+- `<file>.yml`: the file is transformed into the collection `<file>`. Note: only
    very limited support for yaml at the moment (no nesting, only key-value).
 
-- every other files will be considered as raw data.
+- every other files are considered as raw data: `<file>.<ext>` corresponds
+  to binding where `<file>` is bound to the contents of that file.
 
 ### Examples
 
