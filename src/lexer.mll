@@ -66,6 +66,7 @@ and program t = parse
   | "endfor" { ENDFOR }
   | "if"     { IF }
   | "elif"   { ELIF }
+  | "else"   { ELSE }
   | "endif"  { ENDIF }
   | "&&"     { AND }
   | ":"      { COLON }

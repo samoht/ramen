@@ -6,7 +6,7 @@ open Ast
 %token DOT
 %token COLON COMMA
 %token FOR IN ENDFOR PIPE MINUS
-%token IF ELIF ENDIF
+%token IF ELIF ENDIF ELSE
 %token AND EQ NEQ BANG
 %token LBRA RBRA
 %token LPAR RPAR
@@ -29,6 +29,7 @@ expr:
 
 elif:
   | ELIF test exprs elif { Some { test=$2; then_=$3; else_= $4 } }
+  | ELSE exprs ENDIF     { Some { test=[]; then_=$2; else_=None } }
   | ENDIF                { None }
 
 cond:
