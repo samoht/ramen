@@ -111,6 +111,19 @@ The body can contain templates of the form:
   Hello titi.
   ```
 
+  When a collection is used as a parameter of a loop, two extra fields are
+  added in the context: `first` and `last`. These are useful to test for
+  start or end conditions, for instance:
+
+  ```html
+  {{ for i in foo }}
+  {{ if (i = foo.first) }}
+  Hello first {{ i.body }}.
+  {{ else }}
+  Hello {{ i.body }}
+  {{ endif }}
+  ```
+
 - **conditions**: `{{ if cond_1 }} <body_1> ... {{ elif cond_n }} <body_n> {{
   endif }}`. Ramen picks the first `<body_i>` such that `cond_i` is
   satisfied (or it uses an empty string if none of the conditions
