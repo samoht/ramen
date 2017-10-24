@@ -29,11 +29,13 @@ Usage: ramen [--data=<path>] [--pages=<path>] [--site=<path>] [-v]
 
 These three directories are:
 
-- `site/`: the generated website, created by Ramen. Do not edit the files
-  there. Just copy that directory to your live website.
+- `site/`: the generated website, created by Ramen. Add images or stylesheet
+  here but do not edit the contents of processed files there.
+  Copy that directory to your live website to put your static website live.
 
 - `pages/`: the base templates. All the templates in that directory
-  will be processed by Ramen and the results will be copied into `site/`.
+  will be processed by Ramen and the expanded results will be copied into
+  `site/`.
 
 - `data/`: the data read by Ramen used to feed the templates in `pages/`.
 
@@ -123,6 +125,27 @@ The body can contain templates of the form:
     </div>
   {{endfor}}
   ````
+- **fonctions**: `{{ VAR(k_1: v_1, ..., k_n: v_n) }}` this is similar
+  to evaluating `VAR` in the context where `k_1`,...,`k_n` are bound
+  to `v_1`,...`v_n`. For instance, this could be used to parametrize
+  a template to be re-used in various contexts.
+
+  If `data/v.md` contains:
+  ```html
+  entry: .
+  ----
+  <b>{{entry.title}}</b>: {{entry.contents}}
+  ```
+
+  then, assuming that `foo` and `bar` are collections with a `title` and
+  `contents` entries, `v` can be used as follows:
+  ```html
+  <ul>
+    <li> {{ v(entry: foo) }} </li>
+    <li> {{ v(entry: bar) }} </li>
+  <ul>
+  ```
+
 
 _Note_: raw data can also contains the `{{ .. }}` quotations. They will be
 expanded recursively by Ramen.

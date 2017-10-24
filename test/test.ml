@@ -98,7 +98,7 @@ end
 
 module Page = struct
 
-  let data x = Template.Ast.Data x
+  let text x = Template.Ast.Text x
 
   let check str body ctx =
     let ctx = simple_context ctx in
@@ -107,14 +107,14 @@ module Page = struct
     Alcotest.(check context) "rules" page.Template.context ctx
 
   let body () =
-    check "" (data "") [];
-    check "---\n" (data "") [];
-    check "---\nfoo" (data "foo") []
+    check "" (text "") [];
+    check "---\n" (text "") [];
+    check "---\nfoo" (text "foo") []
 
   let headers () =
-    check "foo: bar\nbar: toto\n---\n" (data "")
+    check "foo: bar\nbar: toto\n---\n" (text "")
       ["foo", "bar"; "bar", "toto"];
-    check "---\nfoo: bar\n---\n" (data "")
+    check "---\nfoo: bar\n---\n" (text "")
       ["foo", "bar"]
 
   let both () =
@@ -124,7 +124,7 @@ bar: toto
 ---
 this is a trap!
 |}
-      (data "this is a trap!\n")
+      (text "this is a trap!\n")
       ["foo" , "bar"; "bar" , "toto"]
 
 end
@@ -352,6 +352,37 @@ module Get = struct
 
 end
 
+module Fun = struct
+
+  let ctx =
+    let open Template in
+    Context.v [
+      collection "truc" [
+        collection "one" [
+          data "owner" "jean";
+        ];
+        collection "two" [
+          data "owner" "luc";
+        ]
+      ]
+    ]
+
+  let f = Template.Ast.parse ~file
+
+  let eval x =
+    let x, y = Template.eval ~file:"test" ~context:ctx x in
+    Alcotest.(check @@ slist error compare) "errors" [] y;
+    x
+
+  let simple () =
+    List.iteri (fun i (x, y) ->
+        Alcotest.(check ast) (string_of_int i) (f y) (eval @@ f x)
+      )[
+      "Hello {{ truc(one: truc.two).one.owner }}", "Hello luc";
+    ]
+
+end
+
 let () =
   Alcotest.run "www" [
     "one", [
@@ -385,5 +416,8 @@ let () =
     ];
     "get", [
       "simple", `Quick, Get.simple;
+    ];
+    "functions", [
+      "simple", `Quick, Fun.simple;
     ]
   ]

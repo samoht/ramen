@@ -27,14 +27,15 @@ module Ast = struct
     let lexbuf = Lexing.from_string str in
     let err msg =
       let f = save_to_temp_file ~file str in
-      Fmt.(pf stderr) "%a: %s\n.%!" (pp_position f) lexbuf msg;
-      exit 1
+      let msg = Fmt.strf "%a: %s\n.%!" (pp_position f) lexbuf msg in
+      Log.err (fun l -> l "%s" msg);
+      Ast.(Seq [Text "error: "; Text msg])
     in
     try Parser.main Lexer.(token @@ v ()) lexbuf
     with
     | Lexer.Error msg -> err msg
     | Parser.Error -> err "syntax error"
-    | Lexer.Unclosed_tag -> Data str
+    | Lexer.Unclosed_tag -> Text str
 
   (* FIXME: very dumb *)
   let normalize ~file t =
@@ -45,7 +46,7 @@ end
 
 let pp_file = Fmt.(styled `Underline string)
 let pp_key = Fmt.(styled `Bold string)
-let pp_var = Fmt.(styled `Bold Ast.pp_var)
+let string_of_var = Fmt.to_to_string Ast.pp_var
 
 (* ENTRIES *)
 
@@ -86,7 +87,7 @@ and equal_value x y =
 (* CONTEXT *)
 
 module Context: sig
-  type t
+  type t = entries
   val pp: t Fmt.t
   val empty: t
   val dump: t Fmt.t
@@ -94,7 +95,7 @@ module Context: sig
   val v: entry list -> t
   val is_empty: t -> bool
   val add: t -> entry -> t
-  val find: t -> string -> entry option
+  val find: t -> string -> value option
   val entries: t -> entry list
   val (++): t -> t -> t
 end = struct
@@ -121,32 +122,15 @@ end = struct
     List.rev_append y (List.rev x)
 
   let find m k =
-    let return x m =
-      match List.find (fun e -> String.equal e.k x) m with
-      | exception Not_found -> None
-      | v                   -> Some { v with k }
-    in
-    let rec aux path m = function
-      | []   -> None
-      | [k]  -> return k m
-      | h::t ->
-        match List.find (fun { k; _ } -> String.equal k h) m with
-        | exception Not_found     -> None
-        | { v = Collection m; _ } -> aux (h :: path) m t
-        | { v = Data _; _ }       -> None
-    in
-    let path = String.cuts ~sep:"." k in
-    aux [] m path
+    Log.debug (fun l -> l "Context.find %s" k);
+    match List.find (fun x -> x.k = k) m with
+    | exception Not_found -> None
+    | e                   -> Some e.v
 
 end
 
 let collection k l = { k; v = Collection Context.(entries @@ v l) }
 let kollection k c = { k; v = Collection (Context.entries c) }
-
-let find m k =
-  match List.find (fun x -> x.k = k) m with
-  | exception Not_found -> None
-  | e                   -> Some e.v
 
 type context = Context.t
 
@@ -163,19 +147,20 @@ let loc ~file ~context ast = { file; context; ast }
 type error =
   | Invalid_key of (string * loc)
   | Invalid_order of (string * loc)
-  | Var_not_fully_defined of (Ast.var * loc)
   | Data_is_needed of (string * loc)
   | Collection_is_needed of (string * loc)
+  | Param_is_needed of (string * string * loc)
 
 let loc_of_error = function
-  | Invalid_key (_, x) | Invalid_order (_, x) | Var_not_fully_defined (_, x)
-  | Data_is_needed (_, x) | Collection_is_needed (_, x) -> x
+  | Invalid_key (_, x) | Invalid_order (_, x)
+  | Data_is_needed (_, x) | Collection_is_needed (_, x)
+  | Param_is_needed (_, _, x) -> x
 
 let err_invalid_key key loc = Invalid_key (key, loc)
 let err_invalid_order key loc = Invalid_order (key, loc)
 let err_data_is_needed key loc = Data_is_needed (key, loc)
 let err_collection_is_needed key loc = Collection_is_needed (key, loc)
-let err_not_fully_defined var loc = Var_not_fully_defined (var, loc)
+let err_param_is_needed key var loc = Param_is_needed (key, var, loc)
 
 let pp_error ppf e =
   let loc = loc_of_error e in
@@ -197,9 +182,9 @@ let pp_error ppf e =
   | Collection_is_needed (key, _) ->
     Fmt.pf ppf "They key %a in %a should be of type 'collection'."
       pp_key key pp_file file
-  | Var_not_fully_defined (var, _) ->
-    Fmt.pf ppf "The variable %a is not fully defined in %a."
-      pp_var var pp_file file
+  | Param_is_needed (key, param, _) ->
+    Fmt.pf ppf "They key %a should have the parameter %a in %a."
+      pp_key key pp_key param pp_file file
 
 let equal_error x y =
   match x, y with
@@ -207,8 +192,9 @@ let equal_error x y =
   | Invalid_order x        , Invalid_order y         -> x = y
   | Data_is_needed x       , Data_is_needed y        -> x = y
   | Collection_is_needed x , Collection_is_needed y  -> x = y
-  | Var_not_fully_defined x, Var_not_fully_defined y -> x = y
-  | _ -> false
+  | Param_is_needed x      , Param_is_needed y       -> x = y
+  | Invalid_key _, _ | Invalid_order _, _ | Data_is_needed _, _
+  | Collection_is_needed _, _ | Param_is_needed _, _ -> false
 
 (* ENGINE *)
 
@@ -256,7 +242,7 @@ let sort ~file ~context ~errors loop x y =
     match x.v, y.v with
     | Data _      , Data _       -> default
     | Collection x, Collection y ->
-      (match find x order, find y order with
+      (match Context.find x order, Context.find y order with
        | Some (Data x), Some (Data y) -> custom_compare d x y
        | None, _ | _, None  ->
          Error.R.add errors (err_invalid_order order loc);
@@ -271,52 +257,77 @@ let sort ~file ~context ~errors loop x y =
   | None       -> default
   | Some order -> with_order order
 
-let empty = Ast.Data ""
+let empty = Ast.Text ""
+
+let eval_var ~file ~context ~errors v =
+  let open Ast in
+  let loc = loc ~file ~context (Var v) in
+  Log.debug (fun l -> l "eval var: %a" Ast.pp_var v);
+  let find ctx k h = match Context.find ctx h with
+    | Some x-> k x
+    | None  -> Error.R.add errors (err_invalid_key h loc); None
+  in
+  let collection h k = function
+    | Collection c -> k c
+    | Data _ -> Error.R.add errors (err_collection_is_needed h loc); None
+  in
+  let data h k = function
+    | Data d -> k d
+    | Collection _ -> Error.R.add errors (err_data_is_needed h loc); None
+  in
+  let rec var ctx k = function
+    | []       -> None
+    | [Id h]   -> find ctx (fun x -> k x) h
+    | Get v::t ->
+      var context (fun x ->
+          data (string_of_var v) (fun h -> var ctx k (Id h :: t)) x
+        ) v
+    | Id h::t ->
+      find ctx (fun c ->
+          collection h (fun ctx ->
+              var (Context.v ctx) k t
+            ) c
+        ) h
+    | App (h, p)::t ->
+      find ctx (fun c ->
+          collection h (fun ctx ->
+              List.iter (fun (n, _) ->
+                  if not (List.exists (fun {k; _} -> k = n) ctx) then
+                    Error.R.add errors (err_invalid_key n loc)
+                ) p;
+              let ctx =
+                List.filter (fun {k; _} -> not (List.mem_assoc k p)) ctx
+              in
+              let ctx = List.rev_map (param h) p @ ctx in
+              var (Context.v ctx) k t
+            ) c
+        ) h
+  and param h (k, v) = match v with
+    | `Text d -> {k; v=Data d}
+    | `Var v  ->
+      match var context (fun v -> Some v) v with
+      | Some v -> {k; v}
+      | None   ->
+        Error.R.add errors (err_param_is_needed h k loc);
+        {k; v=Data ""}
+  in
+  var context (fun x -> Some x) v
 
 let eval_test ~file ~context ~errors t =
-  Log.debug (fun l -> l "eval test: %a" Ast.pp_test t);
   let open Ast in
-  let loc = loc ~file ~context (If { test=[t]; then_=empty; else_= None }) in
-  let find ~err = function
-    | `Data d -> Some (data "" d).v
-    | `Var x  ->  match Ast.name x with
-      | None    ->
-        if err then Error.R.add errors (err_not_fully_defined x loc);
-        None
-      | Some nx ->
-        match Context.find context nx with
-        | Some x -> Some x.v
-        | None   ->
-          if err then Error.R.add errors (err_invalid_key nx loc);
-          None
-  in
-  let id k = function
-    | Id x  -> k (Some (Id x))
-    | Get v ->
-      match find ~err:true (`Var v) with
-      | Some (Data v) -> k (Some (Id v))
-      | None | Some _ -> k None
-  in
-  let rec var k = function
-    | []   -> k (Some [])
-    | h::t ->
-      id (function
-          | None   -> k None
-          | Some h ->
-            var (function
-                | None   -> k None
-                | Some t -> k (Some (h::t))
-              ) t
-        ) h
-  in
+  Log.debug (fun l -> l "eval test: %a" Ast.pp_test t);
   let var_is_defined v =
-    var (function
-        | None   -> false
-        | Some v ->
-          match find ~err:false (`Var v) with
-          | None   -> false
-          | Some _ -> true
-      ) v
+    let errors = ref [] in
+    match eval_var ~file ~context ~errors v with
+    | None   -> false
+    | Some _ -> true
+  in
+  let var_or_data = function
+    | `Text d -> Data d
+    | `Var v  ->
+      match eval_var ~file ~context ~errors v with
+      | None   -> Data "<undefined>"
+      | Some v -> v
   in
   let rec aux k x =
     match x with
@@ -324,11 +335,9 @@ let eval_test ~file ~context ~errors t =
     | Neq (x, y) -> aux (fun x -> k (not x)) Ast.(Eq (x, y))
     | Def x      -> k (var_is_defined x)
     | Eq (x , y) ->
-      let vx = find ~err:true x and vy = find ~err:true y in
-      match vx, vy with
-      | None  , _      -> k false
-      | _     , None   -> k false
-      | Some x, Some y -> k (equal_value x y)
+      let x = var_or_data x in
+      let y = var_or_data y in
+      k (equal_value x y)
   in
   aux (fun x -> x) t
 
@@ -342,11 +351,11 @@ let eval ~file ~context contents =
   let normalize = Ast.normalize ~file in
 
   let rec t ctx k = function
-    | Data _ as x -> k x
+    | Text _ as x -> k x
     | Var v as x  ->
       var ctx (function
           | `Var v' -> if v == v' then k x else t ctx k (normalize @@ Var v')
-          | `Data v -> t ctx k (normalize @@ Data v)
+          | `Text v -> t ctx k (normalize @@ Text v)
         ) v
     | Seq l as s ->
       Acc.list (t ctx) (fun l' ->
@@ -356,38 +365,31 @@ let eval ~file ~context contents =
     | For l -> loop ctx k l
 
   and loop ctx k l =
-    match Ast.name l.map with
-    | None   ->
-      Fmt.kstrf (err ~context:ctx err_invalid_key (For l)) "%a" Ast.pp_var l.map;
+    match eval_var ~file ~context:ctx ~errors l.map with
+    | None          -> k empty
+    | Some (Data _) ->
+      err err_collection_is_needed ~context:ctx (For l) (string_of_var l.map);
       k empty
-    | Some v ->
-      match Context.find ctx v with
-      | None ->
-        err err_invalid_key ~context:ctx (For l) v;
-        k empty
-      | Some { v = Data _; _ } ->
-        err err_collection_is_needed ~context:ctx (For l) v;
-        k empty
-      | Some { v = Collection c; _ } ->
-        let entries = match l.order with
-          | None   -> c
-          | Some _ ->
-            let sort = sort ~file ~context:ctx ~errors l in
-            List.sort sort c
-        in
-        let bodies =
-          List.map (fun { k; v } ->
-              Log.debug (fun d -> d "unrolling %s in %a" k Ast.dump l.body);
-              let ctx = Context.add ctx { k = l.var; v } in
-              ctx, l.body
-            ) entries
-        in
-        Acc.list (fun l (ctx, body) ->
-            t ctx (fun body -> l (ctx, body))  body
-          ) (fun x ->
-            let bodies = List.map snd x in
-            k (Seq bodies)
-          ) bodies
+    | Some (Collection c) ->
+      let entries = match l.order with
+        | None   -> c
+        | Some _ ->
+          let sort = sort ~file ~context:ctx ~errors l in
+          List.sort sort c
+      in
+      let bodies =
+        List.map (fun { k; v } ->
+            Log.debug (fun d -> d "unrolling %s in %a" k Ast.dump l.body);
+            let ctx = Context.add ctx { k = l.var; v } in
+            ctx, l.body
+          ) entries
+      in
+      Acc.list (fun l (ctx, body) ->
+          t ctx (fun body -> l (ctx, body))  body
+        ) (fun x ->
+          let bodies = List.map snd x in
+          k (Seq bodies)
+        ) bodies
 
   and cond ctx k c =
     if List.for_all (eval_test ~file ~context:ctx ~errors) c.test
@@ -396,27 +398,15 @@ let eval ~file ~context contents =
       | None   -> k empty
       | Some c -> cond ctx k c
 
-  and id ctx k = function
-    | Id _ as x  -> k x
-    | Get v as x ->
-      var ctx (function
-          | `Var v' -> if v == v' then k x else k (Get v')
-          | `Data v -> k (Id v)
-        ) v
-
-  and var ctx k v = match Ast.name v with
-    | None   -> Acc.list (id ctx) (fun x -> k (`Var x)) v
-    | Some n ->
-      match Context.find ctx n with
-      | Some { v = Data v; _ } ->
-        Log.info (fun l -> l "Replacing %a in %a." pp_key n pp_file file);
-        k (`Data v)
-      | Some _  ->
-        err err_data_is_needed ~context:ctx (Var v) n;
-        k (`Var v)
-      | None     ->
-        err err_invalid_key ~context:ctx (Var v) n;
-        k (`Var v)
+  and var ctx k v =
+    match eval_var ~file ~context:ctx ~errors v with
+    | None   -> k (`Var v)
+    | Some (Data d) ->
+      Log.info (fun l -> l "Replacing %a in %a." pp_var v pp_file file);
+      k (`Text d)
+    | Some _  ->
+      err err_data_is_needed ~context:ctx (Var v) (string_of_var v);
+      k (`Var v)
 
   in
   let r = t context (fun x -> x) contents in
