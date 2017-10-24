@@ -86,7 +86,7 @@ The body can contain templates of the form:
 
   When reading files in the `data/` directory, Ramen always removes
   the file extensions to build the variable names:
-  the contents of `foo/a.html` is available as `foo.a.body`.
+  the contents of `foo/a.html` is available as `foo.a`.
   In some cases (see
   [bellow](https://github.com/samoht/ramen#supported-file-extensions) for details),
   the contents is pre-processed.
@@ -102,7 +102,7 @@ The body can contain templates of the form:
 
   ```html
   {{ for i in foo }}
-  Hello {{ i.body }}.
+  Hello {{ i }}.
   {{ endfor }}
   ```
   is equivalent to:
@@ -118,9 +118,9 @@ The body can contain templates of the form:
   ```html
   {{ for i in foo }}
   {{ if (i = foo.first) }}
-  Hello first {{ i.body }}.
+  Hello first {{ i }}.
   {{ else }}
-  Hello {{ i.body }}
+  Hello {{ i }}
   {{ endif }}
   ```
 
@@ -185,7 +185,7 @@ The following file extensions are supported:
 - `<file>.json`: the file is transformed into the collection `<file>`.
 
 - `<file>.md`: the file's body is converted from HTML to markdown and is
-  made available as `<file>.body`.
+  made available as `<file>`.
   If the file has some headers, they are available using `<file>.<var>`.
 
 - `<file>.yml`: the file is transformed into the collection `<file>`. Note: only
