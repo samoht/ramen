@@ -228,14 +228,22 @@ module For = struct
       ]]
 
   let simple () =
-    let one name age = Fmt.strf "Hi my name is %s and I am %s\n" name age in
+    let one name age = Fmt.strf "Hi my name is %s and I am %s" name age in
     let template =
-      Fmt.strf "Test: {{ for i in toto }}%s{{ endfor }}"
-        (one "{{ i.name }}" "{{ i.age }}")
+      Fmt.strf {|
+Test:
+   {{ for i in toto }}
+   %s
+   {{ endfor }}
+|} (one "{{ i.name }}" "{{ i.age }}")
       |> Template.Ast.(parse ~file)
     in
     let body =
-      Fmt.strf "Test: %s%s" (one "Monique" "42") (one "Jean Valjean" "99")
+      Fmt.strf {|
+Test:
+   %s
+   %s
+|} (one "Monique" "42") (one "Jean Valjean" "99")
       |> Template.Ast.(parse ~file)
     in
     let str, e = Template.eval ~file ~context:ctx template in
@@ -243,14 +251,22 @@ module For = struct
     Alcotest.(check ast) "body" body str
 
   let by_name () =
-    let one name age = Fmt.strf "Hi my name is %s and I am %s\n" name age in
+    let one name age = Fmt.strf "Hi my name is %s and I am %s" name age in
     let template =
-      Fmt.strf "Test: {{ for i in toto | name }}%s{{ endfor }}"
-        (one "{{ i.name }}" "{{ i.age }}")
+      Fmt.strf {|
+Test:
+ {{ for i in toto | name }}
+   %s
+ {{ endfor }}
+|} (one "{{ i.name }}" "{{ i.age }}")
       |> Template.Ast.(parse ~file)
     in
     let body =
-      Fmt.strf "Test: %s%s" (one "Jean Valjean" "99") (one "Monique" "42")
+      Fmt.strf {|
+Test:
+   %s
+   %s
+|} (one "Jean Valjean" "99") (one "Monique" "42")
       |> Template.Ast.(parse ~file)
     in
     let str, e = Template.eval ~file ~context:ctx template in

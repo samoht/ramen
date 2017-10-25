@@ -38,6 +38,12 @@ let add_newline t l =
     add_data t str.[i]
   done
 
+let check_newlines l =
+  let s = Lexing.lexeme l in
+  for i=0 to String.length s - 1 do
+    if s.[i] = '\n' then Lexing.new_line l
+  done
+
 exception Error of string
 let syntax_error s = raise (Error s)
 
@@ -52,7 +58,9 @@ let newline = '\r' | '\n' | "\r\n"
 let white = [' ' '\t']+
 
 rule text t = parse
-  | "{{"    { t.mode <- `Program; data t }
+  | (white* newline white*)? "{{" {
+      check_newlines lexbuf;
+      t.mode <- `Program; data t }
   | eof     { eof t }
   | newline { add_newline t lexbuf; text t lexbuf }
   | _ as c  { add_data t c; text t lexbuf }
