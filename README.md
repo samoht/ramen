@@ -117,7 +117,7 @@ The body can contain templates of the form:
 
   ```html
   {{ for i in foo }}
-  {{ if (i = foo.first) }}
+  {{ if i = foo.first }}
   Hello first {{ i }}.
   {{ else }}
   Hello {{ i }}
@@ -127,12 +127,14 @@ The body can contain templates of the form:
 - **conditions**: `{{ if cond_1 }} <body_1> ... {{ elif cond_n }} <body_n> {{
   endif }}`. Ramen picks the first `<body_i>` such that `cond_i` is
   satisfied (or it uses an empty string if none of the conditions
-  are true). Conditions are a `&&`-separated list of conjonctions of
-  either a single variable `var` (to check if this variablie is
-  defined in the current context) or variable equality `(var_1 = var_2)`
-  (to check if both variables points to the same contents -- they
-  could be collections). Simple negations are also supported,
-  using `!var` and `(var_1 != var_2)`.
+  are true). Conditions expressions are composed by:
+    - single variables: `var`;
+    - equalities: `var_1 = var_2` or `var_1 = 'string'`
+    - inequalities: `var_1 != var_2` or `var_1 != 'string'`
+    - parentheses: `( expr )`
+    - negations: `! expr`
+    - conjonctions: `expr_1 && expr_2`
+    - disjonctions: `expr_1 || expr_2`
 
   For instance:
 
