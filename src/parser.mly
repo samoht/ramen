@@ -33,10 +33,14 @@ elif:
   | ENDIF                { None }
 
 cond:
-  | var                   { Def $1 }
-  | BANG var              { Ndef $2 }
-  | LPAR var EQ var RPAR  { Eq (`Var $2, `Var $4) }
-  | LPAR var NEQ var RPAR { Neq (`Var $2, `Var $4) }
+  | var                                   { Def $1 }
+  | BANG var                              { Ndef $2 }
+  | LPAR var_or_text EQ var_or_text RPAR  { Eq ($2, $4) }
+  | LPAR var_or_text NEQ var_or_text RPAR { Neq ($2, $4) }
+
+var_or_text:
+  | var  { `Var $1 }
+  | DATA { `Text $1 }
 
 test:
   | separated_nonempty_list(AND, cond) { $1 }

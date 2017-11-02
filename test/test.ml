@@ -352,6 +352,14 @@ module If = struct
       "{{if !foo}}hello!{{else}}By!{{endif}}", "By!";
       "{{if foo}}hello!{{else}}By!{{endif}}" , "hello!";
     ]
+
+  let text () =
+    test [
+      "{{if (foo = 'x')}}hello!{{endif}}" , "hello!";
+      "{{if (foo = 'y')}}hello!{{endif}}" , "";
+      "{{if ('x' != foo)}}hello!{{endif}}", "";
+      "{{if (foo != 'y')}}hello!{{endif}}", "hello!";
+    ]
 end
 
 module Get = struct
@@ -463,6 +471,7 @@ let () =
       "equal" , `Quick, If.equal;
       "neg"   , `Quick, If.neg;
       "else"  , `Quick, If.else_;
+      "text"  , `Quick, If.text;
     ];
     "get", [
       "simple", `Quick, Get.simple;
