@@ -7,7 +7,10 @@ open Ast
 %token COLON COMMA
 %token FOR IN ENDFOR PIPE MINUS
 %token IF ELIF ENDIF ELSE
-%token AND EQ NEQ BANG
+%token BANG
+%token AND
+%token OR
+%token EQ NEQ
 %token LBRA RBRA
 %token LPAR RPAR
 %token EOF
@@ -29,17 +32,24 @@ expr:
 
 elif:
   | ELIF test exprs elif { Some { test=$2; then_=$3; else_= $4 } }
-  | ELSE exprs ENDIF     { Some { test=[]; then_=$2; else_=None } }
+  | ELSE exprs ENDIF     { Some { test=True; then_=$2; else_=None } }
   | ENDIF                { None }
 
-cond:
-  | var                   { Def $1 }
-  | BANG var              { Ndef $2 }
-  | LPAR var EQ var RPAR  { Eq (`Var $2, `Var $4) }
-  | LPAR var NEQ var RPAR { Neq (`Var $2, `Var $4) }
-
 test:
-  | separated_nonempty_list(AND, cond) { $1 }
+  | var                        { Def $1 }
+  | LPAR test RPAR             { Paren $2 }
+  | BANG test                  { Neg $2 }
+  | var_or_text op var_or_text { Op ($1, $2, $3) }
+  | test AND test              { And ($1, $3) }
+  | test OR test               { Or ($1, $3) }
+
+var_or_text:
+  | var  { `Var $1 }
+  | DATA { `Text $1 }
+
+op:
+  | EQ  { `Eq }
+  | NEQ { `Neq }
 
 var:
   | separated_nonempty_list(DOT, id) { $1 }

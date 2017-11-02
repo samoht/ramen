@@ -69,6 +69,7 @@ and program t = parse
   | "}}"     { t.mode <- `Text; text t lexbuf }
   | white    { program t lexbuf }
   | newline  { Lexing.new_line lexbuf; program t lexbuf }
+  | '\''     { string t lexbuf }
   | '.'      { DOT }
   | "for"    { FOR }
   | "endfor" { ENDFOR }
@@ -77,6 +78,7 @@ and program t = parse
   | "else"   { ELSE }
   | "endif"  { ENDIF }
   | "&&"     { AND }
+  | "||"     { OR }
   | ":"      { COLON }
   | ","      { COMMA }
   | "="      { EQ }
@@ -91,6 +93,11 @@ and program t = parse
   | ")"      { RPAR }
   | var      { let v = Lexing.lexeme lexbuf in p t "VAR %S" v; VAR v }
   | eof      { unclosed_tag () }
+
+and string t = parse
+  | '\''    { data t }
+  | newline { add_newline t lexbuf; string t lexbuf }
+  | _ as c  { add_data t c; string t lexbuf }
 
 {
 

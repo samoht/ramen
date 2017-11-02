@@ -373,13 +373,21 @@ let eval_test ~file ~context ~errors t =
   in
   let rec aux k x =
     match x with
-    | Ndef t     -> aux (fun x -> k (not x)) Ast.(Def t)
-    | Neq (x, y) -> aux (fun x -> k (not x)) Ast.(Eq (x, y))
+    | True       -> true
+    | Paren x    -> aux k x
     | Def x      -> k (var_is_defined x)
-    | Eq (x , y) ->
+    | Neg x      -> aux (fun x -> k (not x)) x
+    | And (x, y) -> aux (fun x -> aux (fun y -> x && y) y) x
+    | Or (x, y)  -> aux (fun x -> aux (fun y -> x || y) y) x
+    | Op (x,o,y) ->
       let x = var_or_text x in
       let y = var_or_text y in
-      k (equal_value x y)
+      let equal = match o with
+        | `Eq  -> equal_value
+        | `Neq -> fun x y -> not (equal_value x y)
+      in
+      k (equal x y)
+
   in
   aux (fun x -> x) t
 
@@ -438,7 +446,7 @@ let eval ~file ~context ?(failfast=false) contents =
         ) bodies
 
   and cond ctx k c =
-    if List.for_all (eval_test ~file ~context:ctx ~errors) c.test
+    if eval_test ~file ~context:ctx ~errors c.test
     then t ctx (fun x -> k x) c.then_
     else match c.else_ with
       | None   -> k empty

@@ -16,16 +16,21 @@ and loop = {
 }
 
 and cond = {
-  test : test list;
+  test : test;
   then_: t;
   else_: cond option;
 }
 
 and test =
+  | True
+  | Paren of test
   | Def of var
-  | Ndef of var
-  | Eq of var_or_text * var_or_text
-  | Neq of var_or_text * var_or_text
+  | Op of var_or_text * op * var_or_text
+  | Neg of test
+  | And of test * test
+  | Or of test * test
+
+and op = [`Eq | `Neq]
 
 and order = [`Up | `Down] * string
 
@@ -56,20 +61,25 @@ and pp_loop ppf t =
   Fmt.pf ppf "{{ for %s in %a%t }}%a{{ endfor }}" t.var pp_var t.map o pp t.body
 
 and pp_cond ppf t =
-  Fmt.pf ppf "{{ if %a }}%a%a" pp_ands t.test pp t.then_ pp_elif t.else_
-
-and pp_ands ppf x = Fmt.(list ~sep:(unit " && ") pp_test) ppf x
+  Fmt.pf ppf "{{ if %a }}%a%a" pp_test t.test pp t.then_ pp_elif t.else_
 
 and pp_test ppf = function
-  | Def x     -> pp_var ppf x
-  | Ndef x    -> Fmt.pf ppf "!%a" pp_var x
-  | Eq (x, y) -> Fmt.pf ppf "(%a = %a)" pp_var_or_text x pp_var_or_text y
-  | Neq(x, y) -> Fmt.pf ppf "(%a != %a)" pp_var_or_text x pp_var_or_text y
+  | True        -> Fmt.string ppf ""
+  | Paren x     -> Fmt.pf ppf "(%a)" pp_test x
+  | Def x       -> pp_var ppf x
+  | Neg x       -> Fmt.pf ppf "!%a" pp_test x
+  | Op (x,o,y)  -> Fmt.pf ppf "%a %a %a" pp_var_or_text x pp_op o pp_var_or_text y
+  | And (x, y)  -> Fmt.pf ppf "%a && %a" pp_test x pp_test y
+  | Or (x, y)   -> Fmt.pf ppf "%a || %a" pp_test x pp_test y
+
+and pp_op ppf = function
+  | `Eq  -> Fmt.string ppf "="
+  | `Neq -> Fmt.string ppf "!="
 
 and pp_elif ppf = function
   | None   -> Fmt.string ppf "{{ endif }}"
   | Some t ->
-    Fmt.pf ppf "{{ elif %a }}%a%a" pp_ands t.test pp t.then_ pp_elif t.else_
+    Fmt.pf ppf "{{ elif %a }}%a%a" pp_test t.test pp t.then_ pp_elif t.else_
 
 and pp_var ppf t = Fmt.(list ~sep:(unit ".") pp_id) ppf t
 
@@ -99,17 +109,22 @@ and dump_loop ppf t =
 
 and dump_cond ppf t =
   Fmt.pf ppf "{test=%a;@ then_=%a;@ else_=%a}"
-   dump_ands t.test dump t.then_ Fmt.(Dump.option dump_cond) t.else_
-
-and dump_ands ppf t = Fmt.(Dump.list dump_test) ppf t
+   dump_test t.test dump t.then_ Fmt.(Dump.option dump_cond) t.else_
 
 and dump_test ppf = function
-  | Def t     -> Fmt.pf ppf "@[<hov 2>Def %a@]" dump_var t
-  | Ndef t    -> Fmt.pf ppf "@[<hov 2>Ndef %a@]" dump_var t
-  | Eq (x, y) ->
-    Fmt.pf ppf "@[<hov 2>Eq (%a,@ %a)@]" dump_var_or_text x dump_var_or_text y
-  | Neq(x, y) ->
-    Fmt.pf ppf "@[<hov 2>Neq (%a,@ %a)@]" dump_var_or_text x dump_var_or_text y
+  | True       -> Fmt.pf ppf "True"
+  | Paren t    -> Fmt.pf ppf "@[<hov 2>Paren %a@]" dump_test t
+  | Def t      -> Fmt.pf ppf "@[<hov 2>Def %a@]" dump_var t
+  | Neg t      -> Fmt.pf ppf "@[<hov 2>Neg %a@]" dump_test t
+  | And (x, y) -> Fmt.pf ppf "@[<hov 2>And (%a,@ %a)@]" dump_test x dump_test y
+  | Or  (x, y) -> Fmt.pf ppf "@[<hov 2>Or (%a,@ %a)@]" dump_test x dump_test y
+  | Op (x,o,y) ->
+    Fmt.pf ppf "@[<hov 2>Op (%a,@ %a,@ %a)@]"
+      dump_var_or_text x dump_op o dump_var_or_text y
+
+and dump_op ppf = function
+  | `Eq  -> Fmt.string ppf "`Eq"
+  | `Neq -> Fmt.string ppf "`Neq"
 
 and dump_order ppf (t, s) = match t with
   | `Up   -> Fmt.string ppf s
@@ -156,7 +171,7 @@ and equal_order x y = match x, y with
   | _ -> false
 
 and equal_cond x y =
-  equal_tests x.test y.test
+  equal_test x.test y.test
   && equal x.then_ y.then_
   && match x.else_, y.else_ with
   | None  , None   -> true
@@ -164,13 +179,18 @@ and equal_cond x y =
   | _ -> false
 
 and equal_test x y = match x, y with
-  | Neq (a,b), Neq(c,d)
-  | Eq (a, b), Eq (c, d) -> equal_var_or_text a c && equal_var_or_text b d
-  | Ndef x   , Ndef y
+  | True      , True       -> true
+  | Paren a   , Paren b    -> equal_test a b
+  | Neg a     , Neg b      -> equal_test a b
+  | Op (a,x,b), Op (c,y,d) ->
+    equal_var_or_text a c && equal_op x y && equal_var_or_text b d
+  | And (a, b), And (c, d) -> equal_test a c && equal_test b d
+  | Or (a, b) , Or (c ,d)  -> equal_test a c && equal_test b d
   | Def x    , Def y     -> equal_var x y
-  | Neq _, _ | Eq _, _ | Ndef _, _ | Def _, _ -> false
+  | True, _ | Paren _, _ | Neg _, _ | Op _, _ | Def _, _ | And _, _
+  | Or _, _ -> false
 
-and equal_tests x y = equal_list equal_test x y
+and equal_op = (=)
 
 and equal_var x y = equal_list equal_id x y
 

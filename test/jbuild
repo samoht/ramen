@@ -9,8 +9,3 @@
  ((name   runtest)
   (deps   (test.exe))
   (action (run ${exe:test.exe} -q --color=always))))
-
-(executable
- ((name      weird)
-  (modules   (weird))
-  (libraries (alcotest fmt logs.fmt template))))
