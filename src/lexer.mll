@@ -78,6 +78,7 @@ and program t = parse
   | "else"   { ELSE }
   | "endif"  { ENDIF }
   | "&&"     { AND }
+  | "||"     { OR }
   | ":"      { COLON }
   | ","      { COMMA }
   | "="      { EQ }

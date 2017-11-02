@@ -13,16 +13,20 @@ and loop = {
 }
 
 and cond = {
-  test : test list;
+  test : test;
   then_: t;
   else_: cond option;
 }
 
 and test =
+  | True
   | Def of var
-  | Ndef of var
-  | Eq of var_or_text * var_or_text
-  | Neq of var_or_text * var_or_text
+  | Op of var_or_text * op * var_or_text
+  | Neg of test
+  | And of test * test
+  | Or of test * test
+
+and op = [`Eq | `Neq]
 
 and order = [`Up | `Down] * string
 
