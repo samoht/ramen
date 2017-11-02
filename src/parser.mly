@@ -36,11 +36,12 @@ elif:
   | ENDIF                { None }
 
 test:
-  | var                                   { Def $1 }
-  | BANG test                             { Neg $2 }
-  | LPAR var_or_text op var_or_text RPAR  { Op ($2, $3, $4) }
-  | test AND test                         { And ($1, $3) }
-  | test OR test                          { Or ($1, $3) }
+  | var                        { Def $1 }
+  | LPAR test RPAR             { Paren $2 }
+  | BANG test                  { Neg $2 }
+  | var_or_text op var_or_text { Op ($1, $2, $3) }
+  | test AND test              { And ($1, $3) }
+  | test OR test               { Or ($1, $3) }
 
 var_or_text:
   | var  { `Var $1 }

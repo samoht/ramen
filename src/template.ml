@@ -374,6 +374,7 @@ let eval_test ~file ~context ~errors t =
   let rec aux k x =
     match x with
     | True       -> true
+    | Paren x    -> aux k x
     | Def x      -> k (var_is_defined x)
     | Neg x      -> aux (fun x -> k (not x)) x
     | And (x, y) -> aux (fun x -> aux (fun y -> x && y) y) x

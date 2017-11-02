@@ -20,6 +20,7 @@ and cond = {
 
 and test =
   | True
+  | Paren of test
   | Def of var
   | Op of var_or_text * op * var_or_text
   | Neg of test

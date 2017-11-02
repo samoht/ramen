@@ -23,6 +23,7 @@ and cond = {
 
 and test =
   | True
+  | Paren of test
   | Def of var
   | Op of var_or_text * op * var_or_text
   | Neg of test
@@ -64,11 +65,12 @@ and pp_cond ppf t =
 
 and pp_test ppf = function
   | True        -> Fmt.string ppf ""
+  | Paren x     -> Fmt.pf ppf "(%a)" pp_test x
   | Def x       -> pp_var ppf x
   | Neg x       -> Fmt.pf ppf "!%a" pp_test x
-  | Op (x,o,y)  -> Fmt.pf ppf "(%a %a %a)" pp_var_or_text x pp_op o pp_var_or_text y
-  | And (x, y)  -> Fmt.pf ppf "(%a && %a)" pp_test x pp_test y
-  | Or (x, y)   -> Fmt.pf ppf "(%a || %a)" pp_test x pp_test y
+  | Op (x,o,y)  -> Fmt.pf ppf "%a %a %a" pp_var_or_text x pp_op o pp_var_or_text y
+  | And (x, y)  -> Fmt.pf ppf "%a && %a" pp_test x pp_test y
+  | Or (x, y)   -> Fmt.pf ppf "%a || %a" pp_test x pp_test y
 
 and pp_op ppf = function
   | `Eq  -> Fmt.string ppf "="
@@ -111,6 +113,7 @@ and dump_cond ppf t =
 
 and dump_test ppf = function
   | True       -> Fmt.pf ppf "True"
+  | Paren t    -> Fmt.pf ppf "@[<hov 2>Paren %a@]" dump_test t
   | Def t      -> Fmt.pf ppf "@[<hov 2>Def %a@]" dump_var t
   | Neg t      -> Fmt.pf ppf "@[<hov 2>Neg %a@]" dump_test t
   | And (x, y) -> Fmt.pf ppf "@[<hov 2>And (%a,@ %a)@]" dump_test x dump_test y
@@ -177,13 +180,15 @@ and equal_cond x y =
 
 and equal_test x y = match x, y with
   | True      , True       -> true
+  | Paren a   , Paren b    -> equal_test a b
   | Neg a     , Neg b      -> equal_test a b
   | Op (a,x,b), Op (c,y,d) ->
     equal_var_or_text a c && equal_op x y && equal_var_or_text b d
   | And (a, b), And (c, d) -> equal_test a c && equal_test b d
   | Or (a, b) , Or (c ,d)  -> equal_test a c && equal_test b d
   | Def x    , Def y     -> equal_var x y
-  | True, _ | Neg _, _ | Op _, _ | Def _, _ | And _, _ | Or _, _ -> false
+  | True, _ | Paren _, _ | Neg _, _ | Op _, _ | Def _, _ | And _, _
+  | Or _, _ -> false
 
 and equal_op = (=)
 
