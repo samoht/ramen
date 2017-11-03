@@ -5,9 +5,8 @@
 type entry
 (** The type for template rule entries. *)
 
-val pp_entry: string Fmt.t -> entry Fmt.t
-(** [pp_entry pp_data] is the pretty-printer for entries using
-    [pp_data] to display raw data. *)
+val pp_entry: entry Fmt.t
+(** [pp_entry pp_data] is the pretty-printer for entries. *)
 
 val data: string -> string -> entry
 (** [data k v] is the template rule replacing [k] by [v]. *)

@@ -52,37 +52,79 @@ let pp_ids = Fmt.(styled `Bold @@ list ~sep:(unit ".") string)
 (* ENTRIES *)
 
 
-type value = Data of string | Collection of entries
+type value = Data of string | Collection of (string option * entries)
 
 and entries = entry list
 (* we use a list here to preserve collection orders. *)
 
-and entry = { k: string; v: value }
+and entry = { k: string; mutable v: value }
 
-let rec pp_entries pp_data ppf t =
-  Fmt.hvbox ~indent:0 (Fmt.list ~sep:Fmt.cut (pp_entry pp_data)) ppf t
+module Tbl = Hashtbl.Make(struct
+    type t = value
+    let equal = (==)
+    let hash = Hashtbl.hash
+  end)
 
-and pp_value pp_data ppf = function
-  | Data s       -> pp_data ppf s
-  | Collection c -> pp_entries pp_data ppf c
+let default_values () = Tbl.create 17
 
-and pp_entry pp_data ppf { k; v } =
-  Fmt.pf ppf "@[{%a => %a}@] " pp_key k (pp_value pp_data) v
+let rec pp_entries ?(values=default_values ()) pp_data ppf t =
+  Fmt.hvbox ~indent:0 (Fmt.list ~sep:Fmt.cut (pp_entry ~values pp_data)) ppf t
+
+and pp_value ?(values=default_values ()) pp_data ppf = function
+  | Data s                 -> pp_data ppf s
+  | Collection (d, c) as x ->
+    if Tbl.mem values x then Fmt.string ppf "..."
+    else (
+      Tbl.add values x ();
+      Fmt.pf ppf "%a%a" Fmt.(option pp_data) d (pp_entries ~values pp_data) c;
+    )
+
+and pp_entry ?(values=default_values ()) pp_data ppf { k; v } =
+  Fmt.pf ppf "@[{%a => %a}@] " pp_key k (pp_value ~values pp_data) v
 
 let data k v = { k; v = Data v }
 
-let rec equal_entry x y =
-  x == y || (String.equal x.k y.k && equal_value x.v y.v)
+module Tbl2 = Hashtbl.Make(struct
+    type t = entry list * entry list
+    let equal (a, b) (c, d) = a == c && b == d
+    let hash = Hashtbl.hash
+  end)
 
-and equal_entries x y =
+let default_values2 () = Tbl2.create 17
+
+let special_fields = [
+  "prev";
+  "next";
+  "last";
+  "first";
+]
+
+let rec equal_entry ?(values=default_values2 ()) x y =
+  x == y || (String.equal x.k y.k && equal_value ~values x.v y.v)
+
+and equal_entries ?(values=default_values2 ()) x y =
   x == y ||
-  List.length x = List.length y && List.for_all2 equal_entry x y
+  List.length x = List.length y && List.for_all2 (equal_entry ~values) x y
 
-and equal_value x y =
+and equal_value ?(values=default_values2 ()) x y =
   x == y ||
   match x, y with
-  | Data x      , Data y       -> String.equal x y
-  | Collection x, Collection y -> equal_entries x y
+  | Data x          , Data y           -> String.equal x y
+  | Collection (a,x), Collection (c,y) ->
+    equal_data_option a c &&
+    (match Tbl2.find values (x, y) with
+     | v                   -> v
+     | exception Not_found ->
+       let x' = List.filter (fun e -> not (List.mem e.k special_fields)) x in
+       let y' = List.filter (fun e -> not (List.mem e.k special_fields)) y in
+       let v = equal_entries x' y' in
+       Tbl2.add values (x, y) v;
+       v)
+  | _ -> false
+
+and equal_data_option x y = match x, y with
+  | None  , None   -> true
+  | Some x, Some y -> String.equal x y
   | _ -> false
 
 (* CONTEXT *)
@@ -105,7 +147,7 @@ end = struct
   let dump ppf t = pp_entries (fun ppf d -> Fmt.pf ppf "%S" d) ppf (List.rev t)
   let pp ppf t = pp_entries (fun ppf _ -> Fmt.string ppf "...") ppf (List.rev t)
   let is_empty x = x = []
-  let equal = equal_entries
+  let equal x y = equal_entries x y
   let entries x = List.rev x
   let empty = []
   let v x = (* FIXME: check for duplicates *) List.rev x
@@ -124,7 +166,6 @@ end = struct
     List.rev_append y (List.rev x)
 
   let find m k =
-    Log.debug (fun l -> l "Context.find %s" k);
     match List.find (fun x -> x.k = k) m with
     | exception Not_found -> None
     | e                   -> Some e.v
@@ -134,20 +175,22 @@ end = struct
       let m = List.filter (fun x -> x.k <> e.k) m in
       e :: m
     in
-    let entry k c = {k; v=Collection c} in
+    let entry k x c = {k; v=Collection (x, c)} in
     let rec aux (m:t) k = function
       | []   -> k (replace m e)
       | h::t ->
         match find m h with
-        | Some (Data _) | None -> aux [] (fun c -> k [entry h c]) t
-        | Some (Collection c)  -> aux c  (fun c -> k (replace m (entry h c))) t
+        | None                     -> aux [] (fun c -> k [entry h None c]) t
+        | Some (Data x)            -> aux [] (fun c -> k [entry h (Some x) c]) t
+        | Some (Collection (x, c)) ->
+          aux c  (fun c -> k (replace m (entry h x c))) t
     in
     aux m (fun x -> x) path
 
 end
 
-let collection k l = { k; v = Collection Context.(entries @@ v l) }
-let kollection k c = { k; v = Collection (Context.entries c) }
+let collection k l = { k; v = Collection (None, Context.(entries @@ v l)) }
+let kollection k c = { k; v = Collection (None, (Context.entries c)) }
 
 type context = Context.t
 
@@ -160,6 +203,8 @@ type loc = {
 }
 
 let loc ~file ~context ast = { file; context; ast }
+
+let equal_loc x y = String.equal x.file y.file && Ast.equal x.ast y.ast
 
 type error =
   | Invalid_key of (string * loc)
@@ -204,12 +249,14 @@ let pp_error ppf e =
       pp_key key pp_key param pp_file file
 
 let equal_error x y =
+  x == y ||
+  equal_loc (loc_of_error x) (loc_of_error y) &&
   match x, y with
-  | Invalid_key x          , Invalid_key y           -> x = y
-  | Invalid_order x        , Invalid_order y         -> x = y
-  | Data_is_needed x       , Data_is_needed y        -> x = y
-  | Collection_is_needed x , Collection_is_needed y  -> x = y
-  | Param_is_needed x      , Param_is_needed y       -> x = y
+  | Invalid_key (x, _)          , Invalid_key (y, _)          -> x = y
+  | Invalid_order (x, _)        , Invalid_order (y, _)        -> x = y
+  | Data_is_needed (x, _)       , Data_is_needed (y, _)       -> x = y
+  | Collection_is_needed (x, _) , Collection_is_needed (y, _) -> x = y
+  | Param_is_needed (a, b, _)   , Param_is_needed (c, d, _)   -> a = c && b = d
   | Invalid_key _, _ | Invalid_order _, _ | Data_is_needed _, _
   | Collection_is_needed _, _ | Param_is_needed _, _ -> false
 
@@ -267,8 +314,8 @@ let sort ~file ~context ~errors loop x y =
   let loc = loc ~file ~context (For loop) in
   let with_order (d, order) =
     match x.v, y.v with
-    | Data _      , Data _       -> default
-    | Collection x, Collection y ->
+    | Data _           , Data _            -> default
+    | Collection (_, x), Collection (_, y) ->
       (match Context.find x order, Context.find y order with
        | Some (Data x), Some (Data y) -> custom_compare d x y
        | None, _ | _, None  ->
@@ -289,7 +336,6 @@ let empty = Ast.Text ""
 let eval_var ~file ~context ~errors v =
   let open Ast in
   let loc = loc ~file ~context (Var v) in
-  Log.debug (fun l -> l "eval var: %a" Ast.pp_var v);
   let (>|=) x f = match x with None -> None | Some x -> Some (f x) in
   let find ctx k h = match Context.find ctx h with
     | Some x -> k x
@@ -300,6 +346,7 @@ let eval_var ~file ~context ~errors v =
     | Data _ -> Error.add errors (err_collection_is_needed h loc); None
   in
   let data h k = function
+    | Collection (Some d, _)
     | Data d       -> k d
     | Collection _ -> Error.add errors (err_data_is_needed h loc); None
   in
@@ -321,14 +368,14 @@ let eval_var ~file ~context ~errors v =
           match t with
           | [] -> return k h c
           | _  ->
-            collection h (fun ctx ->
+            collection h (fun (_, ctx) ->
                 var (Context.v ctx) k t >|= fun (p, v) ->
                 h :: p, v
               ) c
         ) h
     | App (h, p)::t ->
       find ctx (fun c ->
-          collection h (fun ctx ->
+          collection h (fun (d, ctx) ->
               List.iter (fun (n, _) ->
                   if not (List.exists (fun {k; _} -> k = n) ctx) then
                     Error.add errors (err_invalid_key n loc)
@@ -338,7 +385,7 @@ let eval_var ~file ~context ~errors v =
               in
               let ctx = List.rev_map (param h) p @ ctx in
               match t with
-              | [] -> return k h (Collection ctx)
+              | [] -> return k h (Collection (d, ctx))
               | _  ->
                 var (Context.v ctx) k t >|= fun (p, v) ->
                 h :: p, v
@@ -353,11 +400,16 @@ let eval_var ~file ~context ~errors v =
         Error.add errors (err_param_is_needed h k loc);
         {k; v=Data ""}
   in
-  var context (fun x -> Some ([], x)) v
+  let r = var context (fun x -> Some ([], x)) v in
+  Log.debug (fun l ->
+      let pp_value = pp_value (fun ppf _ -> Fmt.string ppf "...") in
+      let pp_r = Fmt.Dump.(option @@ pair pp_ids pp_value) in
+      l "eval_var: %a => %a" Ast.pp_var v pp_r r);
+  r
+
 
 let eval_test ~file ~context ~errors t =
   let open Ast in
-  Log.debug (fun l -> l "eval test: %a" Ast.pp_test t);
   let var_is_defined v =
     let errors = Error.v () in
     match eval_var ~file ~context ~errors v with
@@ -383,13 +435,57 @@ let eval_test ~file ~context ~errors t =
       let x = var_or_text x in
       let y = var_or_text y in
       let equal = match o with
-        | `Eq  -> equal_value
-        | `Neq -> fun x y -> not (equal_value x y)
+        | `Eq  -> (fun x y -> equal_value x y)
+        | `Neq -> (fun x y -> not (equal_value x y))
       in
       k (equal x y)
 
   in
-  aux (fun x -> x) t
+  let b = aux (fun x -> x) t in
+  Log.debug (fun l -> l "eval_test: %a => %b" Ast.pp_test t b);
+  b
+
+(* add .next and .prev to each element of the collection *)
+let link_items c =
+  let empty = Data "" in
+  let nope _ = () in
+  let n = List.length c in
+  let v i e =
+    let d, c = match e.v with
+      | Data d            -> Some d, []
+      | Collection (d, c) -> d, c
+    in
+    let set_prev, c =
+      if i >= 1 then (
+        let prev  = { k="prev"; v = empty } in
+        let set_prev e = prev.v <- e.v in
+        set_prev, Context.add c prev
+      ) else
+        nope, c
+    in
+    let set_next, c =
+      if i < n-1 then (
+        let next  = { k="next"; v = empty } in
+        let set_next e = next.v <- e.v in
+        set_next, Context.add c next
+      ) else
+        nope, c
+    in
+    set_prev, set_next, { e with v = Collection (d, c) }
+  in
+  let r = List.mapi v c in
+  let a = Array.of_list r in
+  List.mapi (fun i (set_prev, set_next, e) ->
+      if i >= 1 then (
+        let (_, _, p) = a.(i-1) in
+        set_prev p;
+      );
+      if i < n-1 then (
+        let (_, _, n) = a.(i+1) in
+        set_next n
+      );
+      e
+    ) r
 
 let eval ~file ~context ?(failfast=false) contents =
   let open Ast in
@@ -418,14 +514,15 @@ let eval ~file ~context ?(failfast=false) contents =
     | Some (p, Data _) ->
       err err_collection_is_needed ~context:ctx (For l) "%a" pp_ids p;
       k empty
-    | Some (_, Collection []) -> k empty
-    | Some (p, Collection c)  ->
+    | Some (_, Collection (_, [])) -> k empty
+    | Some (p, Collection (_, c))   ->
       let entries = match l.order with
         | None   -> c
         | Some _ ->
           let sort = sort ~file ~context:ctx ~errors l in
           List.sort sort c
       in
+      let entries = link_items entries in
       assert (List.length entries > 0);
       let first = { k="first"; v = (List.hd entries).v } in
       let last  = { k="last" ; v = (List.hd (List.rev entries)).v } in
@@ -433,7 +530,7 @@ let eval ~file ~context ?(failfast=false) contents =
       let ctx = Context.insert ctx p last in
       let bodies =
         List.map (fun { k; v } ->
-            Log.debug (fun d -> d "unrolling %s=%s in %a" l.var k Ast.dump l.body);
+            Log.debug (fun d -> d "unrolling %s=%s" l.var k);
             let ctx = Context.add ctx { k = l.var; v } in
             ctx, l.body
           ) entries
@@ -458,18 +555,20 @@ let eval ~file ~context ?(failfast=false) contents =
       k d
     in
     match eval_var ~file ~context:ctx ~errors v with
-    | None                   -> k ""
-    | Some (p, Data d)       -> replace p d
-    | Some (p, Collection c) ->
+    | None                        -> k ""
+    | Some (p, Data d)            -> replace p d
+    | Some (p, Collection (d, c)) ->
       match Context.find c "body" with
       | Some (Data d) ->
         let ctx = Context.(ctx ++ v c) in
         t ctx (fun s ->
             replace p (Fmt.to_to_string Ast.pp s)
           ) (normalize @@ Text d)
-      | _             ->
-        err err_data_is_needed ~context:ctx (Var v) "%s" (string_of_var v);
-        k ""
+      | _ -> match d with
+        | Some d -> replace p d
+        | None   ->
+          err err_data_is_needed ~context:ctx (Var v) "%s" (string_of_var v);
+          k ""
   in
   let r = t context (fun x -> x) contents in
   r, errors.Error.v
@@ -606,3 +705,4 @@ let read_data root =
   aux ""
 
 let read_pages ~dir = read_dir parse_page dir
+let pp_entry ppf e = pp_entry Fmt.string ppf e
