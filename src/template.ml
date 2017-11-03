@@ -92,6 +92,13 @@ module Tbl2 = Hashtbl.Make(struct
 
 let default_values2 () = Tbl2.create 17
 
+let special_fields = [
+  "prev";
+  "next";
+  "last";
+  "first";
+]
+
 let rec equal_entry ?(values=default_values2 ()) x y =
   x == y || (String.equal x.k y.k && equal_value ~values x.v y.v)
 
@@ -108,7 +115,9 @@ and equal_value ?(values=default_values2 ()) x y =
     (match Tbl2.find values (x, y) with
      | v                   -> v
      | exception Not_found ->
-       let v = equal_entries x y in
+       let x' = List.filter (fun e -> not (List.mem e.k special_fields)) x in
+       let y' = List.filter (fun e -> not (List.mem e.k special_fields)) y in
+       let v = equal_entries x' y' in
        Tbl2.add values (x, y) v;
        v)
   | _ -> false
