@@ -124,6 +124,19 @@ The body can contain templates of the form:
   {{ endif }}
   ```
 
+  Moreover, every collection can be seen as a doubly-linked list, where elements
+  are linked by the `prev` and `next` fields. For instance, the previous code
+  snippet is equivalent to:
+
+  ```html
+  {{ for i in foo }}
+  {{ if !i.prev }}
+  Hello first {{ i }}.
+  {{ else }}
+  Hello {{ i }}
+  {{ endif }}
+  ```
+
 - **conditions**: `{{ if cond_1 }} <body_1> ... {{ elif cond_n }} <body_n> {{
   endif }}`. Ramen picks the first `<body_i>` such that `cond_i` is
   satisfied (or it uses an empty string if none of the conditions
