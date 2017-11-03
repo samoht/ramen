@@ -26,7 +26,7 @@ let key k = Fmt.strf "{{ %s }}" k
 let (++) f g x = f (g x)
 let (+++) f g x = f (g x x)
 
-let value = Alcotest.testable Template.(pp_entry Fmt.string) (=)
+let value = Alcotest.testable Template.pp_entry (=)
 let context = Alcotest.testable Template.Context.dump Template.Context.equal
 let error = Alcotest.testable Template.pp_error (=)
 let file = "test"
@@ -298,6 +298,15 @@ Test:
       "Jean Valjean"
     ]
 
+  let meta () =
+    test [
+      "{{ for i in toto if i.next i.next.prev.name endif endfor }}",
+      "Monique";
+      "{{ for i in toto if i.prev i.prev.next.name endif endfor }}",
+      "Jean Valjean";
+      "{{ for i in toto.bar if i.prev i.prev.next endif endfor }}",
+      "422";
+    ]
 end
 
 module If = struct
@@ -464,6 +473,7 @@ let () =
       "by name", `Quick, For.by_name;
       "first"  , `Quick, For.first;
       "last"   , `Quick, For.last;
+      "meta"   , `Quick, For.meta;
     ];
     "if", [
       "simple", `Quick, If.simple;
