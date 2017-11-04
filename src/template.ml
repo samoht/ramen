@@ -487,8 +487,8 @@ let eval_test ~file ~context ~errors t =
     | Paren x    -> aux k x
     | Def x      -> k (var_is_defined x)
     | Neg x      -> aux (fun x -> k (not x)) x
-    | And (x, y) -> aux (fun x -> aux (fun y -> x && y) y) x
-    | Or (x, y)  -> aux (fun x -> aux (fun y -> x || y) y) x
+    | And (x, y) -> aux (fun x -> if not x then k false else aux k y) x
+    | Or (x, y)  -> aux (fun x -> if x then k true else aux k y) x
     | Op (x,o,y) ->
       let x = var_or_text x in
       let y = var_or_text y in
