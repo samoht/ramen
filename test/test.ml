@@ -232,9 +232,9 @@ module For = struct
     let template =
       Fmt.strf {|
 Test:
-   {{ for i in toto }}
+   {{ for i in toto do }}
    %s
-   {{ endfor }}
+   {{ done }}
 |} (one "{{ i.name }}" "{{ i.age }}")
       |> Template.Ast.(parse ~file)
     in
@@ -255,9 +255,9 @@ Test:
     let template =
       Fmt.strf {|
 Test:
- {{ for i in toto | name }}
+ {{ for i in sort(toto, name) do }}
    %s
- {{ endfor }}
+ {{ done }}
 |} (one "{{ i.name }}" "{{ i.age }}")
       |> Template.Ast.(parse ~file)
     in
@@ -288,23 +288,23 @@ Test:
 
   let first () =
     test [
-      "{{ for i in toto if (i = toto.first) i.name endif endfor }}",
+      "{{ for i in toto do if (i = toto.first) i.name fi done }}",
       "Monique"
     ]
 
   let last () =
     test [
-      "{{ for i in toto if (i = toto.last) i.name endif endfor }}",
+      "{{ for i in toto do if (i = toto.last) i.name fi done }}",
       "Jean Valjean"
     ]
 
   let meta () =
     test [
-      "{{ for i in toto if i.next i.next.prev.name endif endfor }}",
+      "{{ for i in toto do if (i.next) i.next.prev.name fi done }}",
       "Monique";
-      "{{ for i in toto if i.prev i.prev.next.name endif endfor }}",
+      "{{ for i in toto do if (i.prev) i.prev.next.name fi done }}",
       "Jean Valjean";
-      "{{ for i in toto.bar if i.prev i.prev.next endif endfor }}",
+      "{{ for i in toto.bar do if (i.prev) i.prev.next fi done }}",
       "422";
     ]
 end
@@ -334,40 +334,40 @@ module If = struct
 
   let simple () =
     test [
-      "Hello {{ if toto.name }}world!{{ endif }}", "Hello world!";
-      "Hi {{ if calvi }}Jean{{ endif }}"         , "Hi ";
+      "Hello {{ if (toto.name) }}world!{{ fi }}", "Hello world!";
+      "Hi {{ if (calvi) }}Jean{{ fi }}"         , "Hi ";
     ]
 
   let many () =
     test [
-      "{{if toto.name && foo}}hello!{{endif}}" , "hello!";
-      "{{if calvi}}Jean{{elif foo}}yo{{endif}}", "yo";
+      "{{if (toto.name && foo)}}hello!{{fi}}" , "hello!";
+      "{{if (calvi)}}Jean{{elif (foo)}}yo{{fi}}", "yo";
     ]
 
   let equal () =
     test [
-      "{{if (foo = bar)}}hello!{{endif}}"         , "hello!";
-      "{{if (foo = bar) && toto.name}}yo{{endif}}", "yo";
+      "{{if (foo = bar)}}hello!{{fi}}"         , "hello!";
+      "{{if (foo = bar && toto.name)}}yo{{fi}}", "yo";
     ]
 
   let neg () =
     test [
-      "{{if !foo}}hello!{{endif}}"          , "";
-      "{{if (foo != toto.name)}}yo{{endif}}", "yo";
+      "{{if (!foo)}}hello!{{fi}}"          , "";
+      "{{if (foo != toto.name)}}yo{{fi}}", "yo";
     ]
 
   let else_ () =
     test [
-      "{{if !foo}}hello!{{else}}By!{{endif}}", "By!";
-      "{{if foo}}hello!{{else}}By!{{endif}}" , "hello!";
+      "{{if (!foo)}}hello!{{else}}By!{{fi}}", "By!";
+      "{{if (foo)}}hello!{{else}}By!{{fi}}" , "hello!";
     ]
 
   let text () =
     test [
-      "{{if (foo = 'x')}}hello!{{endif}}" , "hello!";
-      "{{if (foo = 'y')}}hello!{{endif}}" , "";
-      "{{if ('x' != foo)}}hello!{{endif}}", "";
-      "{{if (foo != 'y')}}hello!{{endif}}", "hello!";
+      "{{if (foo = 'x')}}hello!{{fi}}" , "hello!";
+      "{{if (foo = 'y')}}hello!{{fi}}" , "";
+      "{{if ('x' != foo)}}hello!{{fi}}", "";
+      "{{if (foo != 'y')}}hello!{{fi}}", "hello!";
     ]
 end
 
@@ -410,7 +410,7 @@ module Get = struct
         Alcotest.(check ast) (string_of_int i) (f y) (eval @@ f x)
       )[
       "Hello {{ people.[truc.one.owner].name }}", "Hello Jean Valjean";
-      "{{for i in truc}}{{people.[i.owner].name}} {{endfor}}",
+      "{{for i in truc do}}{{people.[i.owner].name}} {{done}}",
       "Jean Valjean Toto ";
     ]
 

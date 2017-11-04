@@ -72,11 +72,13 @@ and program t = parse
   | '\''     { string t lexbuf }
   | '.'      { DOT }
   | "for"    { FOR }
-  | "endfor" { ENDFOR }
+  | "in"     { IN }
+  | "do"     { DO }
+  | "done"   { DONE }
   | "if"     { IF }
   | "elif"   { ELIF }
   | "else"   { ELSE }
-  | "endif"  { ENDIF }
+  | "fi"     { FI }
   | "&&"     { AND }
   | "||"     { OR }
   | ":"      { COLON }
@@ -84,13 +86,12 @@ and program t = parse
   | "="      { EQ }
   | "!"      { BANG }
   | "!="     { NEQ }
-  | "in"     { IN }
-  | "|"      { PIPE }
-  | "-"      { MINUS }
   | "["      { LBRA }
   | "]"      { RBRA }
   | "("      { LPAR }
   | ")"      { RPAR }
+  | "sort"   { SORT }
+  | "rev"    { REV }
   | var      { let v = Lexing.lexeme lexbuf in p t "VAR %S" v; VAR v }
   | eof      { unclosed_tag () }
 

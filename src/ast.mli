@@ -6,20 +6,23 @@ type t =
   | Seq of t list
 
 and loop = {
-  var   : string;
-  map   : var;
-  order : order option;
-  body  : t;
+  for_: string;
+  in_ : iter;
+  do_ : t;
 }
 
+and iter =
+  | Base of var
+  | Rev of iter
+  | Sort of iter * string
+
 and cond = {
-  test : test;
+  if_  : test;
   then_: t;
-  else_: cond option;
+  else_: t option;
 }
 
 and test =
-  | True
   | Paren of test
   | Def of var
   | Op of var_or_text * op * var_or_text

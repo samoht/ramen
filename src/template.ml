@@ -48,6 +48,7 @@ let pp_file = Fmt.(styled `Underline string)
 let pp_key = Fmt.(styled `Bold string)
 let string_of_var = Fmt.to_to_string Ast.pp_var
 let pp_ids = Fmt.(styled `Bold @@ list ~sep:(unit ".") string)
+let string_of_ids = Fmt.to_to_string pp_ids
 
 (* ENTRIES *)
 
@@ -298,38 +299,29 @@ module Error = struct
 
 end
 
-let custom_compare d x y =
+let custom_compare x y =
   let ix = try Some (int_of_string x) with Failure _ -> None in
   let iy = try Some (int_of_string y) with Failure _ -> None in
-  let r = match ix, iy with
-    | Some x, Some y -> compare x y
-    | _ -> String.compare x y
-  in
-  match d with
-  | `Up   -> r
-  | `Down -> -r
+  match ix, iy with
+  | Some x, Some y -> compare x y
+  | _              -> String.compare x y
 
-let sort ~file ~context ~errors loop x y =
+let sort ~file ~context ~errors ~loop ~id x y =
   let default = String.compare x.k y.k in
   let loc = loc ~file ~context (For loop) in
-  let with_order (d, order) =
-    match x.v, y.v with
-    | Data _           , Data _            -> default
-    | Collection (_, x), Collection (_, y) ->
-      (match Context.find x order, Context.find y order with
-       | Some (Data x), Some (Data y) -> custom_compare d x y
-       | None, _ | _, None  ->
-         Error.add errors (err_invalid_order order loc);
-         default
-       | Some (Collection _), _ | _, Some (Collection _) ->
-         Error.add errors (err_data_is_needed order loc);
-         default
-      )
-    | _ -> default
-  in
-  match loop.Ast.order with
-  | None       -> default
-  | Some order -> with_order order
+  match x.v, y.v with
+  | Data _           , Data _            -> default
+  | Collection (_, x), Collection (_, y) ->
+    (match Context.find x id, Context.find y id with
+     | Some (Data x), Some (Data y) -> custom_compare x y
+     | None, _ | _, None  ->
+       Error.add errors (err_invalid_order id loc);
+       default
+     | Some (Collection _), _ | _, Some (Collection _) ->
+       Error.add errors (err_data_is_needed id loc);
+       default
+    )
+  | _ -> default
 
 let empty = Ast.Text ""
 
@@ -408,43 +400,6 @@ let eval_var ~file ~context ~errors v =
   r
 
 
-let eval_test ~file ~context ~errors t =
-  let open Ast in
-  let var_is_defined v =
-    let errors = Error.v () in
-    match eval_var ~file ~context ~errors v with
-    | None   -> false
-    | Some _ -> true
-  in
-  let var_or_text = function
-    | `Text d -> Data d
-    | `Var v  ->
-      match eval_var ~file ~context ~errors v with
-      | None   -> Data "<undefined>"
-      | Some v -> snd v
-  in
-  let rec aux k x =
-    match x with
-    | True       -> true
-    | Paren x    -> aux k x
-    | Def x      -> k (var_is_defined x)
-    | Neg x      -> aux (fun x -> k (not x)) x
-    | And (x, y) -> aux (fun x -> aux (fun y -> x && y) y) x
-    | Or (x, y)  -> aux (fun x -> aux (fun y -> x || y) y) x
-    | Op (x,o,y) ->
-      let x = var_or_text x in
-      let y = var_or_text y in
-      let equal = match o with
-        | `Eq  -> (fun x y -> equal_value x y)
-        | `Neq -> (fun x y -> not (equal_value x y))
-      in
-      k (equal x y)
-
-  in
-  let b = aux (fun x -> x) t in
-  Log.debug (fun l -> l "eval_test: %a => %b" Ast.pp_test t b);
-  b
-
 (* add .next and .prev to each element of the collection *)
 let link_items c =
   let empty = Data "" in
@@ -487,6 +442,67 @@ let link_items c =
       e
     ) r
 
+let eval_loop ~file ~context ~errors loop =
+  let open Ast in
+  let loc = loc ~file ~context (For loop) in
+  let (>|=) x f = match x with
+    | None        -> None
+    | Some (n, l) -> Some (n, f l)
+  in
+  let rec aux k = function
+    | Rev t  -> aux (fun x -> x >|= List.rev) t
+    | Base v ->
+      (match eval_var ~file ~context ~errors v with
+       | Some (_, Collection (_, [])) | None -> k None
+       | Some (p, Collection (_, c)) -> k (Some (p, c))
+       | Some (p, Data _) ->
+         Error.add errors (err_collection_is_needed (string_of_ids p) loc);
+         k None)
+    | Sort (f, id) ->
+      aux (fun l ->
+          l >|= fun l ->
+          let sort = sort ~file ~context ~errors ~loop ~id in
+          List.sort sort l
+        ) f
+  in
+  aux (fun l -> l >|= link_items) loop.in_
+
+let eval_test ~file ~context ~errors t =
+  let open Ast in
+  let var_is_defined v =
+    let errors = Error.v () in
+    match eval_var ~file ~context ~errors v with
+    | None   -> false
+    | Some _ -> true
+  in
+  let var_or_text = function
+    | `Text d -> Data d
+    | `Var v  ->
+      match eval_var ~file ~context ~errors v with
+      | None   -> Data "<undefined>"
+      | Some v -> snd v
+  in
+  let rec aux k x =
+    match x with
+    | Paren x    -> aux k x
+    | Def x      -> k (var_is_defined x)
+    | Neg x      -> aux (fun x -> k (not x)) x
+    | And (x, y) -> aux (fun x -> if not x then k false else aux k y) x
+    | Or (x, y)  -> aux (fun x -> if x then k true else aux k y) x
+    | Op (x,o,y) ->
+      let x = var_or_text x in
+      let y = var_or_text y in
+      let equal = match o with
+        | `Eq  -> (fun x y -> equal_value x y)
+        | `Neq -> (fun x y -> not (equal_value x y))
+      in
+      k (equal x y)
+
+  in
+  let b = aux (fun x -> x) t in
+  Log.debug (fun l -> l "eval_test: %a => %b" Ast.pp_test t b);
+  b
+
 let eval ~file ~context ?(failfast=false) contents =
   let open Ast in
   let errors = Error.v ~failfast () in
@@ -509,20 +525,9 @@ let eval ~file ~context ?(failfast=false) contents =
     | For l -> loop ctx k l
 
   and loop ctx k l =
-    match eval_var ~file ~context:ctx ~errors l.map with
-    | None             -> k empty
-    | Some (p, Data _) ->
-      err err_collection_is_needed ~context:ctx (For l) "%a" pp_ids p;
-      k empty
-    | Some (_, Collection (_, [])) -> k empty
-    | Some (p, Collection (_, c))   ->
-      let entries = match l.order with
-        | None   -> c
-        | Some _ ->
-          let sort = sort ~file ~context:ctx ~errors l in
-          List.sort sort c
-      in
-      let entries = link_items entries in
+    match eval_loop ~file ~context:ctx ~errors l with
+    | None              -> k empty
+    | Some (p, entries) ->
       assert (List.length entries > 0);
       let first = { k="first"; v = (List.hd entries).v } in
       let last  = { k="last" ; v = (List.hd (List.rev entries)).v } in
@@ -530,9 +535,9 @@ let eval ~file ~context ?(failfast=false) contents =
       let ctx = Context.insert ctx p last in
       let bodies =
         List.map (fun { k; v } ->
-            Log.debug (fun d -> d "unrolling %s=%s" l.var k);
-            let ctx = Context.add ctx { k = l.var; v } in
-            ctx, l.body
+            Log.debug (fun d -> d "unrolling %s=%s" l.for_ k);
+            let ctx = Context.add ctx { k = l.for_; v } in
+            ctx, l.do_
           ) entries
       in
       Acc.list (fun l (ctx, body) ->
@@ -543,11 +548,11 @@ let eval ~file ~context ?(failfast=false) contents =
         ) bodies
 
   and cond ctx k c =
-    if eval_test ~file ~context:ctx ~errors c.test
+    if eval_test ~file ~context:ctx ~errors c.if_
     then t ctx (fun x -> k x) c.then_
     else match c.else_ with
       | None   -> k empty
-      | Some c -> cond ctx k c
+      | Some c -> t ctx k c
 
   and var ctx k v =
     let replace p d =

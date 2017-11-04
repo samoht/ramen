@@ -94,16 +94,16 @@ The body can contain templates of the form:
   Raw data can also contains the `{{ .. }}` quotations. They are
   expanded recursively by Ramen.
 
-- **loops**: `{{ for i in var }} <body> {{ endfor }}`: Ramen
+- **loops**: `{{ for i in var do }} <body> {{ done }}`: Ramen
   expands the body for each entry in the collection `var`.
 
   For instance, if `data/foo` contains two files `data/foo/a.md` and
   `data/foo/b.md` which contains `toto` and `titi` respectively, then:
 
   ```html
-  {{ for i in foo }}
+  {{ for i in foo do }}
   Hello {{ i }}.
-  {{ endfor }}
+  {{ done }}
   ```
   is equivalent to:
   ```html
@@ -116,12 +116,13 @@ The body can contain templates of the form:
   start or end conditions, for instance:
 
   ```html
-  {{ for i in foo }}
-  {{ if i = foo.first }}
-  Hello first {{ i }}.
-  {{ else }}
-  Hello {{ i }}
-  {{ endif }}
+  {{ for i in foo do }}
+    {{ if (i = foo.first) }}
+    Hello first {{ i }}.
+    {{ else }}
+    Hello {{ i }}
+    {{ fi }}
+  {{ done }}
   ```
 
   Moreover, every collection can be seen as a doubly-linked list, where elements
@@ -129,18 +130,28 @@ The body can contain templates of the form:
   snippet is equivalent to:
 
   ```html
-  {{ for i in foo }}
-  {{ if !i.prev }}
-  Hello first {{ i }}.
-  {{ else }}
-  Hello {{ i }}
-  {{ endif }}
+  {{ for i in foo do }}
+    {{ if (!i.prev) }}
+    Hello first {{ i }}.
+    {{ else }}
+    Hello {{ i.prev.next }}
+    {{ fi }}
+  {{ done }}
   ```
 
-- **conditions**: `{{ if cond_1 }} <body_1> ... {{ elif cond_n }} <body_n> {{
-  endif }}`. Ramen picks the first `<body_i>` such that `cond_i` is
-  satisfied (or it uses an empty string if none of the conditions
-  are true). Conditions expressions are composed by:
+  The order in which the iteration is done is by default the order in which
+  the collection is built (lexical order, order in which items appears in a
+  file, etc). It is possible to control the iteration order by using the
+  built-in function `rev(..)` and `sort(..,<id>)` where `id` is the key in
+  which to base the sort.
+
+- **conditions**: `{{ if (cond_1) }} <body_1> ... {{ elif (cond_n) }} <body_n>
+  {{ else }} <body_x> {{ fi }}`.
+  Ramen picks the first `<body_i>` such that `cond_i` is
+  satisfied or uses `<body_x>` otherwise (or an empty string if none of the
+  conditions are true and the else clause is missing).
+
+  Conditions expressions the compososition of:
     - single variables: `var`;
     - equalities: `var_1 = var_2` or `var_1 = 'string'`
     - inequalities: `var_1 != var_2` or `var_1 != 'string'`
@@ -152,11 +163,11 @@ The body can contain templates of the form:
   For instance:
 
   ```html
-  {{ if i.title && (i = site.page) }}
+  {{ if (i.title && i = site.page) }}
     <div class="nav active">{{i.title}}</div>
-  {{ elif i.title }}
+  {{ elif (i.title) }}
     <div class"nav">{{i.title}}<div>
-  {{ endif }}
+  {{ fi }}
   ```
 
 - **dictionaries**: `{{ xxx.[VAR].yyy }}` evaluates to `xxx.v.yyy`
@@ -165,13 +176,14 @@ The body can contain templates of the form:
   For example, if you have two collections `books` and `people`,
   you can cross-reference them using:
   ````html
-  {{for i in books}}
+  {{for i in books do}}
     <div class="book">
       <div class="title">{{i.title}}</div>
       <div class="author">{{people.[i.author].name}}</div>
     </div>
-  {{endfor}}
+  {{done}}
   ````
+
 - **fonctions**: `{{ VAR(k_1: v_1, ..., k_n: v_n) }}` this is similar
   to evaluating `VAR` in the context where `k_1`,...,`k_n` are bound
   to `v_1`,...`v_n`. For instance, this could be used to parametrize
