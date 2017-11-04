@@ -5,8 +5,8 @@ open Ast
 %token <string> VAR DATA
 %token DOT
 %token COLON COMMA
-%token FOR IN ENDFOR PIPE MINUS
-%token IF ELIF ENDIF ELSE
+%token FOR IN DO DONE REV SORT
+%token IF ELIF ELSE FI
 %token BANG
 %token AND
 %token OR
@@ -14,6 +14,10 @@ open Ast
 %token LBRA RBRA
 %token LPAR RPAR
 %token EOF
+
+%left OR
+%left AND
+%left BANG
 
 %start main
 %type <Ast.t> main
@@ -24,16 +28,15 @@ main:
   | exprs EOF { $1 }
 
 expr:
-  | var                { Var $1 }
-  | DATA               { Text $1 }
-  | IF test exprs elif { If { test=$2; then_=$3; else_= $4 } }
-  | FOR VAR IN var ordering exprs ENDFOR
-                       { For { var=$2; map=$4; order=$5; body=$6 } }
+  | var                           { Var $1 }
+  | DATA                          { Text $1 }
+  | IF LPAR test RPAR exprs elif  { If { if_=$3; then_=$5; else_= $6 } }
+  | FOR VAR IN iter DO exprs DONE { For { for_=$2; in_=$4; do_=$6 } }
 
 elif:
-  | ELIF test exprs elif { Some { test=$2; then_=$3; else_= $4 } }
-  | ELSE exprs ENDIF     { Some { test=True; then_=$2; else_=None } }
-  | ENDIF                { None }
+  | ELSE exprs FI                  { Some $2 }
+  | ELIF LPAR test RPAR exprs elif { Some (If { if_=$3; then_=$5; else_=$6 }) }
+  | FI                             { None }
 
 test:
   | var                        { Def $1 }
@@ -65,10 +68,10 @@ id:
   | VAR LPAR params RPAR { App ($1, $3) }
   | LBRA var RBRA        { Get $2 }
 
-ordering:
-  |                { None }
-  | PIPE VAR       { Some (`Up  , $2) }
-  | PIPE MINUS VAR { Some (`Down, $3) }
+iter:
+  | var                           { Base $1 }
+  | REV iter                      { Rev $2 }
+  | SORT LPAR iter COMMA VAR RPAR { Sort ($3, $5) }
 
 exprs:
   | list(expr) { Seq $1 }
