@@ -98,7 +98,15 @@ let with_url context page =
   let url = Template.data "url" (basename page) in
   Template.Context.add context url
 
+let check dir =
+  if not (Sys.file_exists dir) || not (Sys.is_directory dir) then (
+    Log.err (fun l -> l "The directory %s/ does not exists." dir);
+    exit 1
+  )
+
 let run () data pages output failfast =
+  check data;
+  check pages;
   let data  = Template.read_data data in
   let pages = Template.read_pages ~dir:pages in
   let pages =
