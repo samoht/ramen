@@ -328,7 +328,6 @@ let empty = Ast.Text ""
 let eval_var ~file ~context ~errors v =
   let open Ast in
   let loc = loc ~file ~context (Var v) in
-  let (>|=) x f = match x with None -> None | Some x -> Some (f x) in
   let find ctx k h = match Context.find ctx h with
     | Some x -> k x
     | None   -> Error.add errors (err_invalid_key h loc); None
@@ -342,27 +341,21 @@ let eval_var ~file ~context ~errors v =
     | Data d       -> k d
     | Collection _ -> Error.add errors (err_data_is_needed h loc); None
   in
-  let return k h c =
-    k c >|= fun (p, v) ->
-    List.rev (h::p), v
-  in
   let rec var ctx k = function
     | []       -> None
     | Get v::t ->
-      var context (fun x ->
+      var context (fun _ x ->
           data (string_of_var v) (fun h ->
-              var ctx k (Id h :: t) >|= fun (p, v) ->
-              h :: p, v
+              var ctx k (Id h :: t)
             ) x
         ) v
     | Id h::t ->
       find ctx (fun c ->
           match t with
-          | [] -> return k h c
+          | [] -> k [h] c
           | _  ->
             collection h (fun (_, ctx) ->
-                var (Context.v ctx) k t >|= fun (p, v) ->
-                h :: p, v
+                var (Context.v ctx) (fun p v -> k (h :: p) v) t
               ) c
         ) h
     | App (h, p)::t ->
@@ -377,28 +370,25 @@ let eval_var ~file ~context ~errors v =
               in
               let ctx = List.rev_map (param h) p @ ctx in
               match t with
-              | [] -> return k h (Collection (d, ctx))
-              | _  ->
-                var (Context.v ctx) k t >|= fun (p, v) ->
-                h :: p, v
+              | [] -> k [h] (Collection (d, ctx))
+              | _  -> var (Context.v ctx) (fun p v -> k (h :: p) v) t
             ) c
         ) h
   and param h (k, v) = match v with
     | `Text d -> {k; v=Data d}
     | `Var v  ->
-      match var context (fun v -> Some ([h], v)) v with
+      match var context (fun _ v -> Some ([h], v)) v with
       | Some (_, v) -> {k; v}
       | None        ->
         Error.add errors (err_param_is_needed h k loc);
         {k; v=Data ""}
   in
-  let r = var context (fun x -> Some ([], x)) v in
+  let r = var context (fun p v -> Some (p, v)) v in
   Log.debug (fun l ->
       let pp_value = pp_value (fun ppf _ -> Fmt.string ppf "...") in
       let pp_r = Fmt.Dump.(option @@ pair pp_ids pp_value) in
       l "eval_var: %a => %a" Ast.pp_var v pp_r r);
   r
-
 
 (* add .next and .prev to each element of the collection *)
 let link_items c =
