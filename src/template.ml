@@ -507,6 +507,7 @@ let eval ~file ~context ?(failfast=false) contents =
   let rec t ctx k = function
     | Text _ as x -> k x
     | Var v       -> var ctx (fun text -> t ctx k (normalize @@ Text text)) v
+    | Let b       -> binding ctx k b
     | Seq l as s  ->
       Acc.list (t ctx) (fun l' ->
           if l == l' then k s else t ctx k (normalize @@ Seq l')
@@ -564,6 +565,18 @@ let eval ~file ~context ?(failfast=false) contents =
         | None   ->
           err err_data_is_needed ~context:ctx (Var v) "%s" (string_of_var v);
           k ""
+
+  and binding ctx k b =
+    let v = match b.value with
+      | `Text t -> Data t
+      | `Var v  ->
+        match eval_var ~file ~context:ctx ~errors v with
+        | None        -> Data ""
+        | Some (_, d) -> d
+    in
+    let ctx = Context.add ctx { k = b.var; v } in
+    t ctx k b.body
+
   in
   let r = t context (fun x -> x) contents in
   r, errors.Error.v

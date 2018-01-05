@@ -71,6 +71,7 @@ and program t = parse
   | newline  { Lexing.new_line lexbuf; program t lexbuf }
   | '\''     { string t lexbuf }
   | '.'      { DOT }
+  | "let"    { LET }
   | "for"    { FOR }
   | "in"     { IN }
   | "do"     { DO }

@@ -1,9 +1,16 @@
 type t =
   | Text of string
   | Var of var
+  | Let of bind
   | If of cond
   | For of loop
   | Seq of t list
+
+and bind = {
+  var  : string;
+  value: var_or_text;
+  body : t;
+}
 
 and loop = {
   for_: string;
