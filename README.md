@@ -94,6 +94,9 @@ The body can contain templates of the form:
   Raw data can also contains the `{{ .. }}` quotations. They are
   expanded recursively by Ramen.
 
+- **aliases**: `{{ let n = var in }}` binds `n` to the contents of the variable
+  `var`. This is useful to factorize some code.
+
 - **loops**: `{{ for i in var do }} <body> {{ done }}`: Ramen
   expands the body for each entry in the collection `var`.
 

@@ -4,9 +4,16 @@ module Log = (val Logs.src_log src: Logs.LOG)
 type t =
   | Text of string
   | Var of var
+  | Let of bind
   | If of cond
   | For of loop
   | Seq of t list
+
+and bind = {
+  var  : string;
+  value: var_or_text;
+  body : t;
+}
 
 and loop = {
   for_ : string;
@@ -51,9 +58,14 @@ and params = (string * var_or_text) list
 let rec pp ppf = function
   | Text s -> Fmt.string ppf s
   | Var v  -> Fmt.pf ppf "{{ %a }}" pp_var v
+  | Let b  -> pp_bind ppf b
   | Seq l  -> Fmt.(list ~sep:(unit "") pp) ppf l
   | If c   -> pp_cond ppf c
   | For l  -> pp_loop ppf l
+
+and pp_bind ppf t =
+  Fmt.pf ppf "{{ let %s = %a in }}%a" t.var
+    pp_var_or_text t.value pp t.body
 
 and pp_loop ppf t =
   Fmt.pf ppf "{{ for %s in %a do }}%a{{ done }}" t.for_ pp_iter t.in_ pp t.do_
@@ -100,9 +112,14 @@ and pp_id ppf = function
 let rec dump ppf = function
   | Text s -> Fmt.pf ppf "@[<hov 2>Text %S@]" s
   | Var v  -> Fmt.pf ppf "@[<hov 2>Var %a@]" dump_var v
+  | Let b  -> Fmt.pf ppf "@[<hov 2>Let %a@]" dump_bind b
   | Seq l  -> Fmt.pf ppf "@[<hov 2>Seq %a@]" Fmt.(Dump.list dump) l
   | If c   -> Fmt.pf ppf "@[<hov 2>If %a@]" dump_cond c
   | For l  -> Fmt.pf ppf "@[<hov 2>For %a@]" dump_loop l
+
+and dump_bind ppf t =
+  Fmt.pf ppf "{var=%S;@ value=%a;@ body=%a}" t.var
+    dump_var_or_text t.value dump t.body
 
 and dump_loop ppf t =
   Fmt.pf ppf "{for_=%s;@ in_=%a;@ do_=%a}" t.for_ dump_iter t.in_ dump t.do_
@@ -154,10 +171,15 @@ let rec equal x y =
   match x, y with
   | Text x, Text y -> String.equal x y
   | Var x , Var y  -> equal_var x y
+  | Let x , Let y  -> equal_bind x y
   | Seq x , Seq y  -> equal_list equal x y
   | For x , For y  -> equal_loop x y
   | If  x , If y   -> equal_cond x y
-  | Text _, _ | Var _, _ | Seq _, _ | For _, _ | If _, _ -> false
+  | Text _, _ | Var _, _ | Let _, _ | Seq _, _ | For _, _ | If _, _ -> false
+
+and equal_bind x y =
+  String.equal x.var y.var
+  && equal x.body y.body
 
 and equal_loop x y =
   String.equal x.for_ y.for_

@@ -13,6 +13,7 @@ open Ast
 %token EQ NEQ
 %token LBRA RBRA
 %token LPAR RPAR
+%token LET
 %token EOF
 
 %left OR
@@ -32,6 +33,7 @@ expr:
   | DATA                          { Text $1 }
   | IF LPAR test RPAR exprs elif  { If { if_=$3; then_=$5; else_= $6 } }
   | FOR VAR IN iter DO exprs DONE { For { for_=$2; in_=$4; do_=$6 } }
+  | LET VAR EQ var_or_text IN exprs { Let { var=$2; value=$4; body=$6 } }
 
 elif:
   | ELSE exprs FI                  { Some $2 }

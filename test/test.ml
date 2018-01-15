@@ -416,6 +416,51 @@ module Get = struct
 
 end
 
+module Let = struct
+
+  let ctx =
+    let open Template in
+    Context.v [
+      collection "people" [
+        collection "jean" [
+          data "name" "Jean Valjean";
+          data "age"  "99";
+          data "id"   "1";
+        ];
+        collection "luc" [
+          data "name" "Toto";
+          data "age"  "42";
+          data "id"   "2";
+        ];
+      ];
+      collection "truc" [
+        collection "one" [
+          data "owner" "jean";
+        ];
+        collection "two" [
+          data "owner" "luc";
+        ]
+      ]
+    ]
+
+  let f = Template.Ast.parse ~file
+
+  let eval x =
+    let x, y = Template.eval ~file:"test" ~context:ctx x in
+    Alcotest.(check @@ slist error compare) "errors" [] y;
+    x
+
+  let simple () =
+    List.iteri (fun i (x, y) ->
+        Alcotest.(check ast) (string_of_int i) (f y) (eval @@ f x)
+      )[
+      "Hello {{ let t = people.[truc.one.owner] in t.name }}", "Hello Jean Valjean";
+      "{{for i in truc do let t = people.[i.owner] in t.name done}}",
+      "Jean ValjeanToto";
+    ]
+
+end
+
 module Fun = struct
 
   let ctx =
@@ -485,6 +530,9 @@ let () =
     ];
     "get", [
       "simple", `Quick, Get.simple;
+    ];
+    "let", [
+      "simple", `Quick, Let.simple;
     ];
     "functions", [
       "simple", `Quick, Fun.simple;
