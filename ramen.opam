@@ -8,14 +8,14 @@ dev-repo:     "https://github.com/samoht/ramen.git"
 doc:          "https://samoht.github.io/ramen/"
 
 build: [
- ["jbuilder" "subst"] {pinned}
- ["jbuilder" "build" "-p" name "-j" jobs]
+ ["dune" "subst"] {pinned}
+ ["dune" "build" "-p" name "-j" jobs]
 ]
 
-build-test: ["jbuilder" "runtest"]
+build-test: ["dune" "runtest"]
 
 depends: [
-  "jbuilder" {build & >= "1.0+beta10"}
+  "dune"
   "fmt"
   "logs"
   "lambdasoup"

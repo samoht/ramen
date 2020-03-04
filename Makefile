@@ -1,13 +1,13 @@
 .PHONY: all clean test
 
 all:
-	jbuilder build --dev
+	dune build
 
 test:
-	jbuilder runtest --dev
+	dune runtest
 
 clean:
-	jbuilder clean
+	dune clean
 
 docker:
 	docker build -t samoht/ramen .

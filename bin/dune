@@ -1,0 +1,5 @@
+(executable
+ (name main)
+ (public_name ramen)
+ (package ramen)
+ (libraries template cmdliner fmt.tty fmt.cli logs.fmt logs.cli lambdasoup))
