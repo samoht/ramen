@@ -147,9 +147,8 @@ let run =
     `S "AUTHOR";
     `P "Thomas Gazagnaire <thomas@gazagnaire.org>";
   ] in
-  Term.(const run $ setup_log $ data $ pages $ output $ failfast),
-  Term.info ~man "ramen" ~version:"%%VERSION%%"
+  Cmd.v
+    (Cmd.info ~man "ramen" ~version:"%%VERSION%%")
+    Term.(const run $ setup_log $ data $ pages $ output $ failfast)
 
-let () = match Term.eval run with
-  | `Error _ -> exit 1
-  | `Ok () |`Help |`Version -> exit 0
+let () = exit (Cmd.eval run)

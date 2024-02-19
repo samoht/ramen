@@ -20,8 +20,8 @@ let () =
 
 (* TESTS *)
 
-let strf = Fmt.strf
-let key k = Fmt.strf "{{ %s }}" k
+let str = Fmt.str
+let key k = Fmt.str "{{ %s }}" k
 
 let (++) f g x = f (g x)
 let (+++) f g x = f (g x x)
@@ -54,7 +54,7 @@ module One = struct
   let simple () =
     check html "foo1" "bar";
     check html "foo2" "<div>bar</div>";
-    check (html ++ strf "<foo><br /><bar>%s</bar></foo>") "foo3" "bar"
+    check (html ++ str "<foo><br /><bar>%s</bar></foo>") "foo3" "bar"
 
   let head () =
     check (parse "<html>%s<body>foo</body></html>")
@@ -66,9 +66,9 @@ module One = struct
 
   let all () =
     let check = check in
-    check (html +++ strf "%s </br> %s") "foo1" "bar";
-    check (html +++ strf "%s<div>%s</div>") "foo2" "bar";
-    check (html +++ strf "<div>%s</div><div>%s</div>") "foo3" "bar"
+    check (html +++ str "%s </br> %s") "foo1" "bar";
+    check (html +++ str "%s<div>%s</div>") "foo2" "bar";
+    check (html +++ str "<div>%s</div><div>%s</div>") "foo3" "bar"
 
 end
 
@@ -131,13 +131,13 @@ end
 
 
 let (/) = Filename.concat
-let mkdir dir = assert (Fmt.kstrf Sys.command "mkdir -p %s" dir = 0)
+let mkdir dir = assert (Fmt.kstr Sys.command "mkdir -p %s" dir = 0)
 let rmdir dir =
   if dir = "/"
   || dir = "."
   || List.mem ".git" (try Sys.readdir dir |> Array.to_list with _ -> [])
   then assert false
-  else assert (Fmt.kstrf Sys.command "rm -rf %s" dir = 0)
+  else assert (Fmt.kstr Sys.command "rm -rf %s" dir = 0)
 let init test_dir files =
   rmdir test_dir;
   mkdir test_dir;
@@ -228,9 +228,9 @@ module For = struct
       ]]
 
   let simple () =
-    let one name age = Fmt.strf "Hi my name is %s and I am %s" name age in
+    let one name age = Fmt.str "Hi my name is %s and I am %s" name age in
     let template =
-      Fmt.strf {|
+      Fmt.str {|
 Test:
    {{ for i in toto do }}
    %s
@@ -239,7 +239,7 @@ Test:
       |> Template.Ast.(parse ~file)
     in
     let body =
-      Fmt.strf {|
+      Fmt.str {|
 Test:
    %s
    %s
@@ -251,9 +251,9 @@ Test:
     Alcotest.(check ast) "body" body str
 
   let by_name () =
-    let one name age = Fmt.strf "Hi my name is %s and I am %s" name age in
+    let one name age = Fmt.str "Hi my name is %s and I am %s" name age in
     let template =
-      Fmt.strf {|
+      Fmt.str {|
 Test:
  {{ for i in sort(toto, name) do }}
    %s
@@ -262,7 +262,7 @@ Test:
       |> Template.Ast.(parse ~file)
     in
     let body =
-      Fmt.strf {|
+      Fmt.str {|
 Test:
    %s
    %s

@@ -59,7 +59,7 @@ let rec pp ppf = function
   | Text s -> Fmt.string ppf s
   | Var v  -> Fmt.pf ppf "{{ %a }}" pp_var v
   | Let b  -> pp_bind ppf b
-  | Seq l  -> Fmt.(list ~sep:(unit "") pp) ppf l
+  | Seq l  -> Fmt.(list ~sep:(any "") pp) ppf l
   | If c   -> pp_cond ppf c
   | For l  -> pp_loop ppf l
 
@@ -94,11 +94,11 @@ and pp_op ppf = function
   | `Eq  -> Fmt.string ppf "="
   | `Neq -> Fmt.string ppf "!="
 
-and pp_var ppf t = Fmt.(list ~sep:(unit ".") pp_id) ppf t
+and pp_var ppf t = Fmt.(list ~sep:(any ".") pp_id) ppf t
 
 and pp_param ppf (n, v) = Fmt.pf ppf "%s: %a" n pp_var_or_text v
 
-and pp_params ppf t = Fmt.(list ~sep:(unit ", ")) pp_param ppf t
+and pp_params ppf t = Fmt.(list ~sep:(any ", ")) pp_param ppf t
 
 and pp_var_or_text ppf = function
   | `Var v  -> pp_var ppf v

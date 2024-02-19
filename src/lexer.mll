@@ -8,7 +8,7 @@ type t = {
 }
 
 let v ?(debug=false) () = { debug; mode = `Text; buffer = Buffer.create 8196 }
-let p t fmt = Fmt.kstrf (fun s -> if t.debug then print_endline s) fmt
+let p t fmt = Fmt.kstr (fun s -> if t.debug then print_endline s) fmt
 
 let data t = match t.mode with
   | `Eof -> EOF

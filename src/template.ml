@@ -27,7 +27,7 @@ module Ast = struct
     let lexbuf = Lexing.from_string str in
     let err msg =
       let f = save_to_temp_file ~file str in
-      let msg = Fmt.strf "%a: %s\n.%!" (pp_position f) lexbuf msg in
+      let msg = Fmt.str "%a: %s\n.%!" (pp_position f) lexbuf msg in
       Log.err (fun l -> l "%s" msg);
       Ast.(Seq [Text "error: "; Text msg])
     in
@@ -47,7 +47,7 @@ end
 let pp_file = Fmt.(styled `Underline string)
 let pp_key = Fmt.(styled `Bold string)
 let string_of_var = Fmt.to_to_string Ast.pp_var
-let pp_ids = Fmt.(styled `Bold @@ list ~sep:(unit ".") string)
+let pp_ids = Fmt.(styled `Bold @@ list ~sep:(any ".") string)
 let string_of_ids = Fmt.to_to_string pp_ids
 
 (* ENTRIES *)
@@ -154,7 +154,7 @@ end = struct
   let v x = (* FIXME: check for duplicates *) List.rev x
 
   let err_duplicated_key x =
-    Fmt.kstrf failwith "duplicated key: %a" pp_key x.k
+    Fmt.kstr failwith "duplicated key: %a" pp_key x.k
 
   let add m x =
     if not (List.exists (equal_entry x) m) then x :: m
@@ -230,8 +230,8 @@ let pp_error ppf e =
   let n = ref 0 in
   let file =
     incr n;
-    let str = Fmt.strf "%a\n---\n%a" Context.dump loc.context Ast.pp loc.ast in
-    save_to_temp_file ~file:(Fmt.strf "%s.%d" loc.file !n) str
+    let str = Fmt.str "%a\n---\n%a" Context.dump loc.context Ast.pp loc.ast in
+    save_to_temp_file ~file:(Fmt.str "%s.%d" loc.file !n) str
   in
   match e with
   | Invalid_key (key, _) ->
@@ -497,7 +497,7 @@ let eval ~file ~context ?(failfast=false) contents =
   let open Ast in
   let errors = Error.v ~failfast () in
   let err ~context e t fmt =
-    Fmt.kstrf (fun x ->
+    Fmt.kstr (fun x ->
         let loc = loc ~file ~context t in
         Error.add errors (e x loc)
       ) fmt
