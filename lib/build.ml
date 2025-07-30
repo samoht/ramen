@@ -10,7 +10,7 @@ let err_validation_failed e =
   Error (`Msg (Fmt.str "Validation error: %a" Validation.pp_error e))
 
 (** Build the site by loading data structures in memory *)
-let run ~data_dir ~output_dir ~theme:_ =
+let run ~data_dir ~output_dir ~theme:_ ?(minify = false) () =
   let ( >>= ) = Result.bind in
 
   (* Load and validate all data using the core library *)
@@ -25,7 +25,7 @@ let run ~data_dir ~output_dir ~theme:_ =
       OS.Dir.create output >>= fun _ ->
       (* Use the engine directly with the loaded data *)
       try
-        Engine.generate ~data_dir ~output_dir ~data;
+        Engine.generate ~data_dir ~output_dir ~minify ~data;
         Ok ()
       with
       | Failure msg -> Error (`Msg msg)

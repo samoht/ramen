@@ -13,7 +13,7 @@ let start_server common port no_watch =
   Ramen.Serve.run ~data_dir:common.Common.data_dir ~output_dir:common.output_dir
     ~theme:common.theme ~port ~no_watch
 
-let run common port no_watch =
+let run () common port no_watch =
   match start_server common port no_watch with
   | Ok () -> `Ok ()
   | Error (`Msg e) ->
@@ -33,4 +33,5 @@ let no_watch =
 let cmd =
   let doc = "Serve the site locally with live-reloading" in
   let info = Cmd.info "serve" ~doc in
-  Cmd.v info Term.(ret (const run $ Common.term $ port $ no_watch))
+  Cmd.v info
+    Term.(ret (const run $ Common.logs_term $ Common.term $ port $ no_watch))

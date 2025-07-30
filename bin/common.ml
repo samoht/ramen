@@ -3,6 +3,12 @@ open Cmdliner
 type t = { data_dir : string; output_dir : string; theme : string }
 (** Common configuration options for all commands *)
 
+(** Setup logging with colors *)
+let setup_log ?style_renderer log_level =
+  Fmt_tty.setup_std_outputs ?style_renderer ();
+  Logs.set_level log_level;
+  Logs.set_reporter (Logs_fmt.reporter ~dst:Fmt.stderr ~app:Fmt.stdout ())
+
 (** Default values *)
 let default_data_dir = "./data"
 
@@ -37,8 +43,21 @@ let theme =
 (** Create configuration from command-line arguments *)
 let make data_dir output_dir theme = { data_dir; output_dir; theme }
 
+(** Command-line term for log level *)
+let log_level =
+  let env = Cmd.Env.info "RAMEN_VERBOSE" in
+  Logs_cli.level ~env ()
+
 (** Combined term for common options *)
 let term = Term.(const make $ data_dir $ output_dir $ theme)
+
+(** Logging setup term *)
+let logs_term =
+  let setup style_renderer log_level =
+    setup_log ?style_renderer log_level;
+    ()
+  in
+  Term.(const setup $ Fmt_cli.style_renderer () $ log_level)
 
 (** Log module for consistent styled output *)
 module Log = struct

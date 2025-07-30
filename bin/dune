@@ -1,5 +1,16 @@
 (executable
  (public_name ramen)
  (name main)
- (libraries cmdliner bos fpath ramen ptime.clock.os)
+ (libraries
+  cmdliner
+  bos
+  fpath
+  ramen
+  ptime.clock.os
+  logs
+  logs.cli
+  logs.fmt
+  fmt
+  fmt.tty
+  fmt.cli)
  (package ramen))

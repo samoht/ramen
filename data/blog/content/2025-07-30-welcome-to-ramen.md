@@ -4,6 +4,7 @@ title: Welcome to Ramen
 date: 2025-07-30
 tags: ramen, introduction
 synopsis: An introduction to Ramen, a static site generator built with OCaml.
+description: An introduction to Ramen, a static site generator built with OCaml.
 image: ramen-bowl.jpg
 image-alt: A delicious bowl of ramen
 ---

@@ -33,15 +33,16 @@ let url ?domain:(_ = false) = function
   | Blog_index { page; filter; _ } -> (
       let base =
         match filter with
-        | None -> "/blog"
-        | Some (Blog.Tag tag) -> "/blog/tag/" ^ tag
-        | Some (Blog.Author author) -> "/blog/author/" ^ Blog.author_slug author
+        | None -> "/blog/"
+        | Some (Blog.Tag tag) -> "/blog/tag/" ^ tag ^ "/"
+        | Some (Blog.Author author) ->
+            "/blog/author/" ^ Blog.author_slug author ^ "/"
       in
-      match page with 1 -> base | n -> base ^ "/page/" ^ string_of_int n)
-  | Blog_post post -> "/blog/" ^ post.Blog.slug
+      match page with 1 -> base | n -> base ^ "page/" ^ string_of_int n ^ "/")
+  | Blog_post post -> "/blog/" ^ post.Blog.slug ^ "/"
   | Blog_feed -> "/blog/feed.xml"
-  | Papers -> "/papers"
-  | Static_page page -> "/" ^ page.name
+  | Papers -> "/papers/"
+  | Static_page page -> "/" ^ page.name ^ "/"
   | Error -> "/404.html"
   | Sitemap -> "/sitemap.xml"
   | Robots_txt -> "/robots.txt"

@@ -7,12 +7,12 @@ module Fmt = F
 let file (blog : Core.Blog.t) = blog.path
 
 let author (b : Core.Blog.author) =
-  let author = Core.Blog.author_team b in
+  let author_name = Core.Blog.author_name b in
   let link_to_author = Core.Page.create_blog_index ~author:b 1 in
   a
     ~at:[ At.href (Core.Page.url link_to_author) ]
     ~tw:[ Tw.text_gray_700; Tw.hover_text_gray_900; Tw.font_medium ]
-    [ txt author.name ]
+    [ txt author_name ]
 
 let back =
   nav
@@ -150,13 +150,7 @@ let render_content_section (blog : Core.Blog.t) =
         ~tw:[ Tw.max_w_4xl; Tw.mx_auto; Tw.px (Int 6) ]
         [
           div
-            ~tw:
-              [
-                Tw.Prose.prose;
-                Tw.Prose.prose_gray;
-                Tw.max_w_none;
-                Tw.mt (Int 8);
-              ]
+            ~tw:[ Tw.prose; Tw.prose_gray; Tw.max_w_none; Tw.mt (Int 8) ]
             [ raw blog.body_html ];
         ];
     ]

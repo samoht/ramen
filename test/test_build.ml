@@ -54,10 +54,10 @@ let create_test_blog_post () =
 title: Test Post
 date: 2024-01-01
 description: A test post
-authors:
-  - Test Author
-tags:
-  - test
+authors: Test Author
+tags: test
+synopsis: A test post
+image: test.jpg
 ---
 
 # Test Post
@@ -91,7 +91,7 @@ let test_success () =
   setup_test_data ();
   match
     Ramen.Build.run ~data_dir:test_data_dir ~output_dir:test_output_dir
-      ~theme:test_theme
+      ~theme:test_theme ()
   with
   | Ok () ->
       check bool "output directory exists" true
@@ -108,7 +108,7 @@ let test_missing_data () =
   cleanup_test_dirs ();
   match
     Ramen.Build.run ~data_dir:"nonexistent" ~output_dir:test_output_dir
-      ~theme:test_theme
+      ~theme:test_theme ()
   with
   | Ok () -> fail "Should fail with missing data directory"
   | Error (`Msg msg) ->
@@ -121,7 +121,7 @@ let test_invalid_theme () =
   (* Currently themes aren't implemented, so this should still work *)
   match
     Ramen.Build.run ~data_dir:test_data_dir ~output_dir:test_output_dir
-      ~theme:"nonexistent"
+      ~theme:"nonexistent" ()
   with
   | Ok () ->
       cleanup_test_dirs ();
@@ -139,7 +139,7 @@ let test_creates_output_dir () =
 
   match
     Ramen.Build.run ~data_dir:test_data_dir ~output_dir:test_output_dir
-      ~theme:test_theme
+      ~theme:test_theme ()
   with
   | Ok () ->
       check bool "output directory created" true

@@ -8,7 +8,7 @@ let test_url () =
   check string "index url" "/" (Core.Page.url Core.Page.Index);
   check string "blog feed url" "/blog/feed.xml"
     (Core.Page.url Core.Page.Blog_feed);
-  check string "papers url" "/papers" (Core.Page.url Core.Page.Papers);
+  check string "papers url" "/papers/" (Core.Page.url Core.Page.Papers);
   check string "error url" "/404.html" (Core.Page.url Core.Page.Error);
   check string "sitemap url" "/sitemap.xml" (Core.Page.url Core.Page.Sitemap);
   check string "robots url" "/robots.txt" (Core.Page.url Core.Page.Robots_txt)
@@ -32,7 +32,7 @@ let test_static_page () =
   check (option int) "nav order" (Some 1) static.Core.Static.nav_order;
 
   let page = Core.Page.Static_page static in
-  check string "static page url" "/about" (Core.Page.url page)
+  check string "static page url" "/about/" (Core.Page.url page)
 
 let test_blog_page () =
   let post =
@@ -56,7 +56,7 @@ let test_blog_page () =
   in
 
   let page = Core.Page.Blog_post post in
-  check string "blog post url" "/blog/test-post" (Core.Page.url page)
+  check string "blog post url" "/blog/test-post/" (Core.Page.url page)
 
 let test_blog_index_page () =
   let index =
@@ -64,13 +64,13 @@ let test_blog_index_page () =
   in
 
   let page = Core.Page.Blog_index index in
-  check string "blog index page 2 url" "/blog/page/2" (Core.Page.url page);
+  check string "blog index page 2 url" "/blog/page/2/" (Core.Page.url page);
 
   let index_with_filter =
     { index with filter = Some (Core.Blog.Tag "ocaml") }
   in
   let page_with_filter = Core.Page.Blog_index index_with_filter in
-  check string "blog index with tag url" "/blog/tag/ocaml/page/2"
+  check string "blog index with tag url" "/blog/tag/ocaml/page/2/"
     (Core.Page.url page_with_filter)
 
 let test_pp () =

@@ -1,22 +1,28 @@
 open Cmdliner
 
 let generate_site config minify =
-  Common.Log.info "Building site from %s to %s..." config.Common.data_dir
-    config.output_dir;
-  Common.Log.info "Minification: %s" (if minify then "enabled" else "disabled");
+  Logs.info (fun m ->
+      m "Building site from %s to %s..." config.Common.data_dir
+        config.output_dir);
+  Logs.info (fun m ->
+      m "Minification: %s" (if minify then "enabled" else "disabled"));
 
   (* Use the data-driven site builder *)
   Ramen.Build.run ~data_dir:config.data_dir ~output_dir:config.output_dir
-    ~theme:config.theme
+    ~theme:config.theme ~minify ()
 
-let run common minify =
+let run () common minify =
   match generate_site common minify with
   | Ok () ->
-      Common.Log.success "Site generated successfully!";
-      Common.Log.info "Output directory: %s" common.Common.output_dir;
+      Logs.app (fun m ->
+          m "%a Site generated successfully!"
+            Fmt.(styled (`Fg `Green) string)
+            "[SUCCESS]");
+      Logs.info (fun m -> m "Output directory: %s" common.Common.output_dir);
       `Ok ()
   | Error (`Msg e) ->
-      Common.Log.error "Building site: %s" e;
+      Logs.err (fun m ->
+          m "%a Building site: %s" Fmt.(styled (`Fg `Red) string) "[ERROR]" e);
       `Error (false, e)
 
 (** Command-line term for minify option *)
@@ -27,4 +33,4 @@ let minify =
 let cmd =
   let doc = "Build the static site from the source directory" in
   let info = Cmd.info "build" ~doc in
-  Cmd.v info Term.(ret (const run $ Common.term $ minify))
+  Cmd.v info Term.(ret (const run $ Common.logs_term $ Common.term $ minify))

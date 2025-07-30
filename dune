@@ -1,13 +1,11 @@
 (data_only_dirs ext)
 
 (rule
- (targets (dir docs))
+ (targets
+  (dir docs))
+ (alias default)
+ (mode promote)
  (deps
-  (source_tree data)
-  (alias_rec default))
+  (source_tree data))
  (action
   (run %{bin:ramen} build --data-dir data --output-dir docs)))
-
-(alias
- (name docs)
- (deps docs))

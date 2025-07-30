@@ -17,6 +17,6 @@ let start_server ~output_dir ~port ~no_watch ~data_dir:_ =
 
 let run ~data_dir ~output_dir ~theme ~port ~no_watch =
   (* First build the site *)
-  match Build.run ~data_dir ~output_dir ~theme with
+  match Build.run ~data_dir ~output_dir ~theme () with
   | Error e -> Error e
   | Ok () -> start_server ~output_dir ~port ~no_watch ~data_dir

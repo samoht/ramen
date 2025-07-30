@@ -15,6 +15,8 @@ depends: [
   "ppx_deriving_yaml"
   "dune" {>= "3.16"}
   "cmdliner"
+  "logs"
+  "fmt"
   "uucp"
   "uunf"
   "uri"

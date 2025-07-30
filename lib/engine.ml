@@ -184,7 +184,12 @@ let generate_html_and_collect_tw ~data_dir ~output_dir ~data =
         match Core.Page.url p with
         | "/" -> output_dir / "index.html"
         | s when String.ends_with ~suffix:"/" s ->
-            (output_dir / s) ^ "index.html"
+            let path_without_leading_slash =
+              if String.starts_with ~prefix:"/" s then
+                String.sub s 1 (String.length s - 1)
+              else s
+            in
+            (output_dir / path_without_leading_slash) ^ "index.html"
         | s -> output_dir ^ s
       in
       mkdir (Filename.dirname path);
@@ -196,7 +201,7 @@ let generate_html_and_collect_tw ~data_dir ~output_dir ~data =
 
   !all_tw_styles
 
-let generate ~data_dir ~output_dir ~data =
+let generate ~data_dir ~output_dir ~minify ~data =
   let root = Unix.realpath output_dir in
   Fmt.pr "Root path: %s\n%!" root;
 
@@ -210,7 +215,7 @@ let generate ~data_dir ~output_dir ~data =
 
   (* Generate CSS from collected Tailwind styles *)
   let stylesheet = Ui.Tw.of_tw tw_styles in
-  let css_content = Ui.Css.to_string ~minify:false stylesheet in
+  let css_content = Ui.Css.to_string ~minify stylesheet in
 
   let css_path = root / "css" / "main.css" in
   let css_dir = Filename.dirname css_path in

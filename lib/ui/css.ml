@@ -7,8 +7,8 @@ type property_name =
   | Padding
   | Padding_left
   | Padding_right
-  | Padding_top
   | Padding_bottom
+  | Padding_top
   | Margin
   | Margin_left
   | Margin_right
@@ -49,6 +49,9 @@ type property_name =
   | Transition
   | Transform
   | Cursor
+  | Table_layout
+  | Border_collapse
+  | Border_spacing
   | User_select
   | Pointer_events
   | Overflow
@@ -67,9 +70,25 @@ type property_name =
   | Clip
   | Filter
   | Background_image
+  | Animation
+  | Appearance
+  | Overflow_x
+  | Overflow_y
+  | Resize
+  | Vertical_align
+  | Box_sizing
+  | Font_family
+  | Background_position
+  | Background_repeat
+  | Background_size
   | Webkit_font_smoothing
   | Moz_osx_font_smoothing
   | Webkit_line_clamp
+  | Backdrop_filter
+  | Scroll_snap_type
+  | Scroll_snap_align
+  | Scroll_snap_stop
+  | Scroll_behavior
   | Custom of string  (** CSS property names as a variant type *)
 
 type property = property_name * string
@@ -88,8 +107,8 @@ let property_name_to_string = function
   | Padding -> "padding"
   | Padding_left -> "padding-left"
   | Padding_right -> "padding-right"
-  | Padding_top -> "padding-top"
   | Padding_bottom -> "padding-bottom"
+  | Padding_top -> "padding-top"
   | Margin -> "margin"
   | Margin_left -> "margin-left"
   | Margin_right -> "margin-right"
@@ -130,6 +149,9 @@ let property_name_to_string = function
   | Transition -> "transition"
   | Transform -> "transform"
   | Cursor -> "cursor"
+  | Table_layout -> "table-layout"
+  | Border_collapse -> "border-collapse"
+  | Border_spacing -> "border-spacing"
   | User_select -> "user-select"
   | Pointer_events -> "pointer-events"
   | Overflow -> "overflow"
@@ -148,9 +170,25 @@ let property_name_to_string = function
   | Clip -> "clip"
   | Filter -> "filter"
   | Background_image -> "background-image"
+  | Animation -> "animation"
+  | Appearance -> "appearance"
+  | Overflow_x -> "overflow-x"
+  | Overflow_y -> "overflow-y"
+  | Resize -> "resize"
+  | Vertical_align -> "vertical-align"
+  | Box_sizing -> "box-sizing"
+  | Font_family -> "font-family"
+  | Background_position -> "background-position"
+  | Background_repeat -> "background-repeat"
+  | Background_size -> "background-size"
   | Webkit_font_smoothing -> "-webkit-font-smoothing"
   | Moz_osx_font_smoothing -> "-moz-osx-font-smoothing"
   | Webkit_line_clamp -> "-webkit-line-clamp"
+  | Backdrop_filter -> "backdrop-filter"
+  | Scroll_snap_type -> "scroll-snap-type"
+  | Scroll_snap_align -> "scroll-snap-align"
+  | Scroll_snap_stop -> "scroll-snap-stop"
+  | Scroll_behavior -> "scroll-behavior"
   | Custom s -> s
 
 let rule ~selector properties = { selector; properties }
@@ -160,13 +198,15 @@ let stylesheet ?(media_queries = []) rules = { rules; media_queries }
 (** {1 Utilities} *)
 
 let deduplicate_properties props =
-  (* Keep last occurrence of each property *)
-  let tbl = Hashtbl.create 16 in
-  List.iter
-    (fun (prop_name, value) -> Hashtbl.replace tbl prop_name value)
-    props;
-  Hashtbl.fold (fun prop_name value acc -> (prop_name, value) :: acc) tbl []
-  |> List.rev
+  (* Keep last occurrence of each property while preserving order *)
+  let seen = Hashtbl.create 16 in
+  List.fold_right
+    (fun (prop_name, value) acc ->
+      if Hashtbl.mem seen prop_name then acc
+      else (
+        Hashtbl.add seen prop_name ();
+        (prop_name, value) :: acc))
+    props []
 
 let merge_rules rules =
   (* Group rules by selector *)
@@ -184,6 +224,42 @@ let merge_rules rules =
     (fun selector properties acc ->
       { selector; properties = deduplicate_properties properties } :: acc)
     tbl []
+  |> List.sort (fun a b -> String.compare a.selector b.selector)
+
+(* Merge rules with identical properties into combined selectors *)
+let merge_by_properties rules =
+  (* Create a hash of properties for comparison *)
+  let properties_hash props =
+    props
+    |> List.map (fun (name, value) ->
+           property_name_to_string name ^ ":" ^ value)
+    |> List.sort String.compare |> String.concat ";"
+  in
+
+  (* Group rules by their properties *)
+  let groups = Hashtbl.create 16 in
+  List.iter
+    (fun rule ->
+      let hash = properties_hash rule.properties in
+      let existing = try Hashtbl.find groups hash with Not_found -> [] in
+      Hashtbl.replace groups hash (rule :: existing))
+    rules;
+
+  (* Create merged rules *)
+  Hashtbl.fold
+    (fun _hash rules_with_same_props acc ->
+      match rules_with_same_props with
+      | [] -> acc
+      | [ rule ] -> rule :: acc
+      | multiple ->
+          let selectors =
+            multiple
+            |> List.map (fun r -> r.selector)
+            |> List.sort String.compare |> String.concat ","
+          in
+          let properties = (List.hd multiple).properties in
+          { selector = selectors; properties } :: acc)
+    groups []
   |> List.sort (fun a b -> String.compare a.selector b.selector)
 
 let minify_selector s =
@@ -207,26 +283,24 @@ let minify_selector s =
   |> String.trim
 
 let minify_value v =
-  (* Remove unnecessary whitespace and units *)
   let v = String.trim v in
-  (* Remove units from 0 values *)
-  let zero_with_unit =
-    Re.compile
-      (Re.seq
-         [
-           Re.str "0";
-           Re.alt [ Re.str "px"; Re.str "rem"; Re.str "em"; Re.str "%" ];
-           Re.eos;
-         ])
-  in
-  if Re.execp zero_with_unit v then "0"
-  (* Remove leading 0 from decimals *)
-    else
+  (* Special case: plain "0" or "1" should stay as is *)
+  if v = "0" || v = "1" then v
+  else
+    (* Remove leading 0 from decimals but preserve units - e.g., "0.5rem" ->
+       ".5rem" *)
     let decimal_re =
-      Re.compile (Re.seq [ Re.bos; Re.str "0."; Re.group (Re.rep1 Re.digit) ])
+      Re.compile
+        (Re.seq
+           [
+             Re.bos;
+             Re.str "0.";
+             Re.group (Re.rep1 Re.digit);
+             Re.group (Re.rep Re.any);
+           ])
     in
     match Re.exec_opt decimal_re v with
-    | Some m -> "." ^ Re.Group.get m 1
+    | Some m -> "." ^ Re.Group.get m 1 ^ Re.Group.get m 2
     | None -> v
 
 (** {1 Rendering} *)
@@ -274,13 +348,13 @@ let render_formatted_media_rule rule =
 
 let to_string ?(minify = false) stylesheet =
   if minify then
-    let rules = merge_rules stylesheet.rules in
+    let rules = merge_rules stylesheet.rules |> merge_by_properties in
     let rule_strings = List.map render_minified_rule rules in
     let media_strings =
       stylesheet.media_queries
       |> List.map (fun (mq : media_query) ->
              let rules_str =
-               mq.rules |> merge_rules
+               mq.rules |> merge_rules |> merge_by_properties
                |> List.map render_minified_rule
                |> String.concat ""
              in

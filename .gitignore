@@ -15,9 +15,18 @@ _opam/
 # Log files
 logs.txt
 
-# genrated files
+# Node.js dependencies
+node_modules/
+package*.json
+package-lock.json
+
+# Generated files
 data/css/main.css
 site
 _site/
-ext
+docs/
+ext/
+tailwind_test/
+
+# Claude AI files
 .claude

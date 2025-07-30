@@ -24,6 +24,8 @@
   ppx_deriving_yaml
   dune
   cmdliner
+  logs
+  fmt
   uucp
   uunf
   uri

@@ -24,13 +24,7 @@ let clean_artifacts config =
   Common.Log.info "Cleaning build artifacts...";
 
   let dirs_to_clean =
-    [
-      config.Common.output_dir;
-      ".ramen-cache";
-      (* Future cache directory *)
-      "node_modules/.cache";
-      (* If using any Node.js tools *)
-    ]
+    [ config.Common.output_dir; ".ramen-cache" (* Future cache directory *) ]
   in
 
   List.fold_left
@@ -38,7 +32,7 @@ let clean_artifacts config =
       match acc with Error _ as e -> e | Ok () -> remove_directory dir)
     (Ok ()) dirs_to_clean
 
-let run common =
+let run () common =
   match clean_artifacts common with
   | Ok () ->
       Common.Log.success "Build artifacts cleaned successfully!";
@@ -66,4 +60,4 @@ let cmd =
     ]
   in
   let info = Cmd.info "clean" ~doc ~man in
-  Cmd.v info Term.(ret (const run $ Common.term))
+  Cmd.v info Term.(ret (const run $ Common.logs_term $ Common.term))

@@ -25,6 +25,8 @@ val run :
   data_dir:string ->
   output_dir:string ->
   theme:string ->
+  ?minify:bool ->
+  unit ->
   (unit, [ `Msg of string ]) result
-(** [run ~data_dir ~output_dir ~theme] builds the static site from the data
-    directory to the output directory using the specified theme. *)
+(** [run ~data_dir ~output_dir ~theme ?minify ()] builds the static site from
+    the data directory to the output directory using the specified theme. *)

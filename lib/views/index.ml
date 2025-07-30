@@ -124,7 +124,7 @@ let render_content_section page =
         ~tw:[ Tw.max_w_4xl; Tw.mx_auto; Tw.px_6 ]
         [
           Html.div
-            ~tw:[ Tw.Prose.prose; Tw.Prose.prose_sm; Tw.max_w_none ]
+            ~tw:[ Tw.prose; Tw.prose_sm; Tw.max_w_none ]
             [ Html.raw page.Core.Static.body_html ];
         ];
     ]

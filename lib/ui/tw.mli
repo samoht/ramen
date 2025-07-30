@@ -1,6 +1,46 @@
-(** A type-safe, ergonomic DSL for Tailwind CSS using nominal types. *)
+(** Type-safe Tailwind CSS
 
-(** {1 Core Types} *)
+    This module provides a typed interface to the
+    {{:https://tailwindcss.com/}Tailwind CSS} utility-first framework. It
+    replaces raw string class names with a system of OCaml types and functions,
+    preventing typos and invalid class combinations at compile-time.
+
+    {1:model Model}
+
+    The core of the library is the abstract type {!t}, which represents a
+    single, atomic Tailwind class.
+
+    A complete set of styles for an HTML element is constructed by creating a
+    [t list]. This list is then converted to a space-separated string for use in
+    a [class] attribute using the {!to_classes} function.
+
+    State modifiers (e.g., for hover, focus, or responsive breakpoints) are
+    implemented as higher-order functions that transform a style. For example,
+    [hover bg_blue_700] creates a style that only applies on mouse hover.
+
+    {1:usage Usage Example}
+
+    {[
+      let button =
+        let styles =
+          [
+            bg_blue_500;
+            text_white;
+            font_bold;
+            py_2;
+            px_4;
+            rounded_md;
+            hover bg_blue_700 (* Apply blue-700 background on hover *);
+            sm px_6 (* Use larger padding on small screens and up *);
+          ]
+        in
+        Html.button [ class' (to_classes styles) ] [ Html.txt "Click Me" ]
+    ]}
+
+    The library aims to provide comprehensive coverage of the Tailwind API. *)
+
+(** {1 Core Types}
+    @see <https://tailwindcss.com/docs/customizing-colors> Customizing Colors *)
 
 type t
 (** The abstract type representing a single Tailwind CSS class. *)
@@ -9,15 +49,25 @@ type color =
   | Black
   | White
   | Gray
+  | Slate
+  | Zinc
   | Red
+  | Orange
+  | Amber
   | Yellow
+  | Lime
   | Green
+  | Emerald
+  | Teal
+  | Cyan
+  | Sky
   | Blue
   | Indigo
+  | Violet
   | Purple
+  | Fuchsia
   | Pink
-  | Sky
-  | Teal
+  | Rose
 
 (** A general-purpose scale for values like padding, margin, etc. *)
 type spacing = Px | Full | Val of float | Int of int
@@ -30,6 +80,8 @@ type size = Screen | Px | Full | Val of float | Int of int
 
 type shadow = None | Sm | Md | Lg | Xl | Xl_2 | Inner
 type rounded = None | Sm | Md | Lg | Xl | Xl_2 | Xl_3 | Full
+
+(** {1 Color & Background} *)
 
 val bg : ?shade:int -> color -> t
 (** [bg ?shade color] creates a background color with optional shade. *)
@@ -58,8 +110,6 @@ val border_transparent : t
 val border_current : t
 (** Current color border. *)
 
-(** {1 Common Color Shortcuts} *)
-
 val bg_white : t
 (** White background. *)
 
@@ -71,6 +121,9 @@ val text_white : t
 
 val text_black : t
 (** Black text color. *)
+
+val text_gray_300 : t
+(** Light gray text (gray-300). *)
 
 val text_gray_400 : t
 (** Light gray text (gray-400). *)
@@ -87,14 +140,23 @@ val text_gray_700 : t
 val text_gray_900 : t
 (** Very dark gray text (gray-900). *)
 
+val text_sky_100 : t
+(** Very light sky blue text (sky-100). *)
+
 val text_sky_700 : t
 (** Medium-dark sky blue text (sky-700). *)
 
 val text_sky_900 : t
 (** Very dark sky blue text (sky-900). *)
 
+val text_teal_600 : t
+(** Medium teal text color (teal-600). *)
+
 val bg_gray_50 : t
 (** Very light gray background (gray-50). *)
+
+val bg_gray_100 : t
+(** Light gray background (gray-100). *)
 
 val bg_sky_600 : t
 (** Medium sky blue background (sky-600). *)
@@ -102,14 +164,8 @@ val bg_sky_600 : t
 val bg_sky_700 : t
 (** Medium-dark sky blue background (sky-700). *)
 
-val hover_text_gray_900 : t
-(** Dark gray text on hover (gray-900). *)
-
-val hover_text_sky_600 : t
-(** Medium sky blue text on hover (sky-600). *)
-
-val hover_border_gray_300 : t
-(** Light gray border on hover (gray-300). *)
+val bg_sky_900 : t
+(** Very dark sky blue background (sky-900). *)
 
 val border_gray_200 : t
 (** Light gray border (gray-200). *)
@@ -117,10 +173,56 @@ val border_gray_200 : t
 val border_teal_600 : t
 (** Medium teal border (teal-600). *)
 
-val text_teal_600 : t
-(** Medium teal text color (teal-600). *)
+val hover_text_gray_900 : t
+(** Dark gray text on hover (gray-900). *)
 
-(** {1 Spacing} *)
+val hover_text_sky_600 : t
+(** Medium sky blue text on hover (sky-600). *)
+
+val hover_text_white : t
+(** White text on hover. *)
+
+val hover_border_gray_300 : t
+(** Light gray border on hover (gray-300). *)
+
+val hover_bg_sky_800 : t
+(** Dark sky blue background on hover (sky-800). *)
+
+val dark_bg_gray_600 : t
+(** Medium gray background in dark mode (gray-600). *)
+
+val bg_gradient_to_b : t
+(** Gradient direction to bottom. *)
+
+val bg_gradient_to_br : t
+(** Gradient direction to bottom right. *)
+
+val from_sky_50 : t
+(** Gradient from sky-50. *)
+
+val via_blue_50 : t
+(** Gradient via blue-50. *)
+
+val to_indigo_50 : t
+(** Gradient to indigo-50. *)
+
+val from_gray_50 : t
+(** Gradient from very light gray (gray-50). *)
+
+val to_white : t
+(** Gradient to white. *)
+
+val from_color : color -> t
+(** [from_color c] sets gradient from color. *)
+
+val to_color : color -> t
+(** [to_color c] sets gradient to color. *)
+
+(** {1 Spacing}
+    @see <https://tailwindcss.com/docs/padding> Padding
+    @see <https://tailwindcss.com/docs/margin> Margin
+    @see <https://tailwindcss.com/docs/space> Space Between
+    @see <https://tailwindcss.com/docs/gap> Gap *)
 
 val p : spacing -> t
 (** [p spacing] sets padding on all sides. *)
@@ -143,11 +245,17 @@ val pb : spacing -> t
 val pl : spacing -> t
 (** [pl spacing] sets left padding. *)
 
+val p_1 : t
+(** All-sides padding of 0.25rem (4px). *)
+
 val px_3 : t
 (** Horizontal padding of 0.75rem (12px). *)
 
 val px_4 : t
 (** Horizontal padding of 1rem (16px). *)
+
+val px_6 : t
+(** Horizontal padding of 1.5rem (24px). *)
 
 val px_8 : t
 (** Horizontal padding of 2rem (32px). *)
@@ -167,47 +275,17 @@ val py_24 : t
 val pt_56 : t
 (** Top padding of 14rem (224px). *)
 
-val pb_8 : t
-(** Bottom padding of 2rem (32px). *)
+val pb_2 : t
+(** Bottom padding of 0.5rem (8px). *)
 
 val pb_4 : t
 (** Bottom padding of 1rem (16px). *)
 
-val pb_2 : t
-(** Bottom padding of 0.5rem (8px). *)
+val pb_8 : t
+(** Bottom padding of 2rem (32px). *)
 
 val pb_12 : t
 (** Bottom padding of 3rem (48px). *)
-
-val p_1 : t
-(** All-sides padding of 0.25rem (4px). *)
-
-val m_1 : t
-(** All-sides margin of 0.25rem (4px). *)
-
-val mb_4 : t
-(** Bottom margin of 1rem (16px). *)
-
-val mb_12 : t
-(** Bottom margin of 3rem (48px). *)
-
-val ml_4 : t
-(** Left margin of 1rem (16px). *)
-
-val md_ml_6 : t
-(** Left margin of 1.5rem (24px) on medium screens and up. *)
-
-val min_h_screen : t
-(** Minimum height of 100vh. *)
-
-val px_6 : t
-(** Horizontal padding of 1.5rem (24px). *)
-
-val bg_gray_100 : t
-(** Light gray background (gray-100). *)
-
-val opacity_50 : t
-(** 50% opacity. *)
 
 val m : margin -> t
 (** [m margin] sets margin on all sides. *)
@@ -230,11 +308,29 @@ val mb : margin -> t
 val ml : margin -> t
 (** [ml margin] sets left margin. *)
 
+val m_1 : t
+(** All-sides margin of 0.25rem (4px). *)
+
 val mt_2 : t
 (** Top margin of 0.5rem (8px). *)
 
+val mb_4 : t
+(** Bottom margin of 1rem (16px). *)
+
+val mb_12 : t
+(** Bottom margin of 3rem (48px). *)
+
+val ml_4 : t
+(** Left margin of 1rem (16px). *)
+
+val ml_10 : t
+(** Left margin of 2.5rem (40px). *)
+
 val mx_auto : t
 (** Automatic horizontal margins (centers element). *)
+
+val md_ml_6 : t
+(** Left margin of 1.5rem (24px) on medium screens and up. *)
 
 val neg_mt : spacing -> t
 (** [neg_mt spacing] sets negative top margin. *)
@@ -272,7 +368,11 @@ val space_x : spacing -> t
 val space_y : spacing -> t
 (** [space_y spacing] sets vertical space between children. *)
 
-(** {1 Sizing} *)
+val space_x_4 : t
+(** Horizontal space of 1rem between children. *)
+
+(** {1 Sizing}
+    @see <https://tailwindcss.com/docs/width> Width and Height *)
 
 val w : size -> t
 (** [w size] sets width using the size scale. *)
@@ -306,6 +406,9 @@ val w_16 : t
 
 val w_full : t
 (** Full width (100%). *)
+
+val w_custom : string -> t
+(** [w_custom value] sets custom width value. *)
 
 val h : size -> t
 (** [h size] sets height using the size scale. *)
@@ -352,6 +455,9 @@ val min_w_max : t
 val min_w_fit : t
 (** Minimum width of fit-content. *)
 
+val min_w_full : t
+(** Minimum width of 100%. *)
+
 val min_h : size -> t
 (** [min_h size] sets minimum height using the size scale. *)
 
@@ -364,11 +470,17 @@ val min_h_max : t
 val min_h_fit : t
 (** Minimum height of fit-content. *)
 
+val min_h_screen : t
+(** Minimum height of 100vh. *)
+
 val max_w : spacing -> t
 (** [max_w spacing] sets maximum width using the spacing scale. *)
 
 val max_w_none : t
 (** No maximum width. *)
+
+val max_w_full : t
+(** Maximum width of 100%. *)
 
 val max_w_xs : t
 (** Maximum width of 20rem (320px). *)
@@ -409,7 +521,217 @@ val max_h : size -> t
 val max_h_none : t
 (** No maximum height. *)
 
-(** {1 Typography} *)
+(** {1 Layout}
+    @see <https://tailwindcss.com/docs/display> Display
+    @see <https://tailwindcss.com/docs/flex> Flexbox
+    @see <https://tailwindcss.com/docs/position> Position *)
+
+val block : t
+(** Display block. *)
+
+val inline : t
+(** Display inline. *)
+
+val inline_block : t
+(** Display inline-block. *)
+
+val flex : t
+(** Display flex. *)
+
+val inline_flex : t
+(** Display inline-flex. *)
+
+val grid : t
+(** Display grid. *)
+
+val inline_grid : t
+(** Display inline-grid. *)
+
+val hidden : t
+(** Hide element (display: none). *)
+
+val flex_col : t
+(** Flex direction column. *)
+
+val flex_row : t
+(** Flex direction row. *)
+
+val flex_row_reverse : t
+(** Flex direction row-reverse. *)
+
+val flex_col_reverse : t
+(** Flex direction column-reverse. *)
+
+val flex_wrap : t
+(** Flex wrap. *)
+
+val flex_wrap_reverse : t
+(** Flex wrap reverse. *)
+
+val flex_nowrap : t
+(** Prevent flex items from wrapping. *)
+
+val flex_1 : t
+(** Flex: 1 1 0% (grow and shrink). *)
+
+val flex_auto : t
+(** Flex: 1 1 auto (grow and shrink from auto basis). *)
+
+val flex_initial : t
+(** Flex: 0 1 auto (shrink but not grow). *)
+
+val flex_none : t
+(** Flex: none (no grow or shrink). *)
+
+val flex_grow : t
+(** Allow flex item to grow. *)
+
+val flex_grow_0 : t
+(** Prevent flex item from growing. *)
+
+val flex_shrink : t
+(** Allow flex item to shrink. *)
+
+val flex_shrink_0 : t
+(** Prevent flex item from shrinking. *)
+
+val items_start : t
+(** Align items to start. *)
+
+val items_end : t
+(** Align items to end. *)
+
+val items_center : t
+(** Align items center. *)
+
+val items_baseline : t
+(** Align items to baseline. *)
+
+val items_stretch : t
+(** Stretch items to fill container. *)
+
+val justify_start : t
+(** Justify content to start. *)
+
+val justify_end : t
+(** Justify content to end. *)
+
+val justify_center : t
+(** Justify content center. *)
+
+val justify_between : t
+(** Justify content space-between. *)
+
+val justify_around : t
+(** Justify content with space around. *)
+
+val justify_evenly : t
+(** Justify content with equal space. *)
+
+val grid_cols : int -> t
+(** [grid_cols n] sets number of grid columns. *)
+
+val grid_rows : int -> t
+(** [grid_rows n] sets number of grid rows. *)
+
+val grid_cols_1 : t
+(** 1 grid column. *)
+
+val grid_cols_2 : t
+(** 2 grid columns. *)
+
+val grid_cols_3 : t
+(** 3 grid columns. *)
+
+val grid_cols_4 : t
+(** 4 grid columns. *)
+
+val grid_cols_5 : t
+(** 5 grid columns. *)
+
+val grid_cols_6 : t
+(** 6 grid columns. *)
+
+val grid_cols_7 : t
+(** 7 grid columns. *)
+
+val grid_cols_8 : t
+(** 8 grid columns. *)
+
+val grid_cols_9 : t
+(** 9 grid columns. *)
+
+val grid_cols_10 : t
+(** 10 grid columns. *)
+
+val grid_cols_11 : t
+(** 11 grid columns. *)
+
+val grid_cols_12 : t
+(** 12 grid columns. *)
+
+val grid_rows_1 : t
+(** 1 grid row. *)
+
+val grid_rows_2 : t
+(** 2 grid rows. *)
+
+val grid_rows_3 : t
+(** 3 grid rows. *)
+
+val grid_rows_4 : t
+(** 4 grid rows. *)
+
+val grid_rows_5 : t
+(** 5 grid rows. *)
+
+val grid_rows_6 : t
+(** 6 grid rows. *)
+
+val static : t
+(** Static positioning. *)
+
+val relative : t
+(** Position relative. *)
+
+val absolute : t
+(** Position absolute. *)
+
+val fixed : t
+(** Position fixed. *)
+
+val sticky : t
+(** Position sticky. *)
+
+val inset_0 : t
+(** Set all inset values to 0. *)
+
+val inset_x_0 : t
+(** Set left and right to 0. *)
+
+val inset_y_0 : t
+(** Set top and bottom to 0. *)
+
+val top : int -> t
+(** [top n] sets top position value. *)
+
+val right : int -> t
+(** [right n] sets right position value. *)
+
+val bottom : int -> t
+(** [bottom n] sets bottom position value. *)
+
+val left : int -> t
+(** [left n] sets left position value. *)
+
+val z : int -> t
+(** [z n] sets z-index value. *)
+
+val z_10 : t
+(** Z-index of 10. *)
+
+(** {1 Typography}
+    @see <https://tailwindcss.com/docs/font-size> Typography *)
 
 val text_xs : t
 (** Extra small text size (0.75rem). *)
@@ -507,6 +829,9 @@ val leading_relaxed : t
 val leading_loose : t
 (** Line height of 2. *)
 
+val leading_6 : t
+(** Line height of 1.5rem. *)
+
 val tracking_tighter : t
 (** Letter spacing of -0.05em. *)
 
@@ -540,158 +865,23 @@ val whitespace_pre_line : t
 val whitespace_pre_wrap : t
 (** Preserve whitespace and wrap. *)
 
-(** {1 Display & Layout} *)
+val antialiased : t
+(** Antialiased font smoothing. *)
 
-val group : t
-(** [group] is a group utility for group-hover and similar modifiers. *)
+val sm_text_2xl : t
+(** 2x large text on small screens. *)
 
-val block : t
-(** Block display. *)
+val sm_text_4xl : t
+(** 4x large text on small screens. *)
 
-val inline_block : t
-(** Inline-block display. *)
+val sm_text_5xl : t
+(** 5x large text on small screens. *)
 
-val inline : t
-(** Inline display. *)
+val sm_flex_row : t
+(** Flex row on small screens. *)
 
-val flex : t
-(** Flex display. *)
-
-val inline_flex : t
-(** Inline-flex display. *)
-
-val grid : t
-(** Grid display. *)
-
-val inline_grid : t
-(** Inline-grid display. *)
-
-val hidden : t
-(** Hide element (display: none). *)
-
-val flex_row : t
-(** [flex_row] sets flexbox display with row direction. *)
-
-val flex_row_reverse : t
-(** Flex direction row-reverse. *)
-
-val flex_col : t
-(** Flex direction column. *)
-
-val flex_col_reverse : t
-(** Flex direction column-reverse. *)
-
-val flex_wrap : t
-(** Allow flex items to wrap. *)
-
-val flex_wrap_reverse : t
-(** Wrap flex items in reverse. *)
-
-val flex_nowrap : t
-(** Prevent flex items from wrapping. *)
-
-val flex_1 : t
-(** Flex: 1 1 0% (grow and shrink). *)
-
-val flex_auto : t
-(** Flex: 1 1 auto (grow and shrink from auto basis). *)
-
-val flex_initial : t
-(** Flex: 0 1 auto (shrink but not grow). *)
-
-val flex_none : t
-(** Flex: none (no grow or shrink). *)
-
-val flex_grow : t
-(** Allow flex item to grow. *)
-
-val flex_grow_0 : t
-(** Prevent flex item from growing. *)
-
-val flex_shrink : t
-(** Allow flex item to shrink. *)
-
-val flex_shrink_0 : t
-(** Prevent flex item from shrinking. *)
-
-val items_start : t
-(** Align items to start. *)
-
-val items_end : t
-(** Align items to end. *)
-
-val items_center : t
-(** Align items to center. *)
-
-val items_baseline : t
-(** Align items to baseline. *)
-
-val items_stretch : t
-(** Stretch items to fill container. *)
-
-val justify_start : t
-(** Justify content to start. *)
-
-val justify_end : t
-(** Justify content to end. *)
-
-val justify_center : t
-(** Justify content to center. *)
-
-val justify_between : t
-(** Justify content with space between. *)
-
-val justify_around : t
-(** Justify content with space around. *)
-
-val justify_evenly : t
-(** Justify content with equal space. *)
-
-val grid_cols : int -> t
-(** [grid_cols n] sets number of grid columns. *)
-
-val grid_rows : int -> t
-(** [grid_rows n] sets number of grid rows. *)
-
-(** {1 Position} *)
-
-val static : t
-(** Static positioning. *)
-
-val fixed : t
-(** Fixed positioning. *)
-
-val absolute : t
-(** Absolute positioning. *)
-
-val relative : t
-(** Relative positioning. *)
-
-val sticky : t
-(** Sticky positioning. *)
-
-val inset_0 : t
-(** Set all inset values to 0. *)
-
-val inset_y_0 : t
-(** Set top and bottom to 0. *)
-
-val top : int -> t
-(** [top n] sets top position value. *)
-
-val right : int -> t
-(** [right n] sets right position value. *)
-
-val bottom : int -> t
-(** [bottom n] sets bottom position value. *)
-
-val left : int -> t
-(** [left n] sets left position value. *)
-
-val z : int -> t
-(** [z n] sets z-index value. *)
-
-(** {1 Borders} *)
+(** {1 Borders}
+    @see <https://tailwindcss.com/docs/border-width> Borders *)
 
 val border : t
 (** Default border. *)
@@ -744,7 +934,34 @@ val rounded_3xl : t
 val rounded_full : t
 (** Full border radius (9999px). *)
 
-(** {1 Effects} *)
+val border_collapse : t
+(** Collapse table borders. *)
+
+val border_separate : t
+(** Separate table borders. *)
+
+val border_spacing : int -> t
+(** [border_spacing n] sets border spacing using spacing scale. *)
+
+val border_spacing_0 : t
+(** No border spacing. *)
+
+val border_spacing_1 : t
+(** Border spacing of 0.25rem. *)
+
+val border_spacing_2 : t
+(** Border spacing of 0.5rem. *)
+
+val border_spacing_4 : t
+(** Border spacing of 1rem. *)
+
+val border_spacing_8 : t
+(** Border spacing of 2rem. *)
+
+(** {1 Effects & Filters}
+    @see <https://tailwindcss.com/docs/box-shadow> Effects
+    @see <https://tailwindcss.com/docs/blur> Filters
+    @see <https://tailwindcss.com/docs/backdrop-blur> Backdrop Filters *)
 
 val shadow : shadow -> t
 (** [shadow s] sets box shadow using the shadow scale. *)
@@ -776,7 +993,254 @@ val opacity : int -> t
 val opacity_10 : t
 (** 10% opacity. *)
 
-(** {1 Transitions} *)
+val opacity_25 : t
+(** 25% opacity. *)
+
+val opacity_30 : t
+(** 30% opacity. *)
+
+val opacity_50 : t
+(** 50% opacity. *)
+
+val hover_opacity_70 : t
+(** 70% opacity on hover. *)
+
+val outline_none : t
+(** Remove outline. *)
+
+val ring : t
+(** Default focus ring. *)
+
+val ring_0 : t
+(** No focus ring. *)
+
+val ring_1 : t
+(** 1px focus ring. *)
+
+val ring_2 : t
+(** 2px focus ring. *)
+
+val ring_4 : t
+(** 4px focus ring. *)
+
+val ring_8 : t
+(** 8px focus ring. *)
+
+val ring_offset_2 : t
+(** 2px ring offset. *)
+
+val ring_white : t
+(** White focus ring. *)
+
+val isolate : t
+(** Isolate element for stacking context. *)
+
+val blur_none : t
+(** No blur effect. *)
+
+val blur_sm : t
+(** Small blur (4px). *)
+
+val blur : t
+(** Default blur (8px). *)
+
+val blur_md : t
+(** Medium blur (12px). *)
+
+val blur_lg : t
+(** Large blur (16px). *)
+
+val blur_xl : t
+(** Extra large blur (24px). *)
+
+val blur_2xl : t
+(** 2x large blur (40px). *)
+
+val blur_3xl : t
+(** 3x large blur (64px). *)
+
+val brightness : int -> t
+(** [brightness n] sets brightness filter (0-200, where 100 is normal). *)
+
+val brightness_0 : t
+(** 0% brightness (black). *)
+
+val brightness_50 : t
+(** 50% brightness. *)
+
+val brightness_75 : t
+(** 75% brightness. *)
+
+val brightness_90 : t
+(** 90% brightness. *)
+
+val brightness_95 : t
+(** 95% brightness. *)
+
+val brightness_100 : t
+(** 100% brightness (normal). *)
+
+val brightness_105 : t
+(** 105% brightness. *)
+
+val brightness_110 : t
+(** 110% brightness. *)
+
+val brightness_125 : t
+(** 125% brightness. *)
+
+val brightness_150 : t
+(** 150% brightness. *)
+
+val brightness_200 : t
+(** 200% brightness. *)
+
+val contrast : int -> t
+(** [contrast n] sets contrast filter (0-200, where 100 is normal). *)
+
+val contrast_0 : t
+(** 0% contrast. *)
+
+val contrast_50 : t
+(** 50% contrast. *)
+
+val contrast_75 : t
+(** 75% contrast. *)
+
+val contrast_100 : t
+(** 100% contrast (normal). *)
+
+val contrast_125 : t
+(** 125% contrast. *)
+
+val contrast_150 : t
+(** 150% contrast. *)
+
+val contrast_200 : t
+(** 200% contrast. *)
+
+val grayscale_0 : t
+(** No grayscale (full color). *)
+
+val grayscale : t
+(** Full grayscale. *)
+
+val backdrop_blur_none : t
+(** No backdrop blur. *)
+
+val backdrop_blur_sm : t
+(** Small backdrop blur (4px). *)
+
+val backdrop_blur : t
+(** Default backdrop blur (8px). *)
+
+val backdrop_blur_md : t
+(** Medium backdrop blur (12px). *)
+
+val backdrop_blur_lg : t
+(** Large backdrop blur (16px). *)
+
+val backdrop_blur_xl : t
+(** Extra large backdrop blur (24px). *)
+
+val backdrop_blur_2xl : t
+(** 2x large backdrop blur (40px). *)
+
+val backdrop_blur_3xl : t
+(** 3x large backdrop blur (64px). *)
+
+val backdrop_brightness : int -> t
+(** [backdrop_brightness n] sets backdrop brightness filter (0-200, where 100 is
+    normal). *)
+
+val backdrop_brightness_0 : t
+(** 0% backdrop brightness (black). *)
+
+val backdrop_brightness_50 : t
+(** 50% backdrop brightness. *)
+
+val backdrop_brightness_75 : t
+(** 75% backdrop brightness. *)
+
+val backdrop_brightness_90 : t
+(** 90% backdrop brightness. *)
+
+val backdrop_brightness_95 : t
+(** 95% backdrop brightness. *)
+
+val backdrop_brightness_100 : t
+(** 100% backdrop brightness (normal). *)
+
+val backdrop_brightness_105 : t
+(** 105% backdrop brightness. *)
+
+val backdrop_brightness_110 : t
+(** 110% backdrop brightness. *)
+
+val backdrop_brightness_125 : t
+(** 125% backdrop brightness. *)
+
+val backdrop_brightness_150 : t
+(** 150% backdrop brightness. *)
+
+val backdrop_brightness_200 : t
+(** 200% backdrop brightness. *)
+
+val backdrop_contrast : int -> t
+(** [backdrop_contrast n] sets backdrop contrast filter (0-200, where 100 is
+    normal). *)
+
+val backdrop_contrast_0 : t
+(** 0% backdrop contrast. *)
+
+val backdrop_contrast_50 : t
+(** 50% backdrop contrast. *)
+
+val backdrop_contrast_75 : t
+(** 75% backdrop contrast. *)
+
+val backdrop_contrast_100 : t
+(** 100% backdrop contrast (normal). *)
+
+val backdrop_contrast_125 : t
+(** 125% backdrop contrast. *)
+
+val backdrop_contrast_150 : t
+(** 150% backdrop contrast. *)
+
+val backdrop_contrast_200 : t
+(** 200% backdrop contrast. *)
+
+val backdrop_grayscale_0 : t
+(** No backdrop grayscale (full color). *)
+
+val backdrop_grayscale : t
+(** Full backdrop grayscale. *)
+
+val backdrop_opacity : int -> t
+(** [backdrop_opacity n] sets backdrop opacity filter (0-100). *)
+
+val backdrop_saturate : int -> t
+(** [backdrop_saturate n] sets backdrop saturation filter (0-200, where 100 is
+    normal). *)
+
+val backdrop_saturate_0 : t
+(** 0% backdrop saturation. *)
+
+val backdrop_saturate_50 : t
+(** 50% backdrop saturation. *)
+
+val backdrop_saturate_100 : t
+(** 100% backdrop saturation (normal). *)
+
+val backdrop_saturate_150 : t
+(** 150% backdrop saturation. *)
+
+val backdrop_saturate_200 : t
+(** 200% backdrop saturation. *)
+
+(** {1 Transitions & Animations}
+    @see <https://tailwindcss.com/docs/animation> Animations *)
 
 val transition_none : t
 (** No transition. *)
@@ -796,11 +1260,12 @@ val transition_shadow : t
 val transition_transform : t
 (** Transition transform. *)
 
-(** {1 Transform} *)
-
 val scale : int -> t
 (** [scale n] sets scale transformation (percentage, e.g., 105 for scale-105).
 *)
+
+val scale_150 : t
+(** Scale to 150%. *)
 
 val rotate : int -> t
 (** [rotate n] sets rotate transformation (degrees). *)
@@ -811,7 +1276,74 @@ val translate_x : int -> t
 val translate_y : int -> t
 (** [translate_y n] sets vertical translation. *)
 
-(** {1 Interactivity} *)
+val transform : t
+(** Enable transform utilities. *)
+
+val transform_none : t
+(** Disable transforms. *)
+
+val transform_gpu : t
+(** Use GPU acceleration for transforms. *)
+
+val sm_transform_none : t
+(** Remove transform on small screens. *)
+
+val animate_none : t
+(** No animation. *)
+
+val animate_spin : t
+(** Spin animation (1s linear infinite). *)
+
+val animate_ping : t
+(** Ping animation (1s cubic-bezier infinite). *)
+
+val animate_pulse : t
+(** Pulse animation (2s cubic-bezier infinite). *)
+
+val animate_bounce : t
+(** Bounce animation (1s infinite). *)
+
+(** {1 Tables}
+    @see <https://tailwindcss.com/docs/table-layout> Tables *)
+
+val table_auto : t
+(** Automatic table layout. *)
+
+val table_fixed : t
+(** Fixed table layout. *)
+
+(** {1 Forms}
+    @see <https://github.com/tailwindlabs/tailwindcss-forms> Forms Plugin *)
+
+val form_input : t
+(** Base styles for input elements. *)
+
+val form_textarea : t
+(** Base styles for textarea elements. *)
+
+val form_select : t
+(** Base styles for select elements. *)
+
+val form_checkbox : t
+(** Base styles for checkbox inputs. *)
+
+val form_radio : t
+(** Base styles for radio inputs. *)
+
+val focus_ring : t
+(** Focus ring utility (3px). *)
+
+val focus_ring_2 : t
+(** Focus ring utility (2px). *)
+
+val focus_ring_blue_500 : t
+(** Blue focus ring color. *)
+
+val focus_border_blue_500 : t
+(** Blue focus border color. *)
+
+(** {1 Interactivity & Scroll}
+    @see <https://tailwindcss.com/docs/scroll-snap-type> Scroll Snap *)
 
 val cursor_auto : t
 (** Automatic cursor. *)
@@ -840,40 +1372,14 @@ val select_text : t
 val select_all : t
 (** Select all text on focus. *)
 
+val select_auto : t
+(** Automatic text selection. *)
+
 val pointer_events_none : t
 (** Disable pointer events. *)
 
 val pointer_events_auto : t
 (** Enable pointer events. *)
-
-(** {1 Other} *)
-
-val outline_none : t
-(** Remove outline. *)
-
-val ring : t
-(** Default focus ring. *)
-
-val ring_0 : t
-(** No focus ring. *)
-
-val ring_1 : t
-(** 1px focus ring. *)
-
-val ring_2 : t
-(** 2px focus ring. *)
-
-val ring_4 : t
-(** 4px focus ring. *)
-
-val ring_8 : t
-(** 8px focus ring. *)
-
-val ring_offset_2 : t
-(** 2px ring offset. *)
-
-val isolate : t
-(** Isolate element for stacking context. *)
 
 val overflow_auto : t
 (** Automatic overflow handling. *)
@@ -886,6 +1392,72 @@ val overflow_visible : t
 
 val overflow_scroll : t
 (** Always show scrollbars. *)
+
+val overflow_x_auto : t
+(** Auto horizontal overflow. *)
+
+val overflow_x_hidden : t
+(** Hide horizontal overflow. *)
+
+val overflow_x_visible : t
+(** Show horizontal overflow. *)
+
+val overflow_x_scroll : t
+(** Always show horizontal scrollbar. *)
+
+val overflow_y_auto : t
+(** Auto vertical overflow. *)
+
+val overflow_y_hidden : t
+(** Hide vertical overflow. *)
+
+val overflow_y_visible : t
+(** Show vertical overflow. *)
+
+val overflow_y_scroll : t
+(** Always show vertical scrollbar. *)
+
+val snap_none : t
+(** No scroll snapping. *)
+
+val snap_x : t
+(** Horizontal scroll snapping. *)
+
+val snap_y : t
+(** Vertical scroll snapping. *)
+
+val snap_both : t
+(** Both horizontal and vertical scroll snapping. *)
+
+val snap_mandatory : t
+(** Mandatory scroll snapping. *)
+
+val snap_proximity : t
+(** Proximity-based scroll snapping. *)
+
+val snap_start : t
+(** Snap to start of container. *)
+
+val snap_end : t
+(** Snap to end of container. *)
+
+val snap_center : t
+(** Snap to center of container. *)
+
+val snap_align_none : t
+(** No snap alignment. *)
+
+val snap_normal : t
+(** Normal snap stop behavior. *)
+
+val snap_always : t
+(** Always stop at snap positions. *)
+
+val scroll_auto : t
+(** Auto scroll behavior. *)
+
+val scroll_smooth : t
+(** Smooth scroll behavior. *)
 
 val object_contain : t
 (** Scale content to fit container. *)
@@ -929,88 +1501,7 @@ val line_clamp_6 : t
 val line_clamp_none : t
 (** Remove line clamping. *)
 
-(** {1 State Modifiers} *)
-
-val sm_text_2xl : t
-(** 2x large text on small screens. *)
-
-val sm_text_4xl : t
-(** 4x large text on small screens. *)
-
-val sm_text_5xl : t
-(** 5x large text on small screens. *)
-
-val sm_flex_row : t
-(** Flex row on small screens. *)
-
-val sm_transform_none : t
-(** Remove transform on small screens. *)
-
-val text_sky_100 : t
-(** Very light sky blue text (sky-100). *)
-
-val scale_150 : t
-(** Scale to 150%. *)
-
-val hover_bg_sky_800 : t
-(** Dark sky blue background on hover (sky-800). *)
-
-val hover_text_white : t
-(** White text on hover. *)
-
-val dark_bg_gray_600 : t
-(** Medium gray background in dark mode (gray-600). *)
-
-val bg_gradient_to_b : t
-(** Gradient direction to bottom. *)
-
-val bg_gradient_to_br : t
-(** Gradient direction to bottom right. *)
-
-val from_sky_50 : t
-(** Gradient from sky-50. *)
-
-val via_blue_50 : t
-(** Gradient via blue-50. *)
-
-val to_indigo_50 : t
-(** Gradient to indigo-50. *)
-
-val text_gray_300 : t
-(** Light gray text (gray-300). *)
-
-val leading_6 : t
-(** Line height of 1.5rem. *)
-
-val bg_sky_900 : t
-(** Very dark sky blue background (sky-900). *)
-
-val hover_opacity_70 : t
-(** 70% opacity on hover. *)
-
-val from_gray_50 : t
-(** Gradient from very light gray (gray-50). *)
-
-val ring_white : t
-(** White focus ring. *)
-
-val to_white : t
-(** Gradient to white. *)
-
-val md_block : t
-(** Block display on medium screens. *)
-
-val z_10 : t
-(** Z-index of 10. *)
-
-val ml_10 : t
-(** Left margin of 2.5rem (40px). *)
-
-val space_x_4 : t
-(** Horizontal space of 1rem between children. *)
-
-val antialiased : t
-(** Antialiased font smoothing. *)
+(** {1 State & Responsive Modifiers} *)
 
 val hover : t -> t
 (** [hover style] applies style on hover. *)
@@ -1030,10 +1521,11 @@ val disabled : t -> t
 val group_hover : t -> t
 (** [group_hover style] applies style when parent group is hovered. *)
 
+val group_focus : t -> t
+(** [group_focus style] applies style when parent group is focused. *)
+
 val dark : t -> t
 (** [dark style] applies style in dark mode. *)
-
-(** {1 Responsive Modifiers} *)
 
 val sm : t -> t
 (** [sm style] applies style on small screens and up (640px+). *)
@@ -1050,65 +1542,56 @@ val xl : t -> t
 val xl2 : t -> t
 (** [xl2 style] applies style on 2x large screens and up (1536px+). *)
 
-(** {1 Composition} *)
+val md_block : t
+(** Block display on medium screens. *)
 
-val ( @> ) : t -> t -> t
-(** [style1 @> style2] composes two styles, with the right-hand side taking
-    precedence. *)
+val peer : t
+(** Marker class for peer relationships. *)
 
-(** {1 Prose Typography} *)
+val group : t
+(** Marker class for group relationships. *)
 
-module Prose : sig
-  val prose : t
-  val prose_sm : t
-  val prose_base : t
-  val prose_lg : t
-  val prose_xl : t
-  val prose_2xl : t
-  val prose_gray : t
-  val prose_slate : t
-  val prose_zinc : t
-  val prose_neutral : t
-  val prose_headings_text_sky_900 : t
-  val prose_stone : t
+val peer_hover : t -> t
+(** [peer_hover style] applies style when a sibling peer element is hovered. *)
 
-  (** Basic prose styles for article content *)
-end
+val peer_focus : t -> t
+(** [peer_focus style] applies style when a sibling peer element is focused. *)
 
-(** {1 Additional Complex Styles} *)
+val peer_checked : t -> t
+(** [peer_checked style] applies style when a sibling peer checkbox/radio is
+    checked. *)
 
-val aspect_ratio : float -> float -> t
-(** [aspect_ratio width height] sets custom aspect ratio (e.g., aspect_ratio
-    1318. 752.). *)
+val aria_checked : t -> t
+(** [aria_checked style] applies style when aria-checked="true". *)
 
-val clip_path : string -> t
-(** [clip_path value] sets custom clip-path for complex shapes. *)
+val aria_expanded : t -> t
+(** [aria_expanded style] applies style when aria-expanded="true". *)
 
-val inset_x_0 : t
-(** Set left and right to 0. *)
+val aria_selected : t -> t
+(** [aria_selected style] applies style when aria-selected="true". *)
 
-val w_custom : string -> t
-(** [w_custom value] sets custom width value. *)
+val aria_disabled : t -> t
+(** [aria_disabled style] applies style when aria-disabled="true". *)
 
-val transform_gpu : t
-(** Use GPU acceleration for transforms. *)
+(** {1 Prose Typography}
+    @see <https://tailwindcss.com/docs/typography-plugin> Typography Plugin *)
 
-val blur_3xl : t
-(** 3x large blur effect. *)
+val prose : t
+(** Default prose styling. *)
 
-val from_color : color -> t
-(** [from_color c] sets gradient from color. *)
+val prose_sm : t
+(** Small prose styling. *)
 
-val to_color : color -> t
-(** [to_color c] sets gradient to color. *)
+val prose_lg : t
+(** Large prose styling. *)
 
-val opacity_25 : t
-(** 25% opacity. *)
+val prose_xl : t
+(** Extra large prose styling. *)
 
-val opacity_30 : t
-(** 30% opacity. *)
+val prose_gray : t
+(** Gray prose styling. *)
 
-(** {1 Class Name Generation} *)
+(** {1 Class Generation & Internals} *)
 
 val to_class : t -> string
 (** [to_class style] generates a class name from a style. *)
@@ -1122,8 +1605,6 @@ val to_string : t -> string
 
 val classes_to_string : t list -> string
 (** [classes_to_string styles] is an alias for to_classes. *)
-
-(** {1 CSS Generation} *)
 
 val to_css_properties : t -> Css.property list
 (** [to_css_properties style] converts a Tw style to CSS property-value pairs.
@@ -1140,8 +1621,6 @@ val to_stylesheet : (string * t list) list -> Css.stylesheet
 val of_tw : t list -> Css.stylesheet
 (** [of_tw styles] generates CSS stylesheet for a list of Tw classes. *)
 
-(** {1 Internal Utilities} *)
-
 val color_to_string : color -> string
 (** [color_to_string c] converts a color to its string representation. *)
 
@@ -1150,3 +1629,10 @@ val spacing_to_class_suffix : int -> string
 
 val pp : t Core.Pp.t
 (** [pp t] pretty-prints Tailwind class [t]. *)
+
+val aspect_ratio : float -> float -> t
+(** [aspect_ratio width height] sets custom aspect ratio (e.g., aspect_ratio
+    1318. 752.). *)
+
+val clip_path : string -> t
+(** [clip_path value] sets custom clip-path for complex shapes. *)

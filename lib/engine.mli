@@ -23,6 +23,7 @@ val main_css : data_dir:string -> string
 (** [main_css ~data_dir] gets the path to the main CSS file with cache-busting
     hash. *)
 
-val generate : data_dir:string -> output_dir:string -> data:Core.t -> unit
-(** [generate ~data_dir ~output_dir ~data] generates the complete static site.
-*)
+val generate :
+  data_dir:string -> output_dir:string -> minify:bool -> data:Core.t -> unit
+(** [generate ~data_dir ~output_dir ~minify ~data] generates the complete static
+    site. *)

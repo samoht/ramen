@@ -1,5 +1,35 @@
 # TODO
 
+## Tailwind CSS Implementation
+
+### Completed
+- [x] Add missing extended color palette (slate, zinc, orange, amber, lime, emerald, cyan, violet, fuchsia, rose)
+- [x] Fix failing tests (CSS property ordering, URLs, missing functions)
+- [x] Add comprehensive Tailwind tests for all features
+- [x] Optimize Tailwind tests by batching CSS generation
+- [x] Fix CSS generation to match Tailwind 1:1
+- [x] Add more comprehensive Tw classes to test coverage
+- [x] Ensure dune build and dune test work correctly
+- [x] Implement filters (blur, brightness, contrast, grayscale)
+- [x] Add core animations (spin, pulse, bounce, ping)
+- [x] Add table utilities (table layout, display, border spacing)
+- [x] Add overflow variants and grid utilities
+- [x] Fix duplicate definitions and inconsistent naming patterns
+- [x] Add proper documentation links to tw.mli sections
+- [x] Add form styling utilities (equivalent to @tailwindcss/forms plugin)
+- [x] Add peer and ARIA state variants support
+- [x] Remove broken (@>) operator
+- [x] Replace frequently used Css.Custom properties with proper variants
+- [x] Fix duplicate Flex_shrink in CSS type definition
+- [x] Replace Custom "color" with proper Color property
+- [x] Add backdrop-filter utilities (backdrop-blur, backdrop-brightness, etc.)
+- [x] Add scroll-snap utilities (snap-x, snap-y, snap-center, scroll-smooth, etc.)
+- [x] Update module header with better documentation and usage example
+
+### Pending
+- [ ] Reorganize tw.mli sections for more intuitive ordering (Core Types → Color & Background → Spacing → Sizing → Layout → Typography → Borders → Effects & Filters → Transitions & Animations → Tables → Forms → State & Responsive Modifiers → Class Generation & Internals)
+- [ ] Add support for data-* attribute variants (e.g., data-[state=open]:)
+
 ## High Priority
 
 - [ ] Add pagination to blog index

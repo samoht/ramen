@@ -1,4 +1,4 @@
 (library
  (name ui)
  (public_name ramen.ui)
- (libraries ramen.core astring htmlit re bos))
+ (libraries ramen.core astring htmlit re))

@@ -4,6 +4,7 @@ title: Content Validation
 date: 2025-07-30
 tags: ramen, ocaml, validation
 synopsis: An explanation of how Ramen uses its build process to validate content structure.
+description: Learn how Ramen validates your site's content structure during the build process using OCaml's type system.
 image: type-safety.jpg
 image-alt: OCaml code showing type definitions
 ---
