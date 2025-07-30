@@ -90,24 +90,22 @@ dune install    # installs the `ramen` binary into your current opam switch
 
 ### Features
 
-- **Data-driven core:** A powerful `Ramen.Core` library for loading and
+- **Data-driven core:** A powerful core library for loading and
   validating structured content from files.
-- **Functor-based theming:** An `Engine.Make(T: Theme.S)` functor that
-  allows you to provide your own OCaml modules to render HTML, giving you
-  full, type-safe control over the output.
+- **Type-safe HTML generation:** Uses OCaml's type system to generate HTML
+  with compile-time validation, preventing common web development errors.
 - **Seamless integration:** Designed to be used within other OCaml applications.
 
 ### How It Works
 
 Ramen's architecture is data-driven:
 
-1.  **Load:** `Ramen.Core.Loader` reads Markdown and YAML files from your
+1.  **Load:** The `Data` module reads Markdown and YAML files from your
     `data/` directory.
-2.  **Validate:** `Ramen.Core.Validation` checks the loaded data against
-    your defined OCaml types. Errors are reported with clear, file-specific
-    messages.
-3.  **Build:** `Ramen.Builder` orchestrates the process and generates the
-    final static assets.
+2.  **Validate:** Built-in validation checks the loaded data for consistency
+    and completeness. Errors are reported with clear, file-specific messages.
+3.  **Generate:** The `Engine` module orchestrates the process and generates
+    the final static assets.
 
 This in-memory model provides the type-safety of the original design
 without the complex code-generation build step.
@@ -119,7 +117,8 @@ without the complex code-generation build step.
 
 let () =
   (* 1. Use Ramen to build the static part of your site on startup *)
-  let _ = Ramen.Builder.build ~data_dir:"docs" ~output_dir:"_site/docs" () in
+  let _ = Ramen.Build.run ~data_dir:"docs" ~output_dir:"_site/docs" 
+                         ~theme:"default" in
 
   (* 2. Serve the generated files alongside your dynamic routes *)
   Dream.run @@ Dream.router [

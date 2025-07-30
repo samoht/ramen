@@ -36,17 +36,33 @@ dune test
 
 # Format all OCaml code before committing (ALWAYS run this)
 dune fmt
+
+# Check code style and quality
+merlint lib/ bin/ test/
+
+# Remove unused code (use with caution - always commit first!)
+prune clean .
 ```
 
 ## Architecture
 
-The project uses a modern, in-memory data loading architecture. The old code-generation system is gone.
+The project uses a modern, in-memory data loading architecture. For detailed information, see `ARCHITECTURE.md` in the root directory.
 
-1.  **Loading (`lib/core/loader.ml`):** Reads content from the `data/` directory (Markdown, YAML) into OCaml records.
-2.  **Validation (`lib/core/validation.ml`):** Performs runtime checks on the loaded data to ensure its integrity (e.g., all posts have an author).
-3.  **Building (`lib/builder/builder.ml`):** Orchestrates the loading and validation, then uses the page generators to create the site.
-4.  **Page Generation (`lib/pages/`):** Contains the logic for rendering different types of pages (e.g., `blog.ml`, `index.ml`).
-5.  **Components (`lib/component/`):** Contains reusable, hardcoded HTML components (e.g., `header.ml`, `footer.ml`).
+Key modules:
+1.  **Data Loading (`lib/data.ml`):** Reads content from the `data/` directory (Markdown, YAML) into OCaml records.
+2.  **Validation (`lib/validation.ml`):** Performs runtime checks on the loaded data to ensure its integrity.
+3.  **Building (`lib/build.ml`):** Orchestrates the loading and validation, then delegates to the engine.
+4.  **Engine (`lib/engine.ml`):** Generates the final static site files.
+5.  **Views (`lib/views/`):** Contains the logic for rendering different types of pages.
+6.  **UI Components (`lib/ui/`):** Contains reusable HTML components with type-safe styling.
+
+## Code Style
+
+This project follows OCaml best practices and uses automated tools for consistency:
+
+- **Formatting**: Use `dune fmt` to format all code before committing
+- **Linting**: Use `merlint` to check code quality and style issues
+- **No manual style guide**: Code style is enforced by merlint rather than written guidelines
 
 ## Theming System (Future Work)
 
