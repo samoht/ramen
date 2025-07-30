@@ -1,0 +1,55 @@
+name: home
+hero:
+  title: Build Type-Safe Static Sites with OCaml
+  description: Ramen is a modern static site generator that leverages OCaml's type system to catch content errors at compile time. No more runtime surprises.
+  ctas:
+    - label: Get Started
+      url: /blog/2025-07-30-getting-started
+    - label: View on GitHub
+      url: https://github.com/samoht/ramen
+
+sections:
+  - title: Why Ramen?
+    description_html: |
+      <p>Ramen brings the power of OCaml's type system to static site generation. Write your content, and let the compiler ensure everything is correct before your site is built.</p>
+    layout: grid
+    items:
+      - title: Type-Safe Content
+        content_html: |
+          <p>Your blog posts, pages, and metadata are validated at compile time. Typos in frontmatter fields or invalid dates are caught immediately.</p>
+      - title: Fast Builds
+        content_html: |
+          <p>Built with OCaml for performance. Ramen processes your content quickly, even for large sites with hundreds of pages.</p>
+      - title: Modern Features
+        content_html: |
+          <p>Automatic image optimization, RSS feeds, sitemaps, and responsive images come built-in. Focus on your content, not the plumbing.</p>
+
+  - title: How It Works
+    layout: rows
+    items:
+      - title: "1. Write Your Content"
+        content_html: |
+          <p>Create blog posts in Markdown with YAML frontmatter. Ramen handles the rest.</p>
+      - title: "2. Type-Safe Processing"
+        content_html: |
+          <p>Your content is converted to strongly-typed OCaml modules and validated at compile time.</p>
+      - title: "3. Generate Static HTML"
+        content_html: |
+          <p>Ramen outputs optimized static HTML, CSS, and JavaScript ready for deployment.</p>
+
+  - title: Recent Posts
+    description_html: |
+      <p>Learn how to use Ramen through our tutorial series:</p>
+    layout: rows
+    posts:
+      - 2025-07-30-content-validation
+      - 2025-07-30-getting-started
+      - 2025-07-30-welcome-to-ramen
+
+  - title: Get Started Today
+    layout: columns
+    ctas:
+      - label: Read the Documentation
+        url: /blog/2025-07-30-getting-started
+      - label: Browse Example Sites
+        url: https://github.com/samoht/ramen/tree/main/data

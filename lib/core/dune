@@ -1,0 +1,4 @@
+(library
+ (name core)
+ (public_name ramen.core)
+ (libraries astring ptime))

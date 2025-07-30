@@ -1,0 +1,5 @@
+# Ignore test files from needing .mli files
+test/**/*.ml
+
+# Ignore test files from needing their own test files  
+test/**/*.ml

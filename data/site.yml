@@ -1,0 +1,25 @@
+# Site configuration
+name: Ramen Blog
+title: Ramen - A Type-Safe Static Site Generator
+tagline: Build fast, type-safe static sites with OCaml
+description: Ramen is a modern static site generator written in OCaml that provides compile-time validation and excellent performance.
+author: Ramen Team
+author_email: hello@example.com
+url: https://ramen.example.com
+posts_per_page: 10
+
+# Footer configuration
+footer:
+  copyright: "© 2024 Ramen Project"
+  links:
+    - text: About
+      href: /about
+    - text: GitHub
+      href: https://github.com/samoht/ramen
+    - text: RSS
+      href: /feed.xml
+
+# Social media
+social:
+  github: ramen-ssg
+  twitter: ramen_ssg

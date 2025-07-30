@@ -1,0 +1,5 @@
+(executable
+ (public_name ramen)
+ (name main)
+ (libraries cmdliner bos fpath ramen ptime.clock.os)
+ (package ramen))

@@ -1,0 +1,4 @@
+(library
+ (name views)
+ (public_name ramen.views)
+ (libraries ramen.core ramen.ui fmt))

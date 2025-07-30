@@ -1,0 +1,26 @@
+(library
+ (name ramen)
+ (public_name ramen)
+ (libraries
+  astring
+  base64
+  bos
+  cmarkit
+  fmt
+  fpath
+  hilite
+  htmlit
+  lambdasoup
+  markup
+  views
+  ptime
+  re
+  ramen.core
+  ramen.ui
+  uri
+  uunf.string
+  uucp
+  yaml
+  yojson)
+ (preprocess
+  (staged_pps ppx_import ppx_deriving.show ppx_deriving_yaml)))
