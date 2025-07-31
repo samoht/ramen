@@ -22,15 +22,15 @@ let of_string ~path content =
 
       (* Extract metadata *)
       let title =
-        match Frontmatter.find_string "title" yaml with
+        match Frontmatter.string "title" yaml with
         | Some t -> t
         | None -> Filename.basename path |> Filename.remove_extension
       in
 
-      let description = Frontmatter.find_string "description" yaml in
-      let nav_order = Frontmatter.find_int "nav_order" yaml in
+      let description = Frontmatter.string "description" yaml in
+      let nav_order = Frontmatter.int "nav_order" yaml in
       let in_nav =
-        Option.value ~default:true (Frontmatter.find_bool "in_nav" yaml)
+        Option.value ~default:true (Frontmatter.bool "in_nav" yaml)
       in
 
       (* Render body HTML *)

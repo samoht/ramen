@@ -40,7 +40,7 @@ let parse content =
       find_end [] 1 rest
   | _ -> Ok None
 
-let find_string key yaml =
+let string key yaml =
   match yaml with
   | `O assoc -> (
       match List.assoc_opt key assoc with
@@ -48,7 +48,7 @@ let find_string key yaml =
       | _ -> None)
   | _ -> None
 
-let find_int key yaml =
+let int key yaml =
   match yaml with
   | `O assoc -> (
       match List.assoc_opt key assoc with
@@ -56,7 +56,7 @@ let find_int key yaml =
       | _ -> None)
   | _ -> None
 
-let find_float key yaml =
+let float key yaml =
   match yaml with
   | `O assoc -> (
       match List.assoc_opt key assoc with
@@ -64,13 +64,13 @@ let find_float key yaml =
       | _ -> None)
   | _ -> None
 
-let find_bool key yaml =
+let bool key yaml =
   match yaml with
   | `O assoc -> (
       match List.assoc_opt key assoc with Some (`Bool b) -> Some b | _ -> None)
   | _ -> None
 
-let find_list key yaml =
+let list key yaml =
   match yaml with
   | `O assoc -> (
       match List.assoc_opt key assoc with
@@ -78,8 +78,8 @@ let find_list key yaml =
       | _ -> None)
   | _ -> None
 
-let find_string_list key yaml =
-  match find_list key yaml with
+let string_list key yaml =
+  match list key yaml with
   | Some lst ->
       let strings =
         List.filter_map (function `String s -> Some s | _ -> None) lst

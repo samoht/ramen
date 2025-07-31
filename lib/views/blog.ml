@@ -5,7 +5,7 @@ open Tw
 let footer ?filter ~number_of_pages page =
   if number_of_pages = 1 then Html.empty
   else
-    let url i = Core.Page.url (Core.Page.create_blog_index ?filter i) in
+    let url i = Core.Page.url (Core.Page.blog_index ?filter i) in
     let pages =
       List.init number_of_pages (fun i ->
           let i = i + 1 in
@@ -54,7 +54,7 @@ let footer ?filter ~number_of_pages page =
           (prev @ pages @ next)
 
 let url ?filter page =
-  Core.Page.url ~domain:true (Core.Page.create_blog_index ?filter page)
+  Core.Page.url ~domain:true (Core.Page.blog_index ?filter page)
 
 let description ~site = site.Core.Site.description
 
@@ -120,7 +120,7 @@ let render_hero_section ~site filter =
 let render_tag_pill tag =
   Html.a
     ~at:
-      [ href (Core.Page.url (Core.Page.create_blog_index ~filter:(Tag tag) 1)) ]
+      [ href (Core.Page.url (Core.Page.blog_index ~filter:(Tag tag) 1)) ]
     ~tw:
       [
         inline_block;
@@ -192,7 +192,7 @@ let render_post_tags tags =
              [
                href
                  (Core.Page.url
-                    (Core.Page.create_blog_index ~filter:(Tag tag) 1));
+                    (Core.Page.blog_index ~filter:(Tag tag) 1));
              ]
            ~tw:
              [ text_sm; text ~shade:700 sky; on_hover [ text ~shade:800 sky ] ]
@@ -235,7 +235,7 @@ let render ~site ~blog_posts:_ ~all_tags
 
   Ui.Layout.render ~title:page_title ~description:(description ~site) ~links ~og
     ~site
-    (Core.Page.create_blog_index ?filter page)
+    (Core.Page.blog_index ?filter page)
     [
       render_hero_section ~site filter;
       render_tag_section ~all_tags filter;

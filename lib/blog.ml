@@ -45,7 +45,7 @@ let split_tags ts =
   List.sort String.compare tags
 
 (* Generate URL slug from date and title *)
-let make_slug date title =
+let slug date title =
   let buf = Buffer.create 13 in
   let title = String.lowercase_ascii title in
   let clean = ref true in
@@ -96,7 +96,7 @@ let of_raw ~body ~path fm =
         Name { name; slug })
       author_names
   in
-  let slug = make_slug fm.date fm.title in
+  let slug = slug fm.date fm.title in
   let body_html = html_of_md body in
   let body_words = words_of_md body in
   {

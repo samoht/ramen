@@ -9,7 +9,7 @@ let file (blog : Core.Blog.t) = blog.path
 
 let author (b : Core.Blog.author) =
   let author_name = Core.Blog.author_name b in
-  let link_to_author = Core.Page.create_blog_index ~author:b 1 in
+  let link_to_author = Core.Page.blog_index ~author:b 1 in
   a
     ~at:[ At.href (Core.Page.url link_to_author) ]
     ~tw:[ text ~shade:700 gray; on_hover [ text ~shade:900 gray ]; font_medium ]
@@ -40,7 +40,7 @@ let authors l =
         (txt "By " :: List.concat_map (fun a -> [ a; txt ", " ]) multiple)
 
 let tag str =
-  let index = Core.Page.create_blog_index ~tag:str 1 in
+  let index = Core.Page.blog_index ~tag:str 1 in
   a
     ~at:[ At.href (Core.Page.url index) ]
     ~tw:[ text ~shade:600 gray; on_hover [ text ~shade:800 gray ]; text_sm ]

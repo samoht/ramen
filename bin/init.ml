@@ -1,7 +1,7 @@
 open Cmdliner
 
 let run project_name =
-  match Ramen.Init.create_project ~project_name with
+  match Ramen.Init.project ~project_name with
   | Ok _project_path ->
       Common.Log.success "Created new Ramen project in %s/" project_name;
       Common.Log.info "Next steps:";

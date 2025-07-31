@@ -98,7 +98,7 @@ Body content here.|}
       match fm.yaml with
       | `O assoc ->
           check (option string) "title" (Some "Hello World")
-            (Frontmatter.find_string "title" fm.yaml);
+            (Frontmatter.string "title" fm.yaml);
           check bool "has multiline description" true
             (match List.assoc_opt "description" assoc with
             | Some (`String s) -> String.contains s '\n'
@@ -107,7 +107,7 @@ Body content here.|}
             (option (list string))
             "tags"
             (Some [ "ocaml"; "static-site" ])
-            (Frontmatter.find_string_list "tags" fm.yaml)
+            (Frontmatter.string_list "tags" fm.yaml)
       | _ -> fail "Expected object YAML")
   | Ok None -> fail "Expected frontmatter"
   | Error Frontmatter.Unclosed_delimiter -> fail "Unclosed delimiter"
@@ -116,39 +116,39 @@ Body content here.|}
 let test_find_string () =
   let yaml = `O [ ("name", `String "Alice"); ("age", `Float 30.) ] in
   check (option string) "existing string" (Some "Alice")
-    (Frontmatter.find_string "name" yaml);
+    (Frontmatter.string "name" yaml);
   check (option string) "non-string field" None
-    (Frontmatter.find_string "age" yaml);
+    (Frontmatter.string "age" yaml);
   check (option string) "missing field" None
-    (Frontmatter.find_string "missing" yaml)
+    (Frontmatter.string "missing" yaml)
 
 let test_find_int () =
   let yaml = `O [ ("count", `Float 42.); ("pi", `Float 3.14) ] in
   check (option int) "integer value" (Some 42)
-    (Frontmatter.find_int "count" yaml);
+    (Frontmatter.int "count" yaml);
   check (option int) "float rounds to int" (Some 3)
-    (Frontmatter.find_int "pi" yaml);
-  check (option int) "missing field" None (Frontmatter.find_int "missing" yaml)
+    (Frontmatter.int "pi" yaml);
+  check (option int) "missing field" None (Frontmatter.int "missing" yaml)
 
 let test_find_bool () =
   let yaml = `O [ ("enabled", `Bool true); ("disabled", `Bool false) ] in
   check (option bool) "true value" (Some true)
-    (Frontmatter.find_bool "enabled" yaml);
+    (Frontmatter.bool "enabled" yaml);
   check (option bool) "false value" (Some false)
-    (Frontmatter.find_bool "disabled" yaml);
+    (Frontmatter.bool "disabled" yaml);
   check (option bool) "missing field" None
-    (Frontmatter.find_bool "missing" yaml)
+    (Frontmatter.bool "missing" yaml)
 
 let test_find_list () =
   let yaml = `O [ ("items", `A [ `String "a"; `String "b" ]) ] in
-  (match Frontmatter.find_list "items" yaml with
+  (match Frontmatter.list "items" yaml with
   | Some [ `String "a"; `String "b" ] -> ()
   | Some _ -> fail "Expected list with two string elements"
   | None -> fail "Expected Some list");
   check
     (option (list string))
     "missing field" None
-    (Frontmatter.find_string_list "missing" yaml)
+    (Frontmatter.string_list "missing" yaml)
 
 let test_find_string_list () =
   let yaml =
@@ -162,11 +162,11 @@ let test_find_string_list () =
     (option (list string))
     "string list"
     (Some [ "ocaml"; "web" ])
-    (Frontmatter.find_string_list "tags" yaml);
+    (Frontmatter.string_list "tags" yaml);
   check
     (option (list string))
     "mixed list returns None" None
-    (Frontmatter.find_string_list "mixed" yaml)
+    (Frontmatter.string_list "mixed" yaml)
 
 let test_dashes_in_content () =
   let content =
@@ -214,7 +214,7 @@ Unicode body: résumé, naïve, 你好|}
   match Frontmatter.parse content with
   | Ok (Some fm) ->
       check (option string) "unicode title" (Some "Café ☕")
-        (Frontmatter.find_string "title" fm.yaml);
+        (Frontmatter.string "title" fm.yaml);
       check string "unicode body" "Unicode body: résumé, naïve, 你好" fm.body
   | Ok None -> fail "Expected frontmatter"
   | Error Frontmatter.Unclosed_delimiter -> fail "Unclosed delimiter"

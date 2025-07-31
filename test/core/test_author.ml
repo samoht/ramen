@@ -86,15 +86,15 @@ let test_find_by_name () =
   in
 
   (* Test finding by exact name *)
-  let found1 = Core.Author.find_by_name authors "John Doe" in
+  let found1 = Core.Author.by_name authors "John Doe" in
   check bool "found by name" true (found1 <> None);
 
   (* Test finding by alias *)
-  let found2 = Core.Author.find_by_name authors "jane" in
+  let found2 = Core.Author.by_name authors "jane" in
   check bool "found by alias" true (found2 <> None);
 
   (* Test not found *)
-  let not_found = Core.Author.find_by_name authors "Unknown" in
+  let not_found = Core.Author.by_name authors "Unknown" in
   check bool "not found" true (not_found = None)
 
 let suite =

@@ -24,7 +24,7 @@ let pp t =
 
 (* Utilities for working with collections of authors *)
 
-let find_by_name authors name =
+let by_name authors name =
   let normalize s =
     s |> String.lowercase_ascii
     |> String.map (function '\'' -> '-' | ' ' -> '-' | c -> c)

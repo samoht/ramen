@@ -35,7 +35,7 @@ let cleanup_test_project () =
 let test_create_project_success () =
   cleanup_test_project ();
   setup_example_dir ();
-  match Ramen.Init.create_project ~project_name:test_project_name with
+  match Ramen.Init.project ~project_name:test_project_name with
   | Ok path ->
       check bool "project directory exists" true
         (Sys.file_exists (Fpath.to_string path));
@@ -51,10 +51,10 @@ let test_create_project_existing () =
   cleanup_test_project ();
   setup_example_dir ();
   (* Create project first time *)
-  match Ramen.Init.create_project ~project_name:test_project_name with
+  match Ramen.Init.project ~project_name:test_project_name with
   | Ok _ -> (
       (* Try to create again *)
-      match Ramen.Init.create_project ~project_name:test_project_name with
+      match Ramen.Init.project ~project_name:test_project_name with
       | Ok _ -> fail "Should fail when project already exists"
       | Error (`Msg msg) ->
           check bool "error mentions existing directory" true
@@ -67,7 +67,7 @@ let test_create_project_invalid_name () =
   let invalid_names = [ "/invalid"; ".."; "."; "" ] in
   List.iter
     (fun name ->
-      match Ramen.Init.create_project ~project_name:name with
+      match Ramen.Init.project ~project_name:name with
       | Ok _ -> failf "Should fail for invalid name: %s" name
       | Error (`Msg _) -> ())
     invalid_names
@@ -76,7 +76,7 @@ let test_create_project_invalid_name () =
 let test_example_data_copied () =
   cleanup_test_project ();
   setup_example_dir ();
-  match Ramen.Init.create_project ~project_name:test_project_name with
+  match Ramen.Init.project ~project_name:test_project_name with
   | Ok path ->
       let data_path = Fpath.(path / "data") in
       check bool "data directory created" true

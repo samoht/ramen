@@ -6,7 +6,7 @@ open Bos
 let err_directory_exists name =
   Error (`Msg (Fmt.str "Directory '%s' already exists" name))
 
-let create_project ~project_name =
+let project ~project_name =
   let ( >>= ) = Result.bind in
 
   (* Validate project name *)

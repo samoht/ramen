@@ -17,7 +17,7 @@ type t =
 
 (** Utility functions *)
 
-let create_blog_index ?filter ?author ?tag page =
+let blog_index ?filter ?author ?tag page =
   let filter =
     match (filter, author, tag) with
     | Some f, _, _ -> Some f
