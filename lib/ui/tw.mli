@@ -357,9 +357,7 @@ val bg_gradient_to_b : t
             to_color ~shade:600 blue;
           ]
         [ txt "Gradient background" ]
-    ]}
-
-    This creates a smooth color transition from top to bottom. *)
+    ]} *)
 
 val bg_gradient_to_br : t
 (** Creates a gradient from top-left to bottom-right (diagonal). *)
@@ -458,9 +456,7 @@ val gap : spacing -> t
           button [ txt "Save" ];
           button [ txt "Cancel" ];
         ]
-    ]}
-
-    This is the preferred method for spacing flex/grid items. *)
+    ]} *)
 
 val gap_x : spacing -> t
 (** [gap_x spacing] sets only horizontal gaps in flex/grid containers. *)
@@ -479,9 +475,7 @@ val w : scale -> t
     - [w (int 24)]: Fixed width of 6rem (96px)
     - [w screen]: Full viewport width
     - [w max]: Shrink to content width
-    - [w (rem 20.0)]: Custom width in rem
-
-    Width is essential for layout control. *)
+    - [w (rem 20.0)]: Custom width in rem *)
 
 val h : scale -> t
 (** [h scale] sets element height.
@@ -490,9 +484,7 @@ val h : scale -> t
     - [h full]: 100% of parent height
     - [h screen]: Full viewport height (great for hero sections)
     - [h (int 16)]: Fixed height of 4rem (64px)
-    - [h auto]: Height based on content (default)
-
-    Height controls vertical space and layout flow. *)
+    - [h auto]: Height based on content (default) *)
 
 val min_w : scale -> t
 (** [min_w scale] sets minimum width. *)
@@ -508,9 +500,7 @@ val max_w : max_scale -> t
     - [max_w xl_2]: ~42rem - optimal for article text (65-75 characters)
     - [max_w xl_4]: ~56rem - for wider content sections
     - [max_w full]: Allow full width
-    - [max_w screen]: Never exceed viewport width
-
-    Essential for responsive typography and content layout. *)
+    - [max_w screen]: Never exceed viewport width *)
 
 val max_h : scale -> t
 (** [max_h scale] sets maximum height using the scale. *)
@@ -540,9 +530,7 @@ val flex : t
       div
         ~tw:[ flex; items_center; gap (int 4) ]
         [ icon; span [ txt "Dashboard" ] ]
-    ]}
-
-    This is the foundation for most modern CSS layouts. *)
+    ]} *)
 
 val inline_flex : t
 (** Like flex but the container itself is inline. *)
@@ -597,9 +585,7 @@ val flex_1 : t
           div ~tw:[ flex_1 ] [ content3 ];
           (* 33.33% *)
         ]
-    ]}
-
-    Equivalent to flex: 1 1 0% in CSS. *)
+    ]} *)
 
 val flex_auto : t
 (** Item grows and shrinks but considers its content size. Good for text that
@@ -658,7 +644,7 @@ val justify_center : t
 
 val justify_between : t
 (** Distributes items evenly - first at start, last at end, equal space between.
-    Perfect for navigation bars and toolbars. *)
+*)
 
 val justify_around : t
 (** Distributes items evenly with equal space around each item. Items have
@@ -686,9 +672,7 @@ val grid_cols : int -> t
           card6;
           (* Wraps to next row *)
         ]
-    ]}
-
-    Grid automatically wraps items to the next row. *)
+    ]} *)
 
 val grid_rows : int -> t
 (** [grid_rows n] creates a grid with n equal rows. *)
@@ -711,13 +695,10 @@ val absolute : t
       (* Notification badge on icon *)
       div ~tw:[ relative ]
         [ icon; span ~tw:[ absolute; top (-2); right (-2) ] [ txt "3" ] ]
-    ]}
-
-    Essential for overlays, tooltips, and floating elements. *)
+    ]} *)
 
 val fixed : t
-(** Like absolute but relative to viewport - stays in place when scrolling.
-    Common for headers, modals, and floating buttons. *)
+(** Like absolute but relative to viewport - stays in place when scrolling. *)
 
 val sticky : t
 (** Hybrid - scrolls normally until it reaches viewport edge, then sticks. Great
@@ -981,9 +962,7 @@ val opacity : int -> t
 (** [opacity n] controls transparency (0-100).
     - 0: Fully transparent (invisible but takes space)
     - 50: Half transparent
-    - 100: Fully opaque (default)
-
-    Common for overlays, disabled states, and hover effects. *)
+    - 100: Fully opaque (default) *)
 
 val outline_none : t
 (** Remove outline. *)
@@ -1023,9 +1002,7 @@ val backdrop_brightness : int -> t
             bg_opacity 30;
           ]
         [ txt "Overlay content" ]
-    ]}
-
-    Creates modern glassmorphism effects. *)
+    ]} *)
 
 val backdrop_contrast : int -> t
 (** [backdrop_contrast n] sets backdrop contrast filter (0-200, where 100 is
@@ -1249,9 +1226,7 @@ val snap_x : t
           div ~tw:[ snap_center; flex_shrink_0; w full ] [ img1 ];
           div ~tw:[ snap_center; flex_shrink_0; w full ] [ img2 ];
         ]
-    ]}
-
-    Creates smooth, native scroll-snapping behavior. *)
+    ]} *)
 
 val snap_y : t
 (** Vertical scroll snapping. Similar to snap_x but for vertical scrolling. *)
@@ -1296,9 +1271,7 @@ val object_contain : t
     Example:
     {[
       img ~tw:[ object_contain; h (int 48); w full ] ~src:"..." ()
-    ]}
-
-    Perfect for logos and icons that must remain fully visible. *)
+    ]} *)
 
 val object_cover : t
 (** Scales image to cover entire container while preserving aspect ratio. Parts
@@ -1534,7 +1507,7 @@ val line_clamp : int -> t
       p
         ~tw:[ line_clamp 3 ]
         [ txt "This very long text will be truncated after three lines..." ]
-    ]}\n    Perfect for creating consistent card layouts. *)
+    ]} *)
 
 (** {1 Class Generation & Internals} *)
 
@@ -1549,7 +1522,7 @@ val to_classes : t list -> string
     {[
       let button_styles = [ bg blue; text white; px (int 4); py (int 2) ] in
       button ~at:[ At.class_ (to_classes button_styles) ] [ txt "Click" ]
-    ]}\n    Useful for integration with JavaScript frameworks. *)
+    ]} *)
 
 val to_string : t -> string
 (** [to_string style] converts a single style to a class string. *)
@@ -1576,50 +1549,51 @@ val pp : t Core.Pp.t
 
 val to_inline_style : t list -> string
 (** [to_inline_style styles] generates inline CSS for the style attribute.
-    
-    {{b Note:}} This generates {{i only}} the CSS properties for the given styles,
-    without any Tailwind reset/prelude. The reset is only included in [to_css] 
+
+    {b Note:} This generates {i only} the CSS properties for the given styles,
+    without any Tailwind reset/prelude. The reset is only included in [to_css]
     since it's meant for complete stylesheets, not individual elements.
-    
+
     Perfect for tweaking individual HTML nodes with custom styles:
     {[
       (* Create inline styles *)
-      let inline_styles = to_inline_style [
-        bg ~shade:100 blue;
-        p (int 4);
-        rounded md;
-        text white;
-      ] in
-      
+      let inline_styles =
+        to_inline_style
+          [ bg ~shade:100 blue; p (int 4); rounded md; text white ]
+      in
+
       (* Use in HTML *)
-      Html.div ~at:[Html.At.style inline_styles] [
-        Html.txt "This div has inline styles"
-      ]
-      (* Generates: style="background-color:rgb(219 234 254);padding:1rem;border-radius:0.375rem;color:rgb(255 255 255)" *)
+      Html.div
+        ~at:[ Html.At.style inline_styles ]
+        [ Html.txt "This div has inline styles" ]
+      (* Generates: style="background-color:rgb(219 234
+         254);padding:1rem;border-radius:0.375rem;color:rgb(255 255 255)" *)
     ]}
-    
-    {{b When to use [to_inline_style] vs [to_css]:}}
-    
-    {{b Use [to_inline_style] when:}}
+
+    {b When to use [to_inline_style] vs [to_css]:}
+
+    {b Use [to_inline_style] when:}
     - You need dynamic styles that change at runtime
     - You want to override specific styles on individual elements
     - You're working with existing HTML that you can't modify classes for
     - You need precise control over a single element's styling
-    
-    {{b Use [to_css] (preferred) when:}}
+
+    {b Use [to_css] (preferred) when:}
     - You want to generate a stylesheet that can be cached and reused
     - You're building a full website with consistent styling
-    - You want better performance (CSS classes are more efficient than inline styles)
-    
-    {{b Performance considerations:}}
-    Inline styles are {{i significantly less performant}} for large-scale use compared 
-    to stylesheets because:
+    - You want better performance (CSS classes are more efficient than inline
+      styles)
+
+    {b Performance considerations:} Inline styles are
+    {i significantly less performant} for large-scale use compared to
+    stylesheets because:
     - They increase HTML payload size (styles are repeated for each element)
     - They cannot be cached by the browser like external stylesheets
     - They have higher CSS specificity, making them harder to override
     - They don't benefit from CSS compression and minification
-    
-    Use [to_inline_style] sparingly for dynamic or element-specific styling only. *)
+
+    Use [to_inline_style] sparingly for dynamic or element-specific styling
+    only. *)
 
 (** {3 Legacy/Advanced CSS Generation} *)
 
@@ -1674,7 +1648,7 @@ val aspect_ratio : float -> float -> t
     {[
       (* 16:9 video container *)
       div ~tw:[ aspect_ratio 16. 9.; bg black ] [ video ]
-    ]}\n    Ensures responsive media maintains proper proportions. *)
+    ]} *)
 
 val clip_path : string -> t
 (** [clip_path value] clips element to custom shape using SVG path or shape.
@@ -1691,4 +1665,4 @@ val clip_path : string -> t
             h (int 6);
           ]
         []
-    ]}\n    Creates custom shapes and creative layouts. *)
+    ]} *)

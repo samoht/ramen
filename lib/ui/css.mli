@@ -133,8 +133,9 @@ val merge_rules : rule list -> rule list
 (** [merge_rules rules] merges rules with identical selectors. *)
 
 val merge_by_properties : rule list -> rule list
-(** [merge_by_properties rules] merges rules with identical properties into 
-    combined selectors (e.g., .a{color:red} and .b{color:red} becomes .a,.b{color:red}). *)
+(** [merge_by_properties rules] merges rules with identical properties into
+    combined selectors (e.g., [.a\{color:red\}] and [.b\{color:red\}] becomes
+    [.a,.b\{color:red\}]). *)
 
 val deduplicate_properties : property list -> property list
 (** [deduplicate_properties properties] removes duplicate properties, keeping
