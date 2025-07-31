@@ -68,6 +68,33 @@ let menu_link item active_page =
   in
   a ~at:[ At.href (page_href item.page) ] ~tw:classes [ txt item.label ]
 
+let render_brand site_name =
+  div ~tw:[ flex_shrink_0 ]
+    [
+      a
+        ~at:[ At.href "/" ]
+        ~tw:[ text white; font_bold; text_xl ]
+        [ txt site_name ];
+    ]
+
+let render_menu menu active_page =
+  div
+    ~tw:[ hidden; on_md [ block ] ]
+    [
+      div
+        ~tw:[ ml (int 10); flex; items_baseline; gap (int 4) ]
+        (List.map (fun item -> menu_link item active_page) menu);
+    ]
+
+let render_external_links palette links =
+  div
+    ~tw:[ hidden; on_md [ block ] ]
+    [
+      div
+        ~tw:[ ml (int 4); flex; items_center; on_md [ ml (int 6) ] ]
+        (List.map (fun link -> Link.external_nav ~palette link) links);
+    ]
+
 let render t =
   let menu = Option.value t.menu ~default:default_menu in
   let active_page = t.active_page in
@@ -91,31 +118,10 @@ let render t =
             [
               div ~tw:[ flex; items_center ]
                 [
-                  div ~tw:[ flex_shrink_0 ]
-                    [
-                      a
-                        ~at:[ At.href "/" ]
-                        ~tw:[ text white; font_bold; text_xl ]
-                        [ txt t.site.name ];
-                    ];
-                  div
-                    ~tw:[ hidden; on_md [ block ] ]
-                    [
-                      div
-                        ~tw:
-                          [ ml (int 10); flex; items_baseline; gap (int 4) ]
-                        (List.map (fun item -> menu_link item active_page) menu);
-                    ];
+                  render_brand t.site.name;
+                  render_menu menu active_page;
                 ];
-              div
-                ~tw:[ hidden; on_md [ block ] ]
-                [
-                  div
-                    ~tw:[ ml (int 4); flex; items_center; on_md [ ml (int 6) ] ]
-                    (List.map
-                       (fun link -> Link.external_nav ~palette link)
-                       links);
-                ];
+              render_external_links palette links;
             ];
         ];
     ]

@@ -18,16 +18,12 @@ open Ui.Tw
 (** No normalization - exact comparison *)
 let exact_css css = String.trim css
 
-(** Generate CSS using the official tailwindcss binary *)
-let generate_tailwind_css ?(minify = false) classnames =
-  (* Create a temporary directory with required files *)
-  let temp_dir = Filename.temp_dir "ramen_test" "" in
-  let html_file = Filename.concat temp_dir "input.html" in
-  let input_css_file = Filename.concat temp_dir "input.css" in
-  let css_file = Filename.concat temp_dir "output.css" in
-  let config_file = Filename.concat temp_dir "tailwind.config.js" in
+let write_file path content =
+  let oc = open_out path in
+  output_string oc content;
+  close_out oc
 
-  (* Create minimal HTML file *)
+let create_tailwind_files temp_dir classnames =
   let html_content =
     Fmt.str
       {|<!DOCTYPE html>
@@ -39,13 +35,11 @@ let generate_tailwind_css ?(minify = false) classnames =
 </html>|}
       (String.concat " " classnames)
   in
-
-  (* Create input CSS with @tailwind directives *)
+  
   let input_css_content =
     "@tailwind base;\n@tailwind components;\n@tailwind utilities;\n"
   in
-
-  (* Create minimal Tailwind config *)
+  
   let config_content =
     {|
 module.exports = {
@@ -59,20 +53,18 @@ module.exports = {
 }
   |}
   in
+  
+  write_file (Filename.concat temp_dir "input.html") html_content;
+  write_file (Filename.concat temp_dir "input.css") input_css_content;
+  write_file (Filename.concat temp_dir "tailwind.config.js") config_content
 
-  (* Write files *)
-  let oc = open_out html_file in
-  output_string oc html_content;
-  close_out oc;
-
-  let oc = open_out input_css_file in
-  output_string oc input_css_content;
-  close_out oc;
-
-  let oc = open_out config_file in
-  output_string oc config_content;
-  close_out oc;
-
+(** Generate CSS using the official tailwindcss binary *)
+let generate_tailwind_css ?(minify = false) classnames =
+  let temp_dir = Filename.temp_dir "ramen_test" "" in
+  let css_file = Filename.concat temp_dir "output.css" in
+  
+  create_tailwind_files temp_dir classnames;
+  
   (* Run tailwindcss *)
   let minify_flag = if minify then " --minify" else "" in
   let cmd =
@@ -82,20 +74,18 @@ module.exports = {
       temp_dir css_file minify_flag
   in
   let exit_code = Sys.command cmd in
-
+  
   (if exit_code <> 0 then
-     (* Cleanup *)
      let _ = Sys.command (Fmt.str "rm -rf %s" temp_dir) in
      failwith "tailwindcss command failed");
-
+  
   (* Read generated CSS *)
   let ic = open_in css_file in
   let css = really_input_string ic (in_channel_length ic) in
   close_in ic;
-
+  
   (* Cleanup *)
-  let _ = Sys.command (Printf.sprintf "rm -rf %s" temp_dir) in
-
+  let _ = Sys.command (Fmt.str "rm -rf %s" temp_dir) in
   css
 
 (** Generate CSS using our Ramen implementation *)
@@ -151,245 +141,303 @@ let extract_utility_classes css classnames =
   String.concat "" unique_parts
 
 (** Get all test tw styles that need to be checked *)
+let spacing_test_styles = [
+  (* Basic spacing - comprehensive *)
+  p (int 0);
+  p (int 1);
+  p (int 4);
+  m (int 0);
+  m (int 2);
+  m auto;
+  px (int 6);
+  py (int 3);
+  pt (int 1);
+  pr (int 8);
+  pb (int 12);
+  pl (int 16);
+  mx (int 0);
+  mx auto;
+  my (int 10);
+  mt (int 20);
+  mr (int 24);
+  mb (int 56);
+  ml (int 6);
+]
+
+let color_test_styles = [
+  (* Color classes - all variants *)
+  bg white;
+  bg black;
+  bg_transparent;
+  bg_current;
+  text ~shade:900 gray;
+  text_transparent;
+  text_current;
+  border_color ~shade:200 gray;
+  border_transparent;
+  border_current;
+  bg ~shade:500 gray;
+  bg ~shade:600 sky;
+  text ~shade:400 yellow;
+  border_color ~shade:600 teal;
+]
+
+let display_test_styles = [
+  (* Display - comprehensive *)
+  block;
+  inline;
+  inline_block;
+  flex;
+  inline_flex;
+  grid;
+  inline_grid;
+  hidden;
+]
+
+let sizing_test_styles = [
+  (* Sizing - comprehensive *)
+  w (int 0);
+  w (int 4);
+  w (int 96);
+  w fit;
+  w full;
+  min_w min;
+  min_w max;
+  h (int 0);
+  h (int 8);
+  h fit;
+  h full;
+  min_w (int 0);
+  min_w full;
+  max_w xs;
+  max_w sm;
+  max_w md;
+  max_w lg;
+  max_w xl;
+  max_w xl_2;
+  max_w xl_7;
+  max_w full;
+  max_w none;
+]
+
+let typography_test_styles = [
+  (* Typography - comprehensive *)
+  text_xs;
+  text_sm;
+  text_base;
+  text_lg;
+  text_xl;
+  text_2xl;
+  text_3xl;
+  text_4xl;
+  font_normal;
+  font_medium;
+  font_semibold;
+  font_bold;
+  text_left;
+  text_center;
+  text_right;
+  text_justify;
+  leading_none;
+  leading_tight;
+  leading_normal;
+  leading_relaxed;
+  tracking_tight;
+  tracking_normal;
+  tracking_wide;
+  whitespace_normal;
+  whitespace_nowrap;
+]
+
+let responsive_test_styles = [
+  (* Responsive - more comprehensive *)
+  on_sm [ block ];
+  on_md [ flex ];
+  on_lg [ grid ];
+  on_xl [ hidden ];
+  on_sm [ p (int 4) ];
+  on_md [ m (int 6) ];
+  on_lg [ text_lg ];
+  on_xl [ font_bold ];
+]
+
+let states_test_styles = [
+  (* States - more comprehensive *)
+  on_hover [ bg white ];
+  on_hover [ text ~shade:700 blue ];
+  on_focus [ bg ~shade:500 sky ];
+  on_focus [ outline_none ];
+  on_active [ text ~shade:900 gray ];
+  on_disabled [ opacity 50 ];
+]
+
+let borders_test_styles = [
+  (* Borders - comprehensive *)
+  rounded none;
+  rounded sm;
+  rounded md;
+  rounded lg;
+  rounded xl;
+  rounded full;
+  border `Default;
+  border `None;
+  border `Sm;
+  border `Lg;
+  border `Xl;
+  border_t;
+  border_r;
+  border_b;
+  border_l;
+]
+
+let shadows_test_styles = [
+  (* Shadows *)
+  shadow sm;
+  shadow md;
+  shadow lg;
+  shadow xl;
+  shadow none;
+  shadow inner;
+]
+
+let prose_test_styles = [
+  (* Prose *)
+  prose;
+  prose_sm;
+  prose_lg;
+  prose_xl;
+  prose_gray;
+]
+
+let flexbox_test_styles = [
+  (* Flexbox - comprehensive *)
+  flex_col;
+  flex_row;
+  flex_row_reverse;
+  flex_col_reverse;
+  flex_wrap;
+  flex_wrap_reverse;
+  flex_nowrap;
+  flex_1;
+  flex_auto;
+  flex_initial;
+  flex_none;
+  flex_grow;
+  flex_grow_0;
+  flex_shrink;
+  flex_shrink_0;
+  items_start;
+  items_center;
+  items_end;
+  items_stretch;
+  justify_start;
+  justify_center;
+  justify_end;
+  justify_between;
+  justify_around;
+  justify_evenly;
+]
+
+let grid_test_styles = [
+  (* Grid *)
+  grid_cols 1;
+  grid_cols 2;
+  grid_cols 3;
+  grid_cols 12;
+  gap (int 4);
+  gap_x (int 2);
+  gap_y (int 6);
+]
+
+let layout_test_styles = [
+  (* Layout - comprehensive *)
+  static;
+  relative;
+  absolute;
+  fixed;
+  sticky;
+  inset_0;
+  inset_x_0;
+  inset_y_0;
+  top 0;
+  right 0;
+  bottom 0;
+  left 0;
+  z 0;
+  z 10;
+  z 10;
+  (* Overflow *)
+  overflow_auto;
+  overflow_hidden;
+  overflow_visible;
+  overflow_scroll;
+]
+
+let misc_test_styles = [
+  (* Opacity *)
+  opacity 0;
+  opacity 25;
+  opacity 50;
+  opacity 75;
+  opacity 100;
+  (* Transitions *)
+  transition_none;
+  transition_all;
+  transition_colors;
+  transition_opacity;
+  transition_transform;
+  (* Transforms *)
+  transform;
+  transform_none;
+  scale 75;
+  scale 100;
+  scale 125;
+  rotate 45;
+  rotate 90;
+  translate_x 4;
+  translate_y 2;
+  (* Cursor *)
+  cursor_auto;
+  cursor_default;
+  cursor_pointer;
+  cursor_not_allowed;
+  (* User Select *)
+  select_none;
+  select_text;
+  select_all;
+  select_auto;
+]
+
+let extended_colors_test_styles = [
+  (* Extended colors - all 10 new colors *)
+  bg ~shade:50 slate;
+  bg ~shade:500 zinc;
+  bg ~shade:900 orange;
+  text ~shade:100 amber;
+  text ~shade:600 lime;
+  border_color ~shade:300 emerald;
+  border_color ~shade:700 cyan;
+  bg ~shade:400 violet;
+  text ~shade:800 fuchsia;
+  bg ~shade:200 rose;
+]
+
 let get_all_test_styles () =
-  [
-    (* Basic spacing - comprehensive *)
-    p (int 0);
-    p (int 1);
-    p (int 4);
-    m (int 0);
-    m (int 2);
-    m auto;
-    px (int 6);
-    py (int 3);
-    pt (int 1);
-    pr (int 8);
-    pb (int 12);
-    pl (int 16);
-    mx (int 0);
-    mx auto;
-    my (int 10);
-    mt (int 20);
-    mr (int 24);
-    mb (int 56);
-    ml (int 6);
-    (* Color classes - all variants *)
-    bg white;
-    bg black;
-    bg_transparent;
-    bg_current;
-    text ~shade:900 gray;
-    text_transparent;
-    text_current;
-    border_color ~shade:200 gray;
-    border_transparent;
-    border_current;
-    bg ~shade:500 gray;
-    bg ~shade:600 sky;
-    text ~shade:400 yellow;
-    border_color ~shade:600 teal;
-    (* Display - comprehensive *)
-    block;
-    inline;
-    inline_block;
-    flex;
-    inline_flex;
-    grid;
-    inline_grid;
-    hidden;
-    (* Sizing - comprehensive *)
-    w (int 0);
-    w (int 4);
-    w (int 96);
-    w fit;
-    w full;
-    min_w min;
-    min_w max;
-    h (int 0);
-    h (int 8);
-    h fit;
-    h full;
-    min_w (int 0);
-    min_w full;
-    max_w xs;
-    max_w sm;
-    max_w md;
-    max_w lg;
-    max_w xl;
-    max_w xl_2;
-    max_w xl_7;
-    max_w full;
-    max_w none;
-    (* Typography - comprehensive *)
-    text_xs;
-    text_sm;
-    text_base;
-    text_lg;
-    text_xl;
-    text_2xl;
-    text_3xl;
-    text_4xl;
-    font_normal;
-    font_medium;
-    font_semibold;
-    font_bold;
-    text_left;
-    text_center;
-    text_right;
-    text_justify;
-    leading_none;
-    leading_tight;
-    leading_normal;
-    leading_relaxed;
-    tracking_tight;
-    tracking_normal;
-    tracking_wide;
-    whitespace_normal;
-    whitespace_nowrap;
-    (* Responsive - more comprehensive *)
-    on_sm [ block ];
-    on_md [ flex ];
-    on_lg [ grid ];
-    on_xl [ hidden ];
-    on_sm [ p (int 4) ];
-    on_md [ m (int 6) ];
-    on_lg [ text_lg ];
-    on_xl [ font_bold ];
-    (* States - more comprehensive *)
-    on_hover [ bg white ];
-    on_hover [ text ~shade:700 blue ];
-    on_focus [ bg ~shade:500 sky ];
-    on_focus [ outline_none ];
-    on_active [ text ~shade:900 gray ];
-    on_disabled [ opacity 50 ];
-    (* Borders - comprehensive *)
-    rounded none;
-    rounded sm;
-    rounded md;
-    rounded lg;
-    rounded xl;
-    rounded full;
-    border `Default;
-    border `None;
-    border `Sm;
-    border `Lg;
-    border `Xl;
-    border_t;
-    border_r;
-    border_b;
-    border_l;
-    (* Shadows *)
-    shadow sm;
-    shadow md;
-    shadow lg;
-    shadow xl;
-    shadow none;
-    shadow inner;
-    (* Prose *)
-    prose;
-    prose_sm;
-    prose_lg;
-    prose_xl;
-    prose_gray;
-    (* Flexbox - comprehensive *)
-    flex_col;
-    flex_row;
-    flex_row_reverse;
-    flex_col_reverse;
-    flex_wrap;
-    flex_wrap_reverse;
-    flex_nowrap;
-    flex_1;
-    flex_auto;
-    flex_initial;
-    flex_none;
-    flex_grow;
-    flex_grow_0;
-    flex_shrink;
-    flex_shrink_0;
-    items_start;
-    items_center;
-    items_end;
-    items_stretch;
-    justify_start;
-    justify_center;
-    justify_end;
-    justify_between;
-    justify_around;
-    justify_evenly;
-    (* Grid *)
-    grid_cols 1;
-    grid_cols 2;
-    grid_cols 3;
-    grid_cols 12;
-    gap (int 4);
-    gap_x (int 2);
-    gap_y (int 6);
-    (* Layout - comprehensive *)
-    static;
-    relative;
-    absolute;
-    fixed;
-    sticky;
-    inset_0;
-    inset_x_0;
-    inset_y_0;
-    top 0;
-    right 0;
-    bottom 0;
-    left 0;
-    z 0;
-    z 10;
-    z 10;
-    (* Overflow *)
-    overflow_auto;
-    overflow_hidden;
-    overflow_visible;
-    overflow_scroll;
-    (* Opacity *)
-    opacity 0;
-    opacity 25;
-    opacity 50;
-    opacity 75;
-    opacity 100;
-    (* Transitions *)
-    transition_none;
-    transition_all;
-    transition_colors;
-    transition_opacity;
-    transition_transform;
-    (* Transforms *)
-    transform;
-    transform_none;
-    scale 75;
-    scale 100;
-    scale 125;
-    rotate 45;
-    rotate 90;
-    translate_x 4;
-    translate_y 2;
-    (* Cursor *)
-    cursor_auto;
-    cursor_default;
-    cursor_pointer;
-    cursor_not_allowed;
-    (* User Select *)
-    select_none;
-    select_text;
-    select_all;
-    select_auto;
-    (* Extended colors - all 10 new colors *)
-    bg ~shade:50 slate;
-    bg ~shade:500 zinc;
-    bg ~shade:900 orange;
-    text ~shade:100 amber;
-    text ~shade:600 lime;
-    border_color ~shade:300 emerald;
-    border_color ~shade:700 cyan;
-    bg ~shade:400 violet;
-    text ~shade:800 fuchsia;
-    bg ~shade:200 rose;
-  ]
+  spacing_test_styles @
+  color_test_styles @
+  display_test_styles @
+  sizing_test_styles @
+  typography_test_styles @
+  responsive_test_styles @
+  states_test_styles @
+  borders_test_styles @
+  shadows_test_styles @
+  prose_test_styles @
+  flexbox_test_styles @
+  grid_test_styles @
+  layout_test_styles @
+  misc_test_styles @
+  extended_colors_test_styles
 
 (** Cache for Tailwind CSS generation with class list hash *)
 let tailwind_cache_unminified = ref None
@@ -431,13 +479,13 @@ let check_exact_match tw_style =
     let ramen_utility_css = extract_utility_classes ramen_css [ classname ] in
 
     if ramen_utility_css <> tailwind_utility_css then (
-      Printf.eprintf "\n=== UTILITY CSS MISMATCH for %s ===\n" classname;
-      Printf.eprintf "Ramen utility CSS:\n%s\n" ramen_utility_css;
-      Printf.eprintf "Tailwind utility CSS:\n%s\n" tailwind_utility_css;
-      Printf.eprintf "===============================\n");
+      Fmt.epr "\n=== UTILITY CSS MISMATCH for %s ===\n" classname;
+      Fmt.epr "Ramen utility CSS:\n%s\n" ramen_utility_css;
+      Fmt.epr "Tailwind utility CSS:\n%s\n" tailwind_utility_css;
+      Fmt.epr "===============================\n");
 
     Alcotest.check string
-      (Printf.sprintf "%s utility CSS exact match" classname)
+      (Fmt.str "%s utility CSS exact match" classname)
       tailwind_utility_css ramen_utility_css
   with
   | Failure msg -> fail ("Test setup failed: " ^ msg)
@@ -735,72 +783,54 @@ let test_exact_css_match () =
              (to_string tw_style))))
     test_cases
 
+let check_minification_pattern ramen_minified (pattern, should_exist) =
+  let exists = Astring.String.is_infix ~affix:pattern ramen_minified in
+  match (should_exist, exists) with
+  | true, false ->
+      fail (Fmt.str "Expected pattern not found in minified CSS: %s" pattern)
+  | false, true ->
+      fail (Fmt.str "Unexpected pattern found in minified CSS: %s" pattern)
+  | _ -> ()
+
+let extract_utilities_from_tailwind tailwind_minified =
+  match String.index_opt tailwind_minified '.' with
+  | Some idx when idx > 0 ->
+      String.sub tailwind_minified idx (String.length tailwind_minified - idx)
+  | _ -> tailwind_minified
+
 let test_minification_rules () =
-  (* Test that our minification produces the same result as Tailwind's *)
-  (* We'll test with the full batch to ensure CSS merging works correctly *)
   let all_styles = get_all_test_styles () in
-
-  (* Generate both minified versions *)
   let all_classnames = List.map to_string all_styles in
-
+  
   (* Get Tailwind's minified output *)
   let tailwind_minified = generate_tailwind_css ~minify:true all_classnames in
-
+  let tailwind_utilities = extract_utilities_from_tailwind tailwind_minified in
+  
   (* Get our minified output *)
   let stylesheet = to_css all_styles in
   let ramen_minified = Ui.Css.to_string ~minify:true stylesheet in
-
-  (* Extract just utilities from Tailwind output (skip base styles) *)
-  let tailwind_utilities =
-    (* Find where utility classes start - after the reset styles *)
-    match String.index_opt tailwind_minified '.' with
-    | Some idx when idx > 0 ->
-        String.sub tailwind_minified idx (String.length tailwind_minified - idx)
-    | _ -> tailwind_minified
-  in
-
-  (* Compare key aspects *)
-  (* 1. Check that both have similar length (within reason) *)
+  
+  (* Check size difference *)
   let tailwind_len = String.length tailwind_utilities in
   let ramen_len = String.length ramen_minified in
   if abs (tailwind_len - ramen_len) > tailwind_len / 2 then
     Fmt.epr
-      "Warning: Large size difference - Tailwind utilities: %d bytes, Ramen: \
-       %d bytes\n"
+      "Warning: Large size difference - Tailwind utilities: %d bytes, Ramen: %d bytes\n"
       tailwind_len ramen_len;
-
-  (* 2. Test specific minification rules *)
-  let test_cases =
-    [
-      (* Check exact minified output *)
-      (".opacity-0{opacity:0}", true);
-      (* Should be 0, not .0 *)
-      ("opacity-50", true);
-      (* Check it exists somewhere *)
-      ("opacity:.5}", true);
-      (* Check the value is minified *)
-      (".p-0{padding:0}", true);
-      (* Should be 0, not 0rem *)
-      (".p-4{padding:1rem}", true);
-      (".m-auto{margin:auto}", true);
-      (".w-full{width:100%}", true);
-      (* Check merged selectors exist *)
-      ("box-shadow:", true);
-      (* Just check the property exists *)
-    ]
-  in
-
-  List.iter
-    (fun (pattern, should_exist) ->
-      let exists = Astring.String.is_infix ~affix:pattern ramen_minified in
-      match (should_exist, exists) with
-      | true, false ->
-          fail
-            (Fmt.str "Expected pattern not found in minified CSS: %s" pattern)
-      | false, true ->
-          fail (Fmt.str "Unexpected pattern found in minified CSS: %s" pattern)
-      | _ -> ())
-    test_cases
+  
+  (* Test specific minification rules *)
+  let test_cases = [
+    (".opacity-0{opacity:0}", true);
+    ("opacity-50", true);
+    ("opacity:.5}", true);
+    (".p-0{padding:0}", true);
+    (".p-4{padding:1rem}", true);
+    (".m-auto{margin:auto}", true);
+    (".w-full{width:100%}", true);
+    ("box-shadow:", true);
+  ] in
+  
+  List.iter (check_minification_pattern ramen_minified) test_cases
 
 let test_scroll_snap () =
   let styles =
