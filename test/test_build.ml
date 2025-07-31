@@ -9,14 +9,14 @@ let test_output_dir = "_test_build_output"
 let test_theme = "default"
 
 (* Create test directory structure *)
-let create_test_dirs () =
+let test_dirs () =
   let open Bos in
   let _ = OS.Dir.create Fpath.(v test_data_dir / "blog" / "content") in
   let _ = OS.Dir.create Fpath.(v test_data_dir / "team") in
   ()
 
 (* Create site configuration file *)
-let create_site_yml () =
+let site_yml () =
   let site_yml =
     {|
 name: Test Site
@@ -37,7 +37,7 @@ footer:
   ()
 
 (* Create team configuration *)
-let create_team_yml () =
+let team_yml () =
   let team_yml = {|
 - name: Test Author
   github: testauthor
@@ -48,7 +48,7 @@ let create_team_yml () =
   ()
 
 (* Create test blog post *)
-let create_test_blog_post () =
+let test_blog_post () =
   let blog_post =
     {|---
 title: Test Post
@@ -74,10 +74,10 @@ This is a test post.
 
 (* Main setup function *)
 let setup_test_data () =
-  create_test_dirs ();
-  create_site_yml ();
-  create_team_yml ();
-  create_test_blog_post ()
+  test_dirs ();
+  site_yml ();
+  team_yml ();
+  test_blog_post ()
 
 let cleanup_test_dirs () =
   let open Bos in

@@ -4,7 +4,7 @@ open Alcotest
 open Views
 open Core
 
-let make_test_post ~title ~slug ~date ~summary =
+let test_post ~title ~slug ~date ~summary =
   {
     Blog.title;
     slug;
@@ -22,7 +22,7 @@ let make_test_post ~title ~slug ~date ~summary =
     links = [];
   }
 
-let make_test_site () =
+let test_site () =
   {
     Site.name = "Test Blog";
     url = "https://test.com";
@@ -65,14 +65,14 @@ let validate_rss_structure rss =
     || Astring.String.is_infix ~affix:"</feed>" rss)
 
 let test_render_rss () =
-  let site = make_test_site () in
+  let site = test_site () in
 
   let posts =
     [
-      make_test_post ~title:"First RSS Post" ~slug:"first-rss"
-        ~date:"2024-01-01" ~summary:"First post for RSS feed";
-      make_test_post ~title:"Second RSS Post" ~slug:"second-rss"
-        ~date:"2024-01-02" ~summary:"Second post for RSS feed";
+      test_post ~title:"First RSS Post" ~slug:"first-rss" ~date:"2024-01-01"
+        ~summary:"First post for RSS feed";
+      test_post ~title:"Second RSS Post" ~slug:"second-rss" ~date:"2024-01-02"
+        ~summary:"Second post for RSS feed";
     ]
   in
 
@@ -144,7 +144,7 @@ let test_render_with_html_content () =
 
   let posts =
     [
-      make_test_post ~title:"Post with <b>HTML</b>" ~slug:"html-post"
+      test_post ~title:"Post with <b>HTML</b>" ~slug:"html-post"
         ~date:"2024-01-01" ~summary:"This has <em>HTML</em> & special chars";
     ]
   in

@@ -4,7 +4,7 @@ open Alcotest
 open Views
 open Core
 
-let make_test_author name : Blog.author =
+let test_author name : Blog.author =
   Author
     {
       name;
@@ -16,12 +16,12 @@ let make_test_author name : Blog.author =
       homepage = None;
     }
 
-let make_test_post ~title ~date ~content () =
+let blog_post ~title ~date ~content () =
   {
     Blog.title;
     slug =
       String.lowercase_ascii (String.map (function ' ' -> '-' | c -> c) title);
-    authors = [ make_test_author "Test Author" ];
+    authors = [ test_author "Test Author" ];
     image = "";
     image_alt = None;
     date;
@@ -58,7 +58,7 @@ let test_render_basic_post () =
   in
 
   let post =
-    make_test_post ~title:"Test Post" ~date:"2024-01-01"
+    blog_post ~title:"Test Post" ~date:"2024-01-01"
       ~content:"This is the post content." ()
   in
 
@@ -94,7 +94,7 @@ let test_render_with_long_content () =
   in
 
   let post =
-    make_test_post ~title:"Long Post" ~date:"2024-01-01"
+    blog_post ~title:"Long Post" ~date:"2024-01-01"
       ~content:"Long content with sections." ()
   in
 
@@ -126,7 +126,7 @@ let test_render_multiple_tags () =
   in
 
   let post =
-    make_test_post ~title:"OCaml Tutorial" ~date:"2024-01-02"
+    blog_post ~title:"OCaml Tutorial" ~date:"2024-01-02"
       ~content:"Learning OCaml basics." ()
   in
 
@@ -140,7 +140,7 @@ let test_render_multiple_tags () =
 
 let test_file_function () =
   let post =
-    make_test_post ~title:"File Test" ~date:"2024-01-01"
+    blog_post ~title:"File Test" ~date:"2024-01-01"
       ~content:"Testing file function." ()
   in
 

@@ -61,7 +61,7 @@ let test_pp () =
   check bool "pp contains aliases" true
     (Astring.String.is_infix ~affix:"test" pp_output)
 
-let test_find_by_name () =
+let test_by_name () =
   let authors =
     [
       {
@@ -104,6 +104,6 @@ let suite =
         test_case "creation" `Quick test_creation;
         test_case "equality" `Quick test_equality;
         test_case "pretty printing" `Quick test_pp;
-        test_case "find by name" `Quick test_find_by_name;
+        test_case "find by name" `Quick test_by_name;
       ] );
   ]

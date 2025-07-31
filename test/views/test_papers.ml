@@ -4,7 +4,7 @@ open Alcotest
 open Views
 open Core
 
-let make_test_paper ~title ~where ~year ~files =
+let test_paper ~title ~where ~year ~files =
   {
     Paper.title;
     authors =
@@ -37,12 +37,11 @@ let test_render_papers_list () =
 
   let papers =
     [
-      make_test_paper ~title:"First Paper" ~where:"ICFP 2024" ~year:"2024"
+      test_paper ~title:"First Paper" ~where:"ICFP 2024" ~year:"2024"
         ~files:[ { Paper.name = "PDF"; url = "/papers/first.pdf" } ];
-      make_test_paper ~title:"Second Paper" ~where:"POPL 2023" ~year:"2023"
+      test_paper ~title:"Second Paper" ~where:"POPL 2023" ~year:"2023"
         ~files:[ { Paper.name = "PDF"; url = "/papers/second.pdf" } ];
-      make_test_paper ~title:"Third Paper" ~where:"PLDI 2023" ~year:"2023"
-        ~files:[];
+      test_paper ~title:"Third Paper" ~where:"PLDI 2023" ~year:"2023" ~files:[];
     ]
   in
 
@@ -103,12 +102,10 @@ let test_render_papers_by_year () =
 
   let papers =
     [
-      make_test_paper ~title:"2024 Paper A" ~where:"Conf A" ~year:"2024"
-        ~files:[];
-      make_test_paper ~title:"2024 Paper B" ~where:"Conf B" ~year:"2024"
-        ~files:[];
-      make_test_paper ~title:"2023 Paper" ~where:"Conf C" ~year:"2023" ~files:[];
-      make_test_paper ~title:"2022 Paper" ~where:"Conf D" ~year:"2022" ~files:[];
+      test_paper ~title:"2024 Paper A" ~where:"Conf A" ~year:"2024" ~files:[];
+      test_paper ~title:"2024 Paper B" ~where:"Conf B" ~year:"2024" ~files:[];
+      test_paper ~title:"2023 Paper" ~where:"Conf C" ~year:"2023" ~files:[];
+      test_paper ~title:"2022 Paper" ~where:"Conf D" ~year:"2022" ~files:[];
     ]
   in
 

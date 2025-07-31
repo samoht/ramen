@@ -19,8 +19,7 @@ type t =
 
 val blog_index :
   ?filter:Blog.filter -> ?author:Blog.author -> ?tag:string -> int -> t
-(** [blog_index ?filter ?author ?tag page_num] creates a blog index page.
-*)
+(** [blog_index ?filter ?author ?tag page_num] creates a blog index page. *)
 
 val url : ?domain:bool -> t -> string
 (** [url ?domain page] returns the URL for a page, optionally with domain. *)

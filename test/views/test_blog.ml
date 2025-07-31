@@ -5,7 +5,7 @@ module P = Views
 open Core
 module Views = P
 
-let make_test_post ~title ~slug ~date ~tags ~summary ~authors =
+let test_post ~title ~slug ~date ~tags ~summary ~authors =
   {
     Blog.title;
     slug;
@@ -23,10 +23,10 @@ let make_test_post ~title ~slug ~date ~tags ~summary ~authors =
     links = [];
   }
 
-let make_test_author name : Blog.author =
+let test_author name : Blog.author =
   Name { slug = String.lowercase_ascii name; name }
 
-let make_test_site ?(posts_per_page = 10) () =
+let test_site ?(posts_per_page = 10) () =
   {
     Site.name = "Test Blog";
     url = "https://test.com";
@@ -42,16 +42,16 @@ let make_test_site ?(posts_per_page = 10) () =
   }
 
 let test_render_basic () =
-  let site = make_test_site () in
+  let site = test_site () in
 
   let posts =
     [
-      make_test_post ~title:"First Post" ~slug:"first-post" ~date:"2024-01-01"
+      test_post ~title:"First Post" ~slug:"first-post" ~date:"2024-01-01"
         ~tags:[ "test"; "ocaml" ] ~summary:"First post summary"
-        ~authors:[ make_test_author "Alice" ];
-      make_test_post ~title:"Second Post" ~slug:"second-post" ~date:"2024-01-02"
+        ~authors:[ test_author "Alice" ];
+      test_post ~title:"Second Post" ~slug:"second-post" ~date:"2024-01-02"
         ~tags:[ "test" ] ~summary:"Second post summary"
-        ~authors:[ make_test_author "Bob" ];
+        ~authors:[ test_author "Bob" ];
     ]
   in
 
@@ -71,16 +71,16 @@ let test_render_basic () =
     (Astring.String.is_infix ~affix:"ocaml" html)
 
 let test_render_with_filter () =
-  let site = make_test_site () in
+  let site = test_site () in
 
-  let alice = make_test_author "Alice" in
-  let bob = make_test_author "Bob" in
+  let alice = test_author "Alice" in
+  let bob = test_author "Bob" in
 
   let posts =
     [
-      make_test_post ~title:"Alice's Post" ~slug:"alice-post" ~date:"2024-01-01"
+      test_post ~title:"Alice's Post" ~slug:"alice-post" ~date:"2024-01-01"
         ~tags:[ "test" ] ~summary:"Alice's post" ~authors:[ alice ];
-      make_test_post ~title:"Bob's Post" ~slug:"bob-post" ~date:"2024-01-02"
+      test_post ~title:"Bob's Post" ~slug:"bob-post" ~date:"2024-01-02"
         ~tags:[ "test" ] ~summary:"Bob's post" ~authors:[ bob ];
     ]
   in
@@ -127,13 +127,13 @@ let test_render_pagination () =
 
   let posts =
     List.init 5 (fun i ->
-        make_test_post
+        test_post
           ~title:("Post " ^ string_of_int (i + 1))
           ~slug:("post-" ^ string_of_int (i + 1))
           ~date:("2024-01-0" ^ string_of_int (i + 1))
           ~tags:[ "test" ]
           ~summary:("Summary " ^ string_of_int (i + 1))
-          ~authors:[ make_test_author "Author" ])
+          ~authors:[ test_author "Author" ])
   in
 
   let all_tags = [ "test" ] in

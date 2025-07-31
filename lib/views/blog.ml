@@ -119,8 +119,7 @@ let render_hero_section ~site filter =
 (* Render a single tag pill *)
 let render_tag_pill tag =
   Html.a
-    ~at:
-      [ href (Core.Page.url (Core.Page.blog_index ~filter:(Tag tag) 1)) ]
+    ~at:[ href (Core.Page.url (Core.Page.blog_index ~filter:(Tag tag) 1)) ]
     ~tw:
       [
         inline_block;
@@ -189,11 +188,7 @@ let render_post_tags tags =
        (fun tag ->
          Html.a
            ~at:
-             [
-               href
-                 (Core.Page.url
-                    (Core.Page.blog_index ~filter:(Tag tag) 1));
-             ]
+             [ href (Core.Page.url (Core.Page.blog_index ~filter:(Tag tag) 1)) ]
            ~tw:
              [ text_sm; text ~shade:700 sky; on_hover [ text ~shade:800 sky ] ]
            [ Html.txt ("#" ^ tag) ])

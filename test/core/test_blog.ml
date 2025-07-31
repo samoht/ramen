@@ -141,7 +141,7 @@ let test_filter_posts () =
   check int "filtered by author" 1 (List.length author1_posts)
 
 let test_paginate () =
-  let make_post i =
+  let post i =
     {
       Core.Blog.authors = [ Core.Blog.Name { name = "Test"; slug = "test" } ];
       title = "Post " ^ string_of_int i;
@@ -159,7 +159,7 @@ let test_paginate () =
       links = [];
     }
   in
-  let posts = List.init 25 (fun i -> make_post (i + 1)) in
+  let posts = List.init 25 (fun i -> post (i + 1)) in
 
   (* Test pagination with 10 posts per page *)
   let page1 = Core.Blog.paginate ~posts_per_page:10 posts 1 in

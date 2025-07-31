@@ -117,10 +117,7 @@ let render t =
             ~tw:[ flex; h (int 16); items_center; justify_between ]
             [
               div ~tw:[ flex; items_center ]
-                [
-                  render_brand t.site.name;
-                  render_menu menu active_page;
-                ];
+                [ render_brand t.site.name; render_menu menu active_page ];
               render_external_links palette links;
             ];
         ];

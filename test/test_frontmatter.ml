@@ -113,33 +113,27 @@ Body content here.|}
   | Error Frontmatter.Unclosed_delimiter -> fail "Unclosed delimiter"
   | Error (Frontmatter.Yaml_parse_error e) -> fail (Fmt.str "YAML error: %s" e)
 
-let test_find_string () =
+let test_string () =
   let yaml = `O [ ("name", `String "Alice"); ("age", `Float 30.) ] in
   check (option string) "existing string" (Some "Alice")
     (Frontmatter.string "name" yaml);
-  check (option string) "non-string field" None
-    (Frontmatter.string "age" yaml);
-  check (option string) "missing field" None
-    (Frontmatter.string "missing" yaml)
+  check (option string) "non-string field" None (Frontmatter.string "age" yaml);
+  check (option string) "missing field" None (Frontmatter.string "missing" yaml)
 
-let test_find_int () =
+let test_int () =
   let yaml = `O [ ("count", `Float 42.); ("pi", `Float 3.14) ] in
-  check (option int) "integer value" (Some 42)
-    (Frontmatter.int "count" yaml);
-  check (option int) "float rounds to int" (Some 3)
-    (Frontmatter.int "pi" yaml);
+  check (option int) "integer value" (Some 42) (Frontmatter.int "count" yaml);
+  check (option int) "float rounds to int" (Some 3) (Frontmatter.int "pi" yaml);
   check (option int) "missing field" None (Frontmatter.int "missing" yaml)
 
-let test_find_bool () =
+let test_bool () =
   let yaml = `O [ ("enabled", `Bool true); ("disabled", `Bool false) ] in
-  check (option bool) "true value" (Some true)
-    (Frontmatter.bool "enabled" yaml);
+  check (option bool) "true value" (Some true) (Frontmatter.bool "enabled" yaml);
   check (option bool) "false value" (Some false)
     (Frontmatter.bool "disabled" yaml);
-  check (option bool) "missing field" None
-    (Frontmatter.bool "missing" yaml)
+  check (option bool) "missing field" None (Frontmatter.bool "missing" yaml)
 
-let test_find_list () =
+let test_list () =
   let yaml = `O [ ("items", `A [ `String "a"; `String "b" ]) ] in
   (match Frontmatter.list "items" yaml with
   | Some [ `String "a"; `String "b" ] -> ()
@@ -150,7 +144,7 @@ let test_find_list () =
     "missing field" None
     (Frontmatter.string_list "missing" yaml)
 
-let test_find_string_list () =
+let test_string_list () =
   let yaml =
     `O
       [
@@ -230,11 +224,11 @@ let suite =
         test_case "unclosed frontmatter" `Quick test_unclosed_frontmatter;
         test_case "invalid yaml" `Quick test_invalid_yaml;
         test_case "multiline yaml" `Quick test_multiline_yaml;
-        test_case "find_string" `Quick test_find_string;
-        test_case "find_int" `Quick test_find_int;
-        test_case "find_bool" `Quick test_find_bool;
-        test_case "find_list" `Quick test_find_list;
-        test_case "find_string_list" `Quick test_find_string_list;
+        test_case "find_string" `Quick test_string;
+        test_case "find_int" `Quick test_int;
+        test_case "find_bool" `Quick test_bool;
+        test_case "find_list" `Quick test_list;
+        test_case "find_string_list" `Quick test_string_list;
         test_case "dashes in content" `Quick test_dashes_in_content;
         test_case "crlf line endings" `Quick test_crlf_line_endings;
         test_case "no newline after closing" `Quick

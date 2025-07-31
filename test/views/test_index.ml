@@ -4,7 +4,7 @@ open Alcotest
 open Views
 open Core
 
-let make_test_post ~title ~slug ~date ~synopsis =
+let test_post ~title ~slug ~date ~synopsis =
   {
     Blog.title;
     slug;
@@ -22,7 +22,7 @@ let make_test_post ~title ~slug ~date ~synopsis =
     links = [];
   }
 
-let make_static_page ~title ~content =
+let static_page ~title ~content =
   {
     Core.Static.title;
     description = Some content;
@@ -54,16 +54,16 @@ let test_render_homepage () =
 
   let static_pages =
     [
-      make_static_page ~title:"About" ~content:"About this test site";
-      make_static_page ~title:"Contact" ~content:"Contact us at test@test.com";
+      static_page ~title:"About" ~content:"About this test site";
+      static_page ~title:"Contact" ~content:"Contact us at test@test.com";
     ]
   in
 
   let blog_posts =
     [
-      make_test_post ~title:"Featured Post" ~slug:"featured" ~date:"2024-01-01"
+      test_post ~title:"Featured Post" ~slug:"featured" ~date:"2024-01-01"
         ~synopsis:"Featured post content";
-      make_test_post ~title:"Regular Post" ~slug:"regular" ~date:"2024-01-02"
+      test_post ~title:"Regular Post" ~slug:"regular" ~date:"2024-01-02"
         ~synopsis:"Regular post content";
     ]
   in
@@ -133,7 +133,7 @@ let test_render_recent_posts () =
   (* Create 10 posts but only the most recent should appear *)
   let blog_posts =
     List.init 10 (fun i ->
-        make_test_post
+        test_post
           ~title:("Post " ^ string_of_int (i + 1))
           ~slug:("post-" ^ string_of_int (i + 1))
           ~date:("2024-01-" ^ Fmt.str "%02d" (i + 1))

@@ -8,7 +8,11 @@ let variant_styles = function
   | Outlined ->
       Tw.
         [
-          bg white; border `Default; border_color ~shade:200 gray; rounded lg; p (int 6);
+          bg white;
+          border `Default;
+          border_color ~shade:200 gray;
+          rounded lg;
+          p (int 6);
         ]
 
 let render ?(variant = Default) ?(classes = []) children =

@@ -32,7 +32,7 @@ let cleanup_test_project () =
   ()
 
 (** Test successful project creation *)
-let test_create_project_success () =
+let test_project_success () =
   cleanup_test_project ();
   setup_example_dir ();
   match Ramen.Init.project ~project_name:test_project_name with
@@ -47,7 +47,7 @@ let test_create_project_success () =
   | Error (`Msg msg) -> failf "Project creation failed: %s" msg
 
 (** Test project creation with existing directory *)
-let test_create_project_existing () =
+let test_project_existing () =
   cleanup_test_project ();
   setup_example_dir ();
   (* Create project first time *)
@@ -63,7 +63,7 @@ let test_create_project_existing () =
   | Error (`Msg msg) -> failf "First creation failed: %s" msg
 
 (** Test project creation with invalid name *)
-let test_create_project_invalid_name () =
+let test_project_invalid_name () =
   let invalid_names = [ "/invalid"; ".."; "."; "" ] in
   List.iter
     (fun name ->
@@ -89,9 +89,9 @@ let suite =
   [
     ( "init",
       [
-        test_case "create_success" `Quick test_create_project_success;
-        test_case "create_existing" `Quick test_create_project_existing;
-        test_case "invalid_name" `Quick test_create_project_invalid_name;
+        test_case "create_success" `Quick test_project_success;
+        test_case "create_existing" `Quick test_project_existing;
+        test_case "invalid_name" `Quick test_project_invalid_name;
         test_case "example_data" `Quick test_example_data_copied;
       ] );
   ]

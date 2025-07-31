@@ -4,7 +4,7 @@ open Alcotest
 open Views
 open Core
 
-let make_test_site ~name ~url =
+let test_site ~name ~url =
   {
     Site.name;
     url;
@@ -48,9 +48,7 @@ let validate_sitemap_structure xml =
     (Astring.String.is_infix ~affix:"</urlset>" xml)
 
 let test_render_sitemap () =
-  let site =
-    make_test_site ~name:"Sitemap Test" ~url:"https://sitemaptest.com"
-  in
+  let site = test_site ~name:"Sitemap Test" ~url:"https://sitemaptest.com" in
 
   let pages =
     [
@@ -78,9 +76,7 @@ let test_render_sitemap () =
     (Astring.String.is_infix ~affix:"sitemaptest.com" xml)
 
 let test_render_with_blog_posts () =
-  let site =
-    make_test_site ~name:"Blog Sitemap" ~url:"https://blogsitemap.com"
-  in
+  let site = test_site ~name:"Blog Sitemap" ~url:"https://blogsitemap.com" in
 
   let blog_post =
     {

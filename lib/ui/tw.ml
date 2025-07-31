@@ -639,7 +639,6 @@ let gap_y s =
   let class_name = "gap-y-" ^ pp_spacing_suffix s in
   Style (class_name, [ (Row_gap, pp_spacing s) ])
 
-
 (** {1 Sizing} *)
 
 let w (s : scale) =
@@ -1012,17 +1011,17 @@ let z n =
 type width = [ size | `Default ]
 
 let border (w : width) =
-  let width_px, class_suffix = 
+  let width_px, class_suffix =
     match w with
-    | `None -> "0", "-0"
-    | `Xs | `Default -> "1px", ""  (* Default border is 1px *)
-    | `Sm -> "2px", "-2" 
-    | `Md -> "4px", "-4"  (* For borders, Md maps to 4px *)
-    | `Lg -> "4px", "-4"
-    | `Xl -> "8px", "-8"
-    | `Xl_2 -> "8px", "-8"
-    | `Xl_3 -> "8px", "-8"
-    | `Full -> "8px", "-8"
+    | `None -> ("0", "-0")
+    | `Xs | `Default -> ("1px", "" (* Default border is 1px *))
+    | `Sm -> ("2px", "-2")
+    | `Md -> ("4px", "-4" (* For borders, Md maps to 4px *))
+    | `Lg -> ("4px", "-4")
+    | `Xl -> ("8px", "-8")
+    | `Xl_2 -> ("8px", "-8")
+    | `Xl_3 -> ("8px", "-8")
+    | `Full -> ("8px", "-8")
   in
   let class_name = "border" ^ class_suffix in
   Style (class_name, [ (Border_width, width_px) ])
@@ -1203,31 +1202,35 @@ let pointer_events_auto =
 let outline_none = Style ("outline-none", [ (Outline, "none") ])
 
 let ring (w : width) =
-  let width, class_suffix = 
+  let width, class_suffix =
     match w with
-    | `None -> "0", "0"
-    | `Xs -> "1px", "1"
-    | `Sm -> "2px", "2" 
-    | `Default | `Md -> "3px", ""
-    | `Lg -> "4px", "4"
-    | `Xl -> "8px", "8"
-    | `Xl_2 -> "8px", "8"  (* Map Xl_2 to 8px as well *)
-    | `Xl_3 -> "8px", "8"  (* Map Xl_3 to 8px as well *)
-    | `Full -> "8px", "8"  (* Map Full to 8px as well *)
+    | `None -> ("0", "0")
+    | `Xs -> ("1px", "1")
+    | `Sm -> ("2px", "2")
+    | `Default | `Md -> ("3px", "")
+    | `Lg -> ("4px", "4")
+    | `Xl -> ("8px", "8")
+    | `Xl_2 -> ("8px", "8" (* Map Xl_2 to 8px as well *))
+    | `Xl_3 -> ("8px", "8" (* Map Xl_3 to 8px as well *))
+    | `Full -> ("8px", "8" (* Map Full to 8px as well *))
   in
-  let class_name = if class_suffix = "" then "ring" else "ring-" ^ class_suffix in
-  let shadow_value = 
+  let class_name =
+    if class_suffix = "" then "ring" else "ring-" ^ class_suffix
+  in
+  let shadow_value =
     if width = "0" then "0 0 #0000"
     else "0 0 0 " ^ width ^ " var(--tw-ring-color)"
   in
-  Style 
+  Style
     ( class_name,
       [
         (Custom "--tw-ring-color", "rgb(59 130 246 / 0.5)");
-        (Box_shadow, 
-         "var(--tw-ring-offset-shadow,0 0 #0000),var(--tw-ring-shadow,0 0 #0000),var(--tw-shadow,0 0 #0000)");
+        ( Box_shadow,
+          "var(--tw-ring-offset-shadow,0 0 #0000),var(--tw-ring-shadow,0 0 \
+           #0000),var(--tw-shadow,0 0 #0000)" );
         (Custom "--tw-ring-shadow", shadow_value);
       ] )
+
 let isolate = Style ("isolate", [ (Display, "isolate") ])
 let overflow_auto = Style ("overflow-auto", [ (Overflow, "auto") ])
 let overflow_hidden = Style ("overflow-hidden", [ (Overflow, "hidden") ])

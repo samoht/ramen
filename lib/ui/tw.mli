@@ -307,7 +307,7 @@ val bg_transparent : t
 
 val bg_current : t
 (** Sets background color to match the element's text color. If the element has
-    [text ~shade:500 blue], the background will also be blue-500. Useful for 
+    [text ~shade:500 blue], the background will also be blue-500. Useful for
     icons and decorative elements that should match text. *)
 
 val text : ?shade:int -> color -> t
@@ -340,7 +340,7 @@ val border_current : t
       div ~tw:[ text ~shade:600 red; border `Default; border_current ]
       (* Border will be red-600, same as the text *)
     ]}
-    
+
     This is the default behavior in Tailwind v4, but can be explicitly set. *)
 
 val bg_gradient_to_b : t
@@ -358,7 +358,7 @@ val bg_gradient_to_b : t
           ]
         [ txt "Gradient background" ]
     ]}
-    
+
     This creates a smooth color transition from top to bottom. *)
 
 val bg_gradient_to_br : t
@@ -459,7 +459,7 @@ val gap : spacing -> t
           button [ txt "Cancel" ];
         ]
     ]}
-    
+
     This is the preferred method for spacing flex/grid items. *)
 
 val gap_x : spacing -> t
@@ -467,7 +467,6 @@ val gap_x : spacing -> t
 
 val gap_y : spacing -> t
 (** [gap_y spacing] sets only vertical gaps in flex/grid containers. *)
-
 
 (** {1 Sizing}
     @see <https://tailwindcss.com/docs/width> Width and Height *)
@@ -481,7 +480,7 @@ val w : scale -> t
     - [w screen]: Full viewport width
     - [w max]: Shrink to content width
     - [w (rem 20.0)]: Custom width in rem
-    
+
     Width is essential for layout control. *)
 
 val h : scale -> t
@@ -492,7 +491,7 @@ val h : scale -> t
     - [h screen]: Full viewport height (great for hero sections)
     - [h (int 16)]: Fixed height of 4rem (64px)
     - [h auto]: Height based on content (default)
-    
+
     Height controls vertical space and layout flow. *)
 
 val min_w : scale -> t
@@ -510,7 +509,7 @@ val max_w : max_scale -> t
     - [max_w xl_4]: ~56rem - for wider content sections
     - [max_w full]: Allow full width
     - [max_w screen]: Never exceed viewport width
-    
+
     Essential for responsive typography and content layout. *)
 
 val max_h : scale -> t
@@ -542,7 +541,7 @@ val flex : t
         ~tw:[ flex; items_center; gap (int 4) ]
         [ icon; span [ txt "Dashboard" ] ]
     ]}
-    
+
     This is the foundation for most modern CSS layouts. *)
 
 val inline_flex : t
@@ -599,7 +598,7 @@ val flex_1 : t
           (* 33.33% *)
         ]
     ]}
-    
+
     Equivalent to flex: 1 1 0% in CSS. *)
 
 val flex_auto : t
@@ -688,7 +687,7 @@ val grid_cols : int -> t
           (* Wraps to next row *)
         ]
     ]}
-    
+
     Grid automatically wraps items to the next row. *)
 
 val grid_rows : int -> t
@@ -713,7 +712,7 @@ val absolute : t
       div ~tw:[ relative ]
         [ icon; span ~tw:[ absolute; top (-2); right (-2) ] [ txt "3" ] ]
     ]}
-    
+
     Essential for overlays, tooltips, and floating elements. *)
 
 val fixed : t
@@ -913,7 +912,7 @@ type width = [ size | `Default ]
 (** Width options for borders and rings:
     - [`None]: 0px
     - [`Xs]: 1px
-    - [`Sm]: 2px  
+    - [`Sm]: 2px
     - [`Default] or [`Md]: 3px (default for rings), 1px (default for borders)
     - [`Lg]: 4px
     - [`Xl]: 8px *)
@@ -923,11 +922,13 @@ type width = [ size | `Default ]
 
 val border : width -> t
 (** [border width] sets border width on all sides. Default is 1px when using
-    [`Default]. 
-    
-    The border color defaults to the current text color. To set a specific color:
+    [`Default].
+
+    The border color defaults to the current text color. To set a specific
+    color:
     - Use [border_color]: [border `Default; border_color ~shade:200 gray]
-    - Use [border_current] to explicitly use text color: [text blue; border `Default; border_current]
+    - Use [border_current] to explicitly use text color:
+      [text blue; border `Default; border_current]
     - Use [border_transparent] for invisible borders that preserve spacing. *)
 
 val border_t : t
@@ -988,9 +989,9 @@ val outline_none : t
 (** Remove outline. *)
 
 val ring : width -> t
-(** [ring width] adds an outline ring of the specified width. Rings use 
-    box-shadow and don't affect layout. 
-    
+(** [ring width] adds an outline ring of the specified width. Rings use
+    box-shadow and don't affect layout.
+
     By default, rings are blue with 50% opacity. To customize:
     - Use [ring_color] to change color: [ring `Sm; ring_color ~shade:500 purple]
     - Rings are often used for focus states: [on_focus [ ring `Md ]]
@@ -1023,7 +1024,7 @@ val backdrop_brightness : int -> t
           ]
         [ txt "Overlay content" ]
     ]}
-    
+
     Creates modern glassmorphism effects. *)
 
 val backdrop_contrast : int -> t
@@ -1061,7 +1062,7 @@ val transition_colors : t
             on_hover [ bg ~shade:700 blue ];
           ]
     ]}
-    
+
     Duration is 150ms by default. *)
 
 val transition_opacity : t
@@ -1249,7 +1250,7 @@ val snap_x : t
           div ~tw:[ snap_center; flex_shrink_0; w full ] [ img2 ];
         ]
     ]}
-    
+
     Creates smooth, native scroll-snapping behavior. *)
 
 val snap_y : t
@@ -1296,7 +1297,7 @@ val object_contain : t
     {[
       img ~tw:[ object_contain; h (int 48); w full ] ~src:"..." ()
     ]}
-    
+
     Perfect for logos and icons that must remain fully visible. *)
 
 val object_cover : t
