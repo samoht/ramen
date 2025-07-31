@@ -1,6 +1,7 @@
 (* Visual test for color palette *)
 
 open Ui
+open Tw
 
 (* Helper to generate a test page *)
 let generate_test_page ~title ~filename content =
@@ -21,7 +22,7 @@ let generate_test_page ~title ~filename content =
               ();
           ];
         Html.body
-          [ Html.div ~tw:[ Tw.p (Int 8); Tw.max_w_6xl; Tw.mx_auto ] content ];
+          [ Html.div ~tw:[ p (int 8); max_w (rem 72.0); mx auto ] content ];
       ]
   in
   let html = Html.to_string ~doctype:true page in
@@ -49,16 +50,16 @@ let color_swatch name tw_color description ~is_text_color =
     else []
   in
   Html.div
-    ~tw:[ Tw.flex; Tw.items_center; Tw.space_x (Int 4) ]
+    ~tw:[ flex; items_center; gap (int 4) ]
     [
       Html.div
         ~tw:
           ([
-             Tw.w (Int 20);
-             Tw.h (Int 20);
-             Tw.rounded_lg;
-             Tw.border;
-             Tw.border_gray_200;
+             w (int 20);
+             h (int 20);
+             Tw.rounded lg;
+             Tw.border `Default;
+             border_color ~shade:200 gray;
              Tw.flex;
              Tw.items_center;
              Tw.justify_center;
@@ -68,7 +69,7 @@ let color_swatch name tw_color description ~is_text_color =
       Html.div
         [
           Html.p ~tw:[ Tw.font_semibold ] [ Html.txt name ];
-          Html.p ~tw:[ Tw.text_sm; Tw.text_gray_600 ] [ Html.txt description ];
+          Html.p ~tw:[ text_sm; text ~shade:600 gray ] [ Html.txt description ];
         ];
     ]
 
@@ -77,10 +78,10 @@ let text_colors_section palette =
   Html.div
     [
       Html.h3
-        ~tw:[ Tw.text_lg; Tw.font_semibold; Tw.mb (Int 4) ]
+        ~tw:[ text_lg; font_semibold; mb (int 4) ]
         [ Html.txt "Text Colors" ];
       Html.div
-        ~tw:[ Tw.grid; Tw.grid_cols 1; Tw.md (Tw.grid_cols 2); Tw.gap (Int 4) ]
+        ~tw:[ grid; grid_cols 1; on_md [ grid_cols 2 ]; gap (int 4) ]
         [
           color_swatch "text_primary"
             (Colors.text_primary palette)
@@ -99,10 +100,10 @@ let background_colors_section palette =
   Html.div
     [
       Html.h3
-        ~tw:[ Tw.text_lg; Tw.font_semibold; Tw.mb (Int 4) ]
+        ~tw:[ text_lg; font_semibold; mb (int 4) ]
         [ Html.txt "Background Colors" ];
       Html.div
-        ~tw:[ Tw.grid; Tw.grid_cols 1; Tw.md (Tw.grid_cols 2); Tw.gap (Int 4) ]
+        ~tw:[ grid; grid_cols 1; on_md [ grid_cols 2 ]; gap (int 4) ]
         [
           color_swatch "bg_primary"
             (Colors.bg_primary palette)
@@ -118,27 +119,27 @@ let border_colors_section palette =
   Html.div
     [
       Html.h3
-        ~tw:[ Tw.text_lg; Tw.font_semibold; Tw.mb (Int 4) ]
+        ~tw:[ text_lg; font_semibold; mb (int 4) ]
         [ Html.txt "Border Colors" ];
       Html.div
-        ~tw:[ Tw.grid; Tw.grid_cols 1; Tw.md (Tw.grid_cols 2); Tw.gap (Int 4) ]
+        ~tw:[ grid; grid_cols 1; on_md [ grid_cols 2 ]; gap (int 4) ]
         [
           Html.div
             ~tw:
               [
-                Tw.p (Int 4);
-                Tw.border_2;
+                p (int 4);
+                Tw.border `Sm;
                 Colors.border_muted palette;
-                Tw.rounded None;
+                Tw.rounded none;
               ]
             [ Html.txt "Muted border (gray-200)" ];
           Html.div
             ~tw:
               [
-                Tw.p (Int 4);
-                Tw.border_2;
+                p (int 4);
+                Tw.border `Sm;
                 Colors.border_accent palette;
-                Tw.rounded None;
+                Tw.rounded none;
               ]
             [ Html.txt "Accent border (accent-600)" ];
         ];
@@ -149,10 +150,10 @@ let test () =
   let colors =
     [
       Html.h2
-        ~tw:[ Tw.text_xl; Tw.font_bold; Tw.mb (Int 4) ]
+        ~tw:[ text_xl; font_bold; mb (int 4) ]
         [ Html.txt "Color Palette" ];
       Html.div
-        ~tw:[ Tw.space_y (Int 8) ]
+        ~tw:[ flex; flex_col; gap (int 8) ]
         [
           text_colors_section palette;
           background_colors_section palette;

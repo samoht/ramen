@@ -1,5 +1,6 @@
 open Core
 open Html
+open Tw
 
 (* Menu item type *)
 type menu_item = { label : string; page : Page.t }
@@ -46,24 +47,23 @@ let menu_link item active_page =
   let classes =
     if is_active then
       [
-        Tw.px_3;
-        Tw.py_2;
-        Tw.rounded_lg;
-        Tw.text_sm;
-        Tw.font_medium;
-        Tw.text_white;
-        Tw.bg ~shade:700 Tw.Sky;
+        px (int 3);
+        py (int 2);
+        rounded lg;
+        text_sm;
+        font_medium;
+        text white;
+        bg ~shade:700 sky;
       ]
     else
       [
-        Tw.px_3;
-        Tw.py_2;
-        Tw.rounded_lg;
-        Tw.text_sm;
-        Tw.font_medium;
-        Tw.text_sky_100;
-        Tw.hover_bg_sky_800;
-        Tw.hover_text_white;
+        px (int 3);
+        py (int 2);
+        rounded lg;
+        text_sm;
+        font_medium;
+        text ~shade:100 sky;
+        on_hover [ bg ~shade:800 sky; text white ];
       ]
   in
   a ~at:[ At.href (page_href item.page) ] ~tw:classes [ txt item.label ]
@@ -73,36 +73,45 @@ let render t =
   let active_page = t.active_page in
   let palette = t.palette in
   let links = [ Link.ocaml_org; Link.github_org ] in
-  nav ~tw:[ Tw.bg_sky_900 ]
+  nav
+    ~tw:[ bg ~shade:900 sky ]
     [
       div
-        ~tw:[ Tw.mx_auto; Tw.max_w_7xl; Tw.px_4; Tw.px_6; Tw.px_8 ]
+        ~tw:
+          [
+            mx auto;
+            max_w (rem 80.0) (* 7xl = 80rem *);
+            px (int 4);
+            px (int 6);
+            px (int 8);
+          ]
         [
           div
-            ~tw:[ Tw.flex; Tw.h_16; Tw.items_center; Tw.justify_between ]
+            ~tw:[ flex; h (int 16); items_center; justify_between ]
             [
-              div
-                ~tw:[ Tw.flex; Tw.items_center ]
+              div ~tw:[ flex; items_center ]
                 [
-                  div ~tw:[ Tw.flex_shrink_0 ]
+                  div ~tw:[ flex_shrink_0 ]
                     [
                       a
                         ~at:[ At.href "/" ]
-                        ~tw:[ Tw.text_white; Tw.font_bold; Tw.text_xl ]
+                        ~tw:[ text white; font_bold; text_xl ]
                         [ txt t.site.name ];
                     ];
-                  div ~tw:[ Tw.hidden; Tw.md_block ]
+                  div
+                    ~tw:[ hidden; on_md [ block ] ]
                     [
                       div
                         ~tw:
-                          [ Tw.ml_10; Tw.flex; Tw.items_baseline; Tw.space_x_4 ]
+                          [ ml (int 10); flex; items_baseline; gap (int 4) ]
                         (List.map (fun item -> menu_link item active_page) menu);
                     ];
                 ];
-              div ~tw:[ Tw.hidden; Tw.md_block ]
+              div
+                ~tw:[ hidden; on_md [ block ] ]
                 [
                   div
-                    ~tw:[ Tw.ml_4; Tw.flex; Tw.items_center; Tw.md_ml_6 ]
+                    ~tw:[ ml (int 4); flex; items_center; on_md [ ml (int 6) ] ]
                     (List.map
                        (fun link -> Link.external_nav ~palette link)
                        links);

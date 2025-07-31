@@ -1,42 +1,28 @@
 open Ui
 open Html
+open Tw
 
 let page =
   div
-    ~tw:[ Tw.text_center; Tw.min_h_screen; Tw.pt_56 ]
+    ~tw:[ text_center; min_h screen; pt (int 56) ]
     [
-      p
-        ~tw:[ Tw.text_base; Tw.font_semibold; Tw.text ~shade:600 Tw.Sky ]
-        [ txt "404" ];
+      Html.p ~tw:[ text_base; font_semibold; text ~shade:600 sky ] [ txt "404" ];
       h1
         ~tw:
           [
-            Tw.mt (Tw.Int 4);
-            Tw.text_3xl;
-            Tw.font_bold;
-            Tw.tracking_tight;
-            Tw.text ~shade:900 Tw.Gray;
-            Tw.sm Tw.text_5xl;
+            mt (int 4);
+            text_3xl;
+            font_bold;
+            tracking_tight;
+            text ~shade:900 gray;
+            on_sm [ text_5xl ];
           ]
         [ txt "Page not found" ];
-      p
-        ~tw:
-          [
-            Tw.mt (Tw.Int 6);
-            Tw.text_base;
-            Tw.leading_relaxed;
-            Tw.text ~shade:600 Tw.Gray;
-          ]
+      Html.p
+        ~tw:[ mt (int 6); text_base; leading_relaxed; text ~shade:600 gray ]
         [ txt "Sorry, we couldn't find the page you're looking for." ];
       div
-        ~tw:
-          [
-            Tw.mt (Tw.Int 10);
-            Tw.flex;
-            Tw.items_center;
-            Tw.justify_center;
-            Tw.gap_x (Tw.Int 6);
-          ]
+        ~tw:[ mt (int 10); flex; items_center; justify_center; gap_x (int 6) ]
         [ Ui.Button.render ~href:"/" "Go back home" ];
     ]
 

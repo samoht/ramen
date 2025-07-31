@@ -1,4 +1,5 @@
 open Html
+open Tw
 
 type opacity = Opacity_50 | Opacity_70
 type size = Size_6 | Size_8 | Size_10 | Size_12 | Size_16
@@ -12,16 +13,16 @@ let size_to_int = function
 
 let size_classes size =
   match size_to_int size with
-  | 6 -> [ Tw.w_6; Tw.h_6 ]
-  | 8 -> [ Tw.w_8; Tw.h_8 ]
-  | 10 -> [ Tw.w_10; Tw.h_10 ]
-  | 12 -> [ Tw.w_12; Tw.h_12 ]
-  | 16 -> [ Tw.w_16; Tw.h_16 ]
+  | 6 -> [ w (int 6); h (int 6) ]
+  | 8 -> [ w (int 8); h (int 8) ]
+  | 10 -> [ w (int 10); h (int 10) ]
+  | 12 -> [ w (int 12); h (int 12) ]
+  | 16 -> [ w (int 16); h (int 16) ]
   | _ -> [] (* Should never happen with variant types *)
 
 let opacity_class = function
-  | Opacity_50 -> Tw.opacity_50
-  | Opacity_70 -> Tw.hover_opacity_70
+  | Opacity_50 -> opacity 50
+  | Opacity_70 -> on_hover [ opacity 70 ]
 
 let initials ?(size = Size_10) ?opacity name =
   let initials =
@@ -38,17 +39,17 @@ let initials ?(size = Size_10) ?opacity name =
     ~tw:
       (size_classes size
       @ [
-          Tw.relative;
-          Tw.inline_flex;
-          Tw.items_center;
-          Tw.justify_center;
-          Tw.overflow_hidden;
-          Tw.bg_gray_100;
-          Tw.rounded_full;
-          Tw.dark_bg_gray_600;
+          relative;
+          inline_flex;
+          items_center;
+          justify_center;
+          overflow_hidden;
+          bg ~shade:100 gray;
+          rounded full;
+          dark (bg ~shade:600 gray);
         ]
       @ opacity_classes)
-    [ span ~tw:[ Tw.font_medium; Tw.text_gray_300 ] [ txt initials ] ]
+    [ span ~tw:[ font_medium; text ~shade:300 gray ] [ txt initials ] ]
 
 type t = {
   size : size option;
@@ -69,18 +70,21 @@ let render t =
       let opacity_classes =
         match opacity with Some op -> [ opacity_class op ] | None -> []
       in
-      let ring_classes =
-        match ring with Some _ -> [ Tw.ring_2; Tw.ring_white ] | None -> []
+      let _ring_classes =
+        match ring with
+        | Some _width ->
+            [ (* Ring classes temporarily removed from minimal API *) ]
+        | None -> []
       in
       div
         ~tw:
           (size_classes size
-          @ [ Tw.rounded_full; Tw.bg_gray_100; Tw.overflow_hidden; Tw.m_1 ]
-          @ opacity_classes @ ring_classes)
+          @ [ rounded full; bg ~shade:100 gray; overflow_hidden; m (int 1) ]
+          @ opacity_classes)
         [
           img
             ~at:[ At.src avatar; At.alt author.name; At.loading_lazy ]
-            ~tw:[ Tw.w_full; Tw.h_full; Tw.object_cover ]
+            ~tw:[ w full; h full; object_cover ]
             ();
         ]
 

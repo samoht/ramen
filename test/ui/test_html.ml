@@ -1,6 +1,7 @@
 (** Tests for the HTML module *)
 
 open Alcotest
+open Ui.Tw
 
 let test_txt () =
   let text = Ui.Html.txt "Hello World" in
@@ -8,11 +9,7 @@ let test_txt () =
   check string "text content" "Hello World" html_str
 
 let test_element_creation () =
-  let div =
-    Ui.Html.div
-      ~tw:[ Ui.Tw.p (Int 4); Ui.Tw.bg_white ]
-      [ Ui.Html.txt "Content" ]
-  in
+  let div = Ui.Html.div ~tw:[ p (int 4); bg white ] [ Ui.Html.txt "Content" ] in
   let html_str = Ui.Html.to_string div in
 
   check bool "is div element" true
@@ -26,7 +23,7 @@ let test_attributes () =
   let link =
     Ui.Html.a
       ~at:[ Ui.Html.At.href "/about"; Ui.Html.At.title "About page" ]
-      ~tw:[ Ui.Tw.text ~shade:600 Ui.Tw.Blue; Ui.Tw.hover Ui.Tw.underline ]
+      ~tw:[ text ~shade:600 blue; on_hover [ underline ] ]
       [ Ui.Html.txt "About" ]
   in
   let html_str = Ui.Html.to_string link in
@@ -46,7 +43,7 @@ let test_nesting () =
         Ui.Html.p
           [
             Ui.Html.txt "Paragraph with ";
-            Ui.Html.span ~tw:[ Ui.Tw.font_bold ] [ Ui.Html.txt "bold" ];
+            Ui.Html.span ~tw:[ font_bold ] [ Ui.Html.txt "bold" ];
             Ui.Html.txt " text.";
           ];
       ]
@@ -66,25 +63,19 @@ let test_nesting () =
 let test_to_tw () =
   let elem =
     Ui.Html.div
-      ~tw:
-        [
-          Ui.Tw.p (Int 4);
-          Ui.Tw.bg_white;
-          Ui.Tw.text_gray_900;
-          Ui.Tw.rounded Ui.Tw.Lg;
-        ]
-      [ Ui.Html.span ~tw:[ Ui.Tw.font_bold ] [ Ui.Html.txt "Text" ] ]
+      ~tw:[ p (int 4); bg white; text ~shade:900 gray; rounded lg ]
+      [ Ui.Html.span ~tw:[ font_bold ] [ Ui.Html.txt "Text" ] ]
   in
 
   let tw_classes = Ui.Html.to_tw elem in
-  check int "collected 5 classes" 5 (List.length tw_classes);
+  check Alcotest.int "collected 5 classes" 5 (List.length tw_classes);
   check bool "has p_4" true
-    (List.exists (fun tw -> Ui.Tw.to_string tw = "p-4") tw_classes);
+    (List.exists (fun tw -> to_string tw = "p-4") tw_classes);
   check bool "has font_bold" true
-    (List.exists (fun tw -> Ui.Tw.to_string tw = "font-bold") tw_classes)
+    (List.exists (fun tw -> to_string tw = "font-bold") tw_classes)
 
 let test_pp () =
-  let elem = Ui.Html.div ~tw:[ Ui.Tw.p (Int 2) ] [ Ui.Html.txt "Test" ] in
+  let elem = Ui.Html.div ~tw:[ p (int 2) ] [ Ui.Html.txt "Test" ] in
   let pp_output = Ui.Html.pp elem in
 
   check bool "pp contains element tag" true

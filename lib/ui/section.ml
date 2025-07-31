@@ -1,32 +1,34 @@
 open Html
+open Tw
 
 (* Helper function to determine background styles *)
 let background_style = function
-  | `White -> [ Tw.bg_white ]
-  | `Gray -> [ Tw.bg ~shade:50 Tw.Gray ]
-  | `Dark -> [ Tw.bg ~shade:900 Tw.Gray ]
-  | `Blue -> [ Tw.bg ~shade:50 Tw.Blue ]
+  | `White -> [ Tw.bg Tw.white ]
+  | `Gray -> [ Tw.bg ~shade:50 Tw.gray ]
+  | `Dark -> [ Tw.bg ~shade:900 Tw.gray ]
+  | `Blue -> [ Tw.bg ~shade:50 Tw.blue ]
   | `Gradient -> [] (* Will use raw class for gradient *)
 
 (* Helper function to determine width style *)
 let width_style = function
-  | `Normal -> [ Tw.max_w_5xl ]
-  | `Large -> [ Tw.max_w_7xl ]
+  | `Normal -> [ Tw.max_w (Tw.rem 64.0) ] (* 5xl = 64rem *)
+  | `Large -> [ Tw.max_w (Tw.rem 80.0) ]
+(* 7xl = 80rem *)
 
 (* Helper function to determine padding styles *)
 let padding_style py pt pb =
   match (py, pt, pb) with
-  | `None, _, _ -> [ Tw.py (Int 0) ]
-  | `Small, _, _ -> [ Tw.py (Int 8) ]
-  | `Normal, `Normal, `Normal -> [ Tw.py (Int 24) ]
-  | `Normal, `Small, `Normal -> [ Tw.pt (Int 8); Tw.pb (Int 24) ]
-  | `Normal, `None, `Normal -> [ Tw.pt (Int 0); Tw.pb (Int 24) ]
-  | `Normal, `Normal, `Small -> [ Tw.pt (Int 24); Tw.pb (Int 8) ]
-  | `Normal, `Normal, `None -> [ Tw.pt (Int 24); Tw.pb (Int 0) ]
-  | `Normal, `Small, `Small -> [ Tw.py (Int 8) ]
-  | `Normal, `Small, `None -> [ Tw.pt (Int 8); Tw.pb (Int 0) ]
-  | `Normal, `None, `Small -> [ Tw.pt (Int 0); Tw.pb (Int 8) ]
-  | `Normal, `None, `None -> [ Tw.py (Int 0) ]
+  | `None, _, _ -> [ Tw.py (Tw.int 0) ]
+  | `Small, _, _ -> [ Tw.py (Tw.int 8) ]
+  | `Normal, `Normal, `Normal -> [ Tw.py (Tw.int 24) ]
+  | `Normal, `Small, `Normal -> [ Tw.pt (Tw.int 8); Tw.pb (Tw.int 24) ]
+  | `Normal, `None, `Normal -> [ Tw.pt (Tw.int 0); Tw.pb (Tw.int 24) ]
+  | `Normal, `Normal, `Small -> [ Tw.pt (Tw.int 24); Tw.pb (Tw.int 8) ]
+  | `Normal, `Normal, `None -> [ Tw.pt (Tw.int 24); Tw.pb (Tw.int 0) ]
+  | `Normal, `Small, `Small -> [ Tw.py (Tw.int 8) ]
+  | `Normal, `Small, `None -> [ Tw.pt (Tw.int 8); Tw.pb (Tw.int 0) ]
+  | `Normal, `None, `Small -> [ Tw.pt (Tw.int 0); Tw.pb (Tw.int 8) ]
+  | `Normal, `None, `None -> [ Tw.py (Tw.int 0) ]
 
 (* Helper function to render dark background overlay *)
 let render_dark_background () =
@@ -37,8 +39,8 @@ let render_dark_background () =
         [
           Tw.absolute;
           Tw.inset_0;
-          Tw.bg ~shade:900 Tw.Black;
-          Tw.opacity_10;
+          Tw.bg ~shade:900 Tw.black;
+          Tw.opacity 10;
           Tw.pointer_events_none;
         ]
       [];
@@ -55,16 +57,16 @@ let render ?(width = `Normal) ?(background = `White) ?(py = `Normal)
   let id = match id with None -> [] | Some x -> [ At.id x ] in
   let gradient_styles =
     match background with
-    | `Gradient -> [ Tw.border_t; Tw.border_gray_200 ]
+    | `Gradient -> [ border_t; border_color ~shade:200 gray ]
     | _ -> []
   in
   section
     ~tw:
       (bg_styles @ padding_styles @ gradient_styles
-      @ [ Tw.relative; Tw.overflow_hidden; Tw.overflow_auto ])
+      @ [ relative; overflow_hidden; overflow_auto ])
     ~at:id
     [
       div
-        ~tw:(width_styles @ [ Tw.mx Auto; Tw.w_full; Tw.px (Int 4) ])
+        ~tw:(width_styles @ [ mx auto; w full; px (int 4) ])
         (background_elems @ description);
     ]

@@ -1,6 +1,7 @@
 (* Visual test for card components *)
 
 open Ui
+open Tw
 
 (* Helper to generate a test page *)
 let generate_test_page ~title ~filename content =
@@ -20,8 +21,9 @@ let generate_test_page ~title ~filename content =
                 ]
               ();
           ];
-        Html.body ~tw:[ Tw.bg_gray_50 ]
-          [ Html.div ~tw:[ Tw.p (Int 8); Tw.max_w_6xl; Tw.mx_auto ] content ];
+        Html.body
+          ~tw:[ bg ~shade:50 gray ]
+          [ Html.div ~tw:[ p (int 8); max_w (rem 72.0); mx auto ] content ];
       ]
   in
   let html = Html.to_string ~doctype:true page in
@@ -33,16 +35,16 @@ let generate_test_page ~title ~filename content =
 (* Helper to create sample card content *)
 let sample_content () =
   [
-    Html.h3 ~tw:[ Tw.text_lg; Tw.font_semibold ] [ Html.txt "Card Title" ];
+    Html.h3 ~tw:[ text_lg; font_semibold ] [ Html.txt "Card Title" ];
     Html.p
-      ~tw:[ Tw.text_gray_600; Tw.mt (Int 2); Tw.mb (Int 4) ]
+      ~tw:[ text ~shade:600 gray; mt (int 2); mb (int 4) ]
       [
         Html.txt
           "This is some sample content inside the card. Cards are useful for \
            grouping related content.";
       ];
     Html.div
-      ~tw:[ Tw.mt (Int 4) ]
+      ~tw:[ Tw.mt (Tw.int 4) ]
       [ Button.render ~variant:Primary ~size:`Small ~href:"#" "Learn More" ];
   ]
 
@@ -51,7 +53,7 @@ let card_demo ~title ~variant =
   Html.div
     [
       Html.h3
-        ~tw:[ Tw.text_lg; Tw.font_semibold; Tw.mb (Int 2) ]
+        ~tw:[ Tw.text_lg; Tw.font_semibold; Tw.mb (Tw.int 2) ]
         [ Html.txt title ];
       Card.render ~variant (sample_content ());
     ]
@@ -60,10 +62,13 @@ let test_cards () =
   let cards =
     [
       Html.h2
-        ~tw:[ Tw.text_xl; Tw.font_bold; Tw.mb (Int 4) ]
+        ~tw:[ Tw.text_xl; Tw.font_bold; Tw.mb (Tw.int 4) ]
         [ Html.txt "Card Variants" ];
       Html.div
-        ~tw:[ Tw.grid; Tw.grid_cols 1; Tw.md (Tw.grid_cols 2); Tw.gap (Int 6) ]
+        ~tw:
+          [
+            Tw.grid; Tw.grid_cols 1; on_md [ Tw.grid_cols 2 ]; Tw.gap (Tw.int 6);
+          ]
         [
           card_demo ~title:"Default Card" ~variant:Default;
           card_demo ~title:"Outlined Card" ~variant:Outlined;

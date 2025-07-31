@@ -102,6 +102,10 @@ type stylesheet = { rules : rule list; media_queries : media_query list }
 
 (** {1 Creation} *)
 
+val property_name_to_string : property_name -> string
+(** [property_name_to_string prop] converts a property name to its CSS string
+    representation. *)
+
 val rule : selector:string -> property list -> rule
 (** [rule ~selector properties] creates a CSS rule with a selector and
     properties. *)

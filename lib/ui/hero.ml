@@ -1,4 +1,5 @@
 open Html
+open Tw
 
 type style =
   | Gradient (* Index page style with gradient background *)
@@ -13,21 +14,21 @@ let render_subtitle ?(centered = false) ~palette subtitle =
       let classes =
         if centered then
           [
-            Tw.text_base;
+            text_base;
             Colors.text_muted palette;
-            Tw.mt_2;
-            Tw.italic;
-            Tw.max_w_2xl;
-            Tw.mx_auto;
+            mt (int 2);
+            italic;
+            max_w xl_2;
+            mx auto;
           ]
-        else [ Tw.text_base; Colors.text_muted palette; Tw.mt_2; Tw.italic ]
+        else [ text_base; Colors.text_muted palette; mt (int 2); italic ]
       in
-      p ~tw:classes [ txt sub ]
+      Html.p ~tw:classes [ txt sub ]
 
 (* Helper to render gradient background effects *)
 let render_gradient_background () =
   div
-    ~tw:[ Tw.absolute; Tw.inset_0; Tw.opacity_30; Tw.pointer_events_none ]
+    ~tw:[ absolute; inset_0; opacity 30; pointer_events_none ]
     [
       (* Grid pattern overlay *)
       div
@@ -38,8 +39,7 @@ let render_gradient_background () =
                transparent 1px), linear-gradient(90deg, rgba(14, 165, 233, \
                0.1) 1px, transparent 1px); background-size: 50px 50px;";
           ]
-        ~tw:[ Tw.absolute; Tw.inset_0 ]
-        [];
+        ~tw:[ absolute; inset_0 ] [];
       (* Floating particles effect *)
       div
         ~at:
@@ -51,7 +51,8 @@ let render_gradient_background () =
                102, 241, 0.2) 1px, transparent 1px); background-size: 80px \
                80px, 110px 110px; background-position: 0 0, 30px 30px;";
           ]
-        ~tw:[ Tw.opacity_50 ] [];
+        ~tw:[ opacity 50 ]
+        [];
     ]
 
 (* Helper to render circuit decorations *)
@@ -59,24 +60,24 @@ let render_circuit_decorations () =
   div
     ~tw:
       [
-        Tw.absolute;
-        Tw.inset_0;
-        Tw.pointer_events_none;
-        Tw.flex;
-        Tw.items_center;
-        Tw.justify_center;
+        absolute;
+        inset_0;
+        pointer_events_none;
+        flex;
+        items_center;
+        justify_center;
       ]
     [
       (* Camel on the left *)
       div
-        ~at:[ Html.At.style "left: -100px; top: 50%" ]
+        ~at:[ At.style "left: -100px; top: 50%" ]
         ~tw:
           [
-            Tw.absolute;
-            Tw.neg_mt_56;
-            Tw.pt_56;
-            Tw.scale_150;
-            Tw.sm_transform_none;
+            absolute;
+            neg_mt (int 56);
+            pt (int 56);
+            scale 150;
+            on_sm [ transform_none ];
           ]
         [];
       (* Boat on the right *)
@@ -84,11 +85,11 @@ let render_circuit_decorations () =
         ~at:[ At.style "right: -100px; top: 50%" ]
         ~tw:
           [
-            Tw.absolute;
-            Tw.neg_mt_56;
-            Tw.pt_56;
-            Tw.scale_150;
-            Tw.sm_transform_none;
+            absolute;
+            neg_mt (int 56);
+            pt (int 56);
+            scale 150;
+            on_sm [ transform_none ];
           ]
         [];
     ]
@@ -98,32 +99,38 @@ let render_gradient ~title ~description ~subtitle ~palette =
   section
     ~tw:
       [
-        Tw.relative;
-        Tw.py_20;
-        Tw.bg_gradient_to_br;
-        Tw.from_sky_50;
-        Tw.via_blue_50;
-        Tw.to_indigo_50;
-        Tw.overflow_hidden;
+        relative;
+        py (int 20);
+        bg_gradient_to_br;
+        from_color ~shade:50 sky;
+        to_color ~shade:50 indigo;
+        overflow_hidden;
       ]
     [
       render_gradient_background ();
       (* Content *)
       div
-        ~tw:[ Tw.relative; Tw.max_w_4xl; Tw.mx_auto; Tw.px_6; Tw.z_10 ]
+        ~tw:
+          [
+            relative;
+            max_w (rem 56.0) (* 4xl = 56rem *);
+            mx auto;
+            px (int 6);
+            z 10;
+          ]
         [
           h1
             ~tw:
               [
-                Tw.text_4xl;
-                Tw.sm_text_5xl;
-                Tw.font_bold;
+                text_4xl;
+                on_sm [ text_5xl ];
+                font_bold;
                 Colors.text_primary palette;
-                Tw.mb_4;
+                mb (int 4);
               ]
             [ txt title ];
-          p
-            ~tw:[ Tw.text_lg; Colors.text_muted palette; Tw.leading_relaxed ]
+          Html.p
+            ~tw:[ text_lg; Colors.text_muted palette; leading_relaxed ]
             [ txt description ];
           render_subtitle ~palette subtitle;
           void;
@@ -133,36 +140,39 @@ let render_gradient ~title ~description ~subtitle ~palette =
 (* Render simple style hero with circuit decorations *)
 let render_simple ~title ~description ~subtitle ~palette =
   section
-    ~tw:[ Tw.bg_white; Tw.py_24; Tw.relative; Tw.overflow_hidden ]
+    ~tw:[ bg white; py (int 24); relative; overflow_hidden ]
     [
       render_circuit_decorations ();
       (* Content *)
       div
         ~tw:
           [
-            Tw.relative;
-            Tw.z_10;
-            Tw.max_w_4xl;
-            Tw.mx_auto;
-            Tw.px_6;
-            Tw.mb_12;
-            Tw.text_center;
+            relative;
+            z 10;
+            max_w xl_4;
+            mx auto;
+            px (int 6);
+            mb (int 12);
+            text_center;
           ]
         [
           h1
             ~tw:
               [
-                Tw.text_4xl;
-                Tw.sm_text_5xl;
-                Tw.font_bold;
+                text_4xl;
+                on_sm [ text_5xl ];
+                font_bold;
                 Colors.text_primary palette;
-                Tw.mb_4;
+                mb (int 4);
               ]
             [ txt title ];
-          p
+          Html.p
             ~tw:
               [
-                Tw.text_lg; Colors.text_muted palette; Tw.max_w_2xl; Tw.mx_auto;
+                text_lg;
+                Colors.text_muted palette;
+                max_w (rem 42.0) (* 2xl = 42rem *);
+                mx auto;
               ]
             [ txt description ];
           render_subtitle ~centered:true ~palette subtitle;
@@ -172,25 +182,25 @@ let render_simple ~title ~description ~subtitle ~palette =
 (* Render post style hero *)
 let render_post ~title ~subtitle ~palette =
   section
-    ~tw:[ Tw.bg_white; Tw.border_b; Colors.border_muted palette; Tw.py_24 ]
+    ~tw:[ bg white; border_b; Colors.border_muted palette; py (int 24) ]
     [
       div
-        ~tw:[ Tw.max_w_4xl; Tw.mx_auto; Tw.px_6 ]
+        ~tw:[ max_w (rem 56.0) (* 4xl = 56rem *); mx auto; px (int 6) ]
         [
           h1
             ~tw:
               [
-                Tw.text_3xl;
-                Tw.sm_text_4xl;
-                Tw.font_bold;
+                text_3xl;
+                on_sm [ text_4xl ];
+                font_bold;
                 Colors.text_primary palette;
-                Tw.mb_4;
+                mb (int 4);
               ]
             [ txt title ];
           (match subtitle with
           | None -> void
           | Some sub ->
-              span ~tw:[ Tw.text_sm; Colors.text_muted palette ] [ txt sub ]);
+              span ~tw:[ text_sm; Colors.text_muted palette ] [ txt sub ]);
         ];
     ]
 

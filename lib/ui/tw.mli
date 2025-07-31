@@ -1,22 +1,36 @@
-(** Type-safe Tailwind CSS
+(** Type-safe CSS styling
 
-    This module provides a typed interface to the
-    {{:https://tailwindcss.com/}Tailwind CSS} utility-first framework. It
-    replaces raw string class names with a system of OCaml types and functions,
-    preventing typos and invalid class combinations at compile-time.
+    This module provides a typed interface for generating CSS styles without
+    writing raw CSS. It prevents typos and invalid combinations at compile-time
+    by using OCaml's type system.
 
-    {1:model Model}
+    {1:concepts Core Concepts}
 
-    The core of the library is the abstract type {!t}, which represents a
-    single, atomic Tailwind class.
+    - {b Utility-first}: Instead of writing CSS classes with multiple
+      properties, you compose small, single-purpose utilities (e.g., [bg blue]
+      for background color, [p (int 4)] for padding)
 
-    A complete set of styles for an HTML element is constructed by creating a
-    [t list]. This list is then converted to a space-separated string for use in
-    a [class] attribute using the {!to_classes} function.
+    - {b Type-safe}: The OCaml compiler catches errors like misspelled utilities
+      or invalid value combinations at compile time
 
-    State modifiers (e.g., for hover, focus, or responsive breakpoints) are
-    implemented as higher-order functions that transform a style. For example,
-    [hover bg_blue_700] creates a style that only applies on mouse hover.
+    - {b Composable}: Styles are composed by creating lists of utilities that
+      work together
+
+    {1:model How It Works}
+
+    1. Each function returns a value of type {!t} representing a single style 2.
+    Multiple styles are combined by creating a [t list] 3. The list is converted
+    to CSS using {!to_classes} 4. The resulting string is used with HTML
+    elements
+
+    {1:units Units and Scales}
+
+    - {b Spacing}: The [int] constructor creates values in 0.25rem increments.
+      [int 4] = 1rem = 16px (by default)
+    - {b Sizes}: Predefined sizes like [sm], [md], [lg] provide consistent
+      scaling
+    - {b Colors}: Colors use an optional shade parameter (50-900) where higher
+      numbers are darker
 
     {1:usage Usage Example}
 
@@ -24,82 +38,295 @@
       let button =
         let styles =
           [
-            bg_blue_500;
-            text_white;
+            (* Background and text colors *)
+            bg blue;
+            (* blue background *)
+            text white;
+            (* white text *)
+
+            (* Spacing: padding of 1rem vertical, 2rem horizontal *)
+            py (int 4);
+            (* 4 * 0.25rem = 1rem *)
+            px (int 8);
+            (* 8 * 0.25rem = 2rem *)
+
+            (* Typography and borders *)
             font_bold;
-            py_2;
-            px_4;
-            rounded_md;
-            hover bg_blue_700 (* Apply blue-700 background on hover *);
-            sm px_6 (* Use larger padding on small screens and up *);
+            (* font-weight: 700 *)
+            rounded md;
+            (* medium border radius *)
+
+            (* Interactive states *)
+            on_hover [ bg ~shade:700 blue ];
+            (* darker blue on hover *)
+            transition_colors;
+            (* smooth color transitions *)
+
+            (* Responsive design *)
+            on_sm [ px (int 6) ];
+            (* less padding on small screens *)
           ]
         in
-        Html.button [ class' (to_classes styles) ] [ Html.txt "Click Me" ]
+        Html.button ~tw:styles [ Html.txt "Click Me" ]
     ]}
 
-    The library aims to provide comprehensive coverage of the Tailwind API. *)
+    {1:links Learn More}
+
+    - The API design follows {{:https://tailwindcss.com/}Tailwind CSS}
+      conventions
+    - Colors, spacing, and sizes use consistent scales throughout *)
 
 (** {1 Core Types}
     @see <https://tailwindcss.com/docs/customizing-colors> Customizing Colors *)
 
 type t
-(** The abstract type representing a single Tailwind CSS class. *)
+(** The abstract type representing a single CSS style utility. You cannot create
+    values of this type directly - use the provided functions. *)
 
-type color =
-  | Black
-  | White
-  | Gray
-  | Slate
-  | Zinc
-  | Red
-  | Orange
-  | Amber
-  | Yellow
-  | Lime
-  | Green
-  | Emerald
-  | Teal
-  | Cyan
-  | Sky
-  | Blue
-  | Indigo
-  | Violet
-  | Purple
-  | Fuchsia
-  | Pink
-  | Rose
+type color
+(** Abstract type for colors. Use color constructors like [red], [blue], etc.
+    Colors can have shades from 50 (lightest) to 900 (darkest). *)
 
-(** A general-purpose scale for values like padding, margin, etc. *)
-type spacing = Px | Full | Val of float | Int of int
+type size = [ `None | `Xs | `Sm | `Md | `Lg | `Xl | `Xl_2 | `Xl_3 | `Full ]
+(** Standard size scale used consistently across the library:
+    - [`None]: 0 (removes the property)
+    - [`Xs]: extra small
+    - [`Sm]: small
+    - [`Md]: medium (usually the default)
+    - [`Lg]: large
+    - [`Xl] to [`Xl_3]: extra large sizes
+    - [`Full]: 100% of parent *)
 
-(** A scale for margin, which uniquely allows Auto. *)
-type margin = Auto | Px | Full | Val of float | Int of int
+type spacing = [ `Px | `Full | `Val of float ]
+(** Scale for spacing utilities (padding, margin, gap):
+    - [`Px]: exactly 1 pixel
+    - [`Full]: 100% of parent
+    - [`Val f]: custom value where f is in rem units *)
 
-(** A scale for width and height, allowing Screen. *)
-type size = Screen | Px | Full | Val of float | Int of int
+type margin = [ spacing | `Auto ]
+(** Same as spacing but includes [`Auto] for automatic margins (centering). *)
 
-type shadow = None | Sm | Md | Lg | Xl | Xl_2 | Inner
-type rounded = None | Sm | Md | Lg | Xl | Xl_2 | Xl_3 | Full
+type scale = [ spacing | size | `Screen | `Min | `Max | `Fit ]
+(** Extended scale for width/height:
+    - Includes all spacing and size values
+    - [`Screen]: 100vw or 100vh (viewport width/height)
+    - [`Min]: min-content
+    - [`Max]: max-content
+    - [`Fit]: fit-content *)
+
+type max_scale = [ scale | `Xl_4 | `Xl_5 | `Xl_6 | `Xl_7 ]
+(** Scale for max-width including larger sizes for wide containers. *)
+
+type shadow = [ size | `Inner ]
+(** Shadow intensities from subtle to dramatic, plus [`Inner] for inset shadows.
+*)
+
+(** {1 Color Constructors} *)
+
+val black : color
+(** Pure black color. *)
+
+val white : color
+(** Pure white color. *)
+
+val gray : color
+(** Neutral gray color family. *)
+
+val slate : color
+(** Cool gray with blue undertones. *)
+
+val zinc : color
+(** Neutral gray with modern feel. *)
+
+val red : color
+(** Classic red color family. *)
+
+val orange : color
+(** Vibrant orange color family. *)
+
+val amber : color
+(** Warm yellow-orange color family. *)
+
+val yellow : color
+(** Bright yellow color family. *)
+
+val lime : color
+(** Electric green-yellow color family. *)
+
+val green : color
+(** Natural green color family. *)
+
+val emerald : color
+(** Rich blue-green color family. *)
+
+val teal : color
+(** Blue-green color family. *)
+
+val cyan : color
+(** Bright blue-cyan color family. *)
+
+val sky : color
+(** Light blue color family. *)
+
+val blue : color
+(** Classic blue color family. *)
+
+val indigo : color
+(** Deep blue-purple color family. *)
+
+val violet : color
+(** Purple-blue color family. *)
+
+val purple : color
+(** Classic purple color family. *)
+
+val fuchsia : color
+(** Bright pink-purple color family. *)
+
+val pink : color
+(** Soft pink color family. *)
+
+val rose : color
+(** Warm pink color family. *)
+
+(** {1 Value Constructors} *)
+
+(** {2 Spacing Constructors}
+
+    These create values for spacing utilities like padding, margin, and gaps. *)
+
+val int : int -> [> `Val of float ]
+(** [int n] creates spacing values: n × 0.25rem.
+
+    Common values:
+    - [int 0]: 0
+    - [int 1]: 0.25rem (4px)
+    - [int 2]: 0.5rem (8px)
+    - [int 4]: 1rem (16px) - base unit
+    - [int 8]: 2rem (32px)
+    - [int 16]: 4rem (64px)
+
+    This is the primary way to create consistent spacing. *)
+
+val one_px : [> `Px ]
+(** [one_px] is exactly 1 pixel spacing. *)
+
+val rem : float -> [> `Val of float ]
+(** [rem f] creates a custom spacing value in rem units. *)
+
+val full : [> `Full ]
+(** [full] is 100% of parent container. *)
+
+(** {2 Margin Constructors}
+
+    Additional constructors for margin utilities (includes all spacing
+    constructors). *)
+
+val auto : [> `Auto ]
+(** [auto] creates automatic margins that center elements horizontally. *)
+
+(** {2 Size Constructors}
+
+    Constructors for width/height utilities (includes all spacing constructors).
+*)
+
+val screen : [> `Screen ]
+(** [screen] is full viewport size (100vw for width, 100vh for height). *)
+
+val min : [> `Min ]
+(** [min] is min-content sizing (shrinks to minimum needed). *)
+
+val max : [> `Max ]
+(** [max] is max-content sizing (expands to natural width). *)
+
+val fit : [> `Fit ]
+(** [fit] is fit-content sizing (uses available space but not more than
+    max-content). *)
+
+(** {2 Standard Size Scale}
+
+    Named size values used consistently across the design system. *)
+
+val none : [> `None ]
+(** [none] removes the property or sets it to zero. *)
+
+val xs : [> `Xs ]
+(** [xs] is extra small size in the design scale. *)
+
+val sm : [> `Sm ]
+(** [sm] is small size in the design scale. *)
+
+val md : [> `Md ]
+(** [md] is medium size in the design scale. *)
+
+val lg : [> `Lg ]
+(** [lg] is large size in the design scale. *)
+
+val xl : [> `Xl ]
+(** [xl] is extra large size in the design scale. *)
+
+val xl_2 : [> `Xl_2 ]
+(** [xl_2] is 2x extra large size in the design scale. *)
+
+val xl_3 : [> `Xl_3 ]
+(** [xl_3] is 3x extra large size in the design scale. *)
+
+val xl_4 : [> `Xl_4 ]
+(** [xl_4] is 4x extra large size in the design scale. *)
+
+val xl_5 : [> `Xl_5 ]
+(** [xl_5] is 5x extra large size in the design scale. *)
+
+val xl_6 : [> `Xl_6 ]
+(** [xl_6] is 6x extra large size in the design scale. *)
+
+val xl_7 : [> `Xl_7 ]
+(** [xl_7] is 7x extra large size in the design scale. *)
+
+(** {2 Effect Constructors}
+
+    Specialized constructors for effects like shadows. *)
+
+val inner : [> `Inner ]
+(** [inner] creates inset shadows that appear inside the element. *)
 
 (** {1 Color & Background} *)
 
 val bg : ?shade:int -> color -> t
-(** [bg ?shade color] creates a background color with optional shade. *)
+(** [bg ?shade color] sets the background color.
+
+    Examples:
+    - [bg blue]: Default blue background
+    - [bg ~shade:100 gray]: Light gray background
+    - [bg ~shade:900 slate]: Very dark slate background
+
+    Shades range from 50 (lightest) to 900 (darkest). *)
 
 val bg_transparent : t
-(** Transparent background. *)
+(** Makes background fully transparent (invisible). *)
 
 val bg_current : t
-(** Current color background. *)
+(** Sets background color to match the element's text color. If the element has
+    [text ~shade:500 blue], the background will also be blue-500. Useful for 
+    icons and decorative elements that should match text. *)
 
 val text : ?shade:int -> color -> t
-(** [text ?shade color] creates a text color with optional shade. *)
+(** [text ?shade color] sets text color.
+
+    Examples:
+    - [text black]: Pure black text
+    - [text ~shade:600 gray]: Dark gray for body text
+    - [text ~shade:500 gray]: Medium gray for secondary text
+    - [text ~shade:700 blue]: Dark blue for links
+
+    Higher shade numbers (700-900) ensure readability on light backgrounds. *)
 
 val text_transparent : t
 (** Transparent text color. *)
 
 val text_current : t
-(** Current color text. *)
+(** Explicitly sets text color to "currentColor" (the inherited text color).
+    This is rarely needed since text naturally inherits color from parents. *)
 
 val border_color : ?shade:int -> color -> t
 (** [border_color ?shade color] creates a border color with optional shade. *)
@@ -108,115 +335,40 @@ val border_transparent : t
 (** Transparent border. *)
 
 val border_current : t
-(** Current color border. *)
-
-val bg_white : t
-(** White background. *)
-
-val bg_black : t
-(** Black background. *)
-
-val text_white : t
-(** White text color. *)
-
-val text_black : t
-(** Black text color. *)
-
-val text_gray_300 : t
-(** Light gray text (gray-300). *)
-
-val text_gray_400 : t
-(** Light gray text (gray-400). *)
-
-val text_gray_500 : t
-(** Medium-light gray text (gray-500). *)
-
-val text_gray_600 : t
-(** Medium gray text (gray-600). *)
-
-val text_gray_700 : t
-(** Medium-dark gray text (gray-700). *)
-
-val text_gray_900 : t
-(** Very dark gray text (gray-900). *)
-
-val text_sky_100 : t
-(** Very light sky blue text (sky-100). *)
-
-val text_sky_700 : t
-(** Medium-dark sky blue text (sky-700). *)
-
-val text_sky_900 : t
-(** Very dark sky blue text (sky-900). *)
-
-val text_teal_600 : t
-(** Medium teal text color (teal-600). *)
-
-val bg_gray_50 : t
-(** Very light gray background (gray-50). *)
-
-val bg_gray_100 : t
-(** Light gray background (gray-100). *)
-
-val bg_sky_600 : t
-(** Medium sky blue background (sky-600). *)
-
-val bg_sky_700 : t
-(** Medium-dark sky blue background (sky-700). *)
-
-val bg_sky_900 : t
-(** Very dark sky blue background (sky-900). *)
-
-val border_gray_200 : t
-(** Light gray border (gray-200). *)
-
-val border_teal_600 : t
-(** Medium teal border (teal-600). *)
-
-val hover_text_gray_900 : t
-(** Dark gray text on hover (gray-900). *)
-
-val hover_text_sky_600 : t
-(** Medium sky blue text on hover (sky-600). *)
-
-val hover_text_white : t
-(** White text on hover. *)
-
-val hover_border_gray_300 : t
-(** Light gray border on hover (gray-300). *)
-
-val hover_bg_sky_800 : t
-(** Dark sky blue background on hover (sky-800). *)
-
-val dark_bg_gray_600 : t
-(** Medium gray background in dark mode (gray-600). *)
+(** Sets border color to match the text color. For example:
+    {[
+      div ~tw:[ text ~shade:600 red; border `Default; border_current ]
+      (* Border will be red-600, same as the text *)
+    ]}
+    
+    This is the default behavior in Tailwind v4, but can be explicitly set. *)
 
 val bg_gradient_to_b : t
-(** Gradient direction to bottom. *)
+(** Creates a gradient from top to bottom. Must be used with from_color and
+    to_color.
+
+    Example:
+    {[
+      div
+        ~tw:
+          [
+            bg_gradient_to_b;
+            from_color ~shade:100 blue;
+            to_color ~shade:600 blue;
+          ]
+        [ txt "Gradient background" ]
+    ]}
+    
+    This creates a smooth color transition from top to bottom. *)
 
 val bg_gradient_to_br : t
-(** Gradient direction to bottom right. *)
+(** Creates a gradient from top-left to bottom-right (diagonal). *)
 
-val from_sky_50 : t
-(** Gradient from sky-50. *)
+val from_color : ?shade:int -> color -> t
+(** [from_color ?shade c] sets the starting color of a gradient. *)
 
-val via_blue_50 : t
-(** Gradient via blue-50. *)
-
-val to_indigo_50 : t
-(** Gradient to indigo-50. *)
-
-val from_gray_50 : t
-(** Gradient from very light gray (gray-50). *)
-
-val to_white : t
-(** Gradient to white. *)
-
-val from_color : color -> t
-(** [from_color c] sets gradient from color. *)
-
-val to_color : color -> t
-(** [to_color c] sets gradient to color. *)
+val to_color : ?shade:int -> color -> t
+(** [to_color ?shade c] sets the ending color of a gradient. *)
 
 (** {1 Spacing}
     @see <https://tailwindcss.com/docs/padding> Padding
@@ -225,13 +377,20 @@ val to_color : color -> t
     @see <https://tailwindcss.com/docs/gap> Gap *)
 
 val p : spacing -> t
-(** [p spacing] sets padding on all sides. *)
+(** [p spacing] sets padding (inner spacing) on all sides.
+
+    Examples:
+    - [p (int 4)]: 1rem padding on all sides
+    - [p (int 0)]: Remove all padding
+    - [p full]: Padding equal to parent width (rarely used). *)
 
 val px : spacing -> t
-(** [px spacing] sets horizontal padding (left and right). *)
+(** [px spacing] sets horizontal padding (left and right). Common for buttons
+    and cards to have more horizontal than vertical padding. *)
 
 val py : spacing -> t
-(** [py spacing] sets vertical padding (top and bottom). *)
+(** [py spacing] sets vertical padding (top and bottom). Often smaller than
+    horizontal padding for better proportions. *)
 
 val pt : spacing -> t
 (** [pt spacing] sets top padding. *)
@@ -245,56 +404,21 @@ val pb : spacing -> t
 val pl : spacing -> t
 (** [pl spacing] sets left padding. *)
 
-val p_1 : t
-(** All-sides padding of 0.25rem (4px). *)
-
-val px_3 : t
-(** Horizontal padding of 0.75rem (12px). *)
-
-val px_4 : t
-(** Horizontal padding of 1rem (16px). *)
-
-val px_6 : t
-(** Horizontal padding of 1.5rem (24px). *)
-
-val px_8 : t
-(** Horizontal padding of 2rem (32px). *)
-
-val py_2 : t
-(** Vertical padding of 0.5rem (8px). *)
-
-val py_8 : t
-(** Vertical padding of 2rem (32px). *)
-
-val py_20 : t
-(** Vertical padding of 5rem (80px). *)
-
-val py_24 : t
-(** Vertical padding of 6rem (96px). *)
-
-val pt_56 : t
-(** Top padding of 14rem (224px). *)
-
-val pb_2 : t
-(** Bottom padding of 0.5rem (8px). *)
-
-val pb_4 : t
-(** Bottom padding of 1rem (16px). *)
-
-val pb_8 : t
-(** Bottom padding of 2rem (32px). *)
-
-val pb_12 : t
-(** Bottom padding of 3rem (48px). *)
-
 val m : margin -> t
-(** [m margin] sets margin on all sides. *)
+(** [m margin] sets margin (outer spacing) on all sides.
+
+    Examples:
+    - [m (int 4)]: 1rem margin on all sides
+    - [m (int 0)]: Remove all margins
+    - [m auto]: Center element if it has a defined width. *)
 
 val mx : margin -> t
-(** [mx margin] sets horizontal margin (left and right). *)
+(** [mx margin] sets horizontal margin (left and right). [mx auto] centers block
+    elements horizontally. *)
 
 val my : margin -> t
-(** [my margin] sets vertical margin (top and bottom). *)
+(** [my margin] sets vertical margin (top and bottom). Useful for spacing
+    between sections. *)
 
 val mt : margin -> t
 (** [mt margin] sets top margin. *)
@@ -308,218 +432,89 @@ val mb : margin -> t
 val ml : margin -> t
 (** [ml margin] sets left margin. *)
 
-val m_1 : t
-(** All-sides margin of 0.25rem (4px). *)
-
-val mt_2 : t
-(** Top margin of 0.5rem (8px). *)
-
-val mb_4 : t
-(** Bottom margin of 1rem (16px). *)
-
-val mb_12 : t
-(** Bottom margin of 3rem (48px). *)
-
-val ml_4 : t
-(** Left margin of 1rem (16px). *)
-
-val ml_10 : t
-(** Left margin of 2.5rem (40px). *)
-
-val mx_auto : t
-(** Automatic horizontal margins (centers element). *)
-
-val md_ml_6 : t
-(** Left margin of 1.5rem (24px) on medium screens and up. *)
-
 val neg_mt : spacing -> t
-(** [neg_mt spacing] sets negative top margin. *)
+(** [neg_mt spacing] pulls element upward with negative margin. Useful for
+    overlapping elements or compensating for padding. *)
 
 val neg_mr : spacing -> t
-(** [neg_mr spacing] sets negative right margin. *)
+(** [neg_mr spacing] pulls element rightward with negative margin. *)
 
 val neg_mb : spacing -> t
-(** [neg_mb spacing] sets negative bottom margin. *)
+(** [neg_mb spacing] pulls element (and following content) upward. *)
 
 val neg_ml : spacing -> t
-(** [neg_ml spacing] sets negative left margin. *)
-
-val neg_mt_56 : t
-(** Negative top margin of 14rem (224px). *)
+(** [neg_ml spacing] pulls element leftward with negative margin. *)
 
 val gap : spacing -> t
-(** [gap spacing] sets gap for flexbox/grid layouts. *)
+(** [gap spacing] sets spacing between items in flex/grid containers. More
+    modern and flexible than using margins on children.
+
+    Example:
+    {[
+      div
+        ~tw:[ flex; gap (int 4) ]
+        [
+          (* All children will have 1rem space between them *)
+          button [ txt "Save" ];
+          button [ txt "Cancel" ];
+        ]
+    ]}
+    
+    This is the preferred method for spacing flex/grid items. *)
 
 val gap_x : spacing -> t
-(** [gap_x spacing] sets horizontal gap between flex/grid items. *)
+(** [gap_x spacing] sets only horizontal gaps in flex/grid containers. *)
 
 val gap_y : spacing -> t
-(** [gap_y spacing] sets vertical gap between flex/grid items. *)
+(** [gap_y spacing] sets only vertical gaps in flex/grid containers. *)
 
-val gap_2 : t
-(** Gap of 0.5rem (8px) between items. *)
-
-val gap_4 : t
-(** Gap of 1rem (16px) between items. *)
-
-val space_x : spacing -> t
-(** [space_x spacing] sets horizontal space between children. *)
-
-val space_y : spacing -> t
-(** [space_y spacing] sets vertical space between children. *)
-
-val space_x_4 : t
-(** Horizontal space of 1rem between children. *)
 
 (** {1 Sizing}
     @see <https://tailwindcss.com/docs/width> Width and Height *)
 
-val w : size -> t
-(** [w size] sets width using the size scale. *)
+val w : scale -> t
+(** [w scale] sets element width.
 
-val w_auto : t
-(** Automatic width. *)
+    Common patterns:
+    - [w full]: 100% of parent width
+    - [w (int 24)]: Fixed width of 6rem (96px)
+    - [w screen]: Full viewport width
+    - [w max]: Shrink to content width
+    - [w (rem 20.0)]: Custom width in rem
+    
+    Width is essential for layout control. *)
 
-val w_min : t
-(** Minimum content width. *)
+val h : scale -> t
+(** [h scale] sets element height.
 
-val w_max : t
-(** Maximum content width. *)
+    Common patterns:
+    - [h full]: 100% of parent height
+    - [h screen]: Full viewport height (great for hero sections)
+    - [h (int 16)]: Fixed height of 4rem (64px)
+    - [h auto]: Height based on content (default)
+    
+    Height controls vertical space and layout flow. *)
 
-val w_fit : t
-(** Fit-content width. *)
+val min_w : scale -> t
+(** [min_w scale] sets minimum width. *)
 
-val w_6 : t
-(** Width of 1.5rem (24px). *)
+val min_h : scale -> t
+(** [min_h scale] sets minimum height using the scale. *)
 
-val w_8 : t
-(** Width of 2rem (32px). *)
+val max_w : max_scale -> t
+(** [max_w scale] sets maximum width - element won't grow beyond this.
 
-val w_10 : t
-(** Width of 2.5rem (40px). *)
+    Common for readable content:
+    - [max_w md]: ~28rem - for cards and small containers
+    - [max_w xl_2]: ~42rem - optimal for article text (65-75 characters)
+    - [max_w xl_4]: ~56rem - for wider content sections
+    - [max_w full]: Allow full width
+    - [max_w screen]: Never exceed viewport width
+    
+    Essential for responsive typography and content layout. *)
 
-val w_12 : t
-(** Width of 3rem (48px). *)
-
-val w_16 : t
-(** Width of 4rem (64px). *)
-
-val w_full : t
-(** Full width (100%). *)
-
-val w_custom : string -> t
-(** [w_custom value] sets custom width value. *)
-
-val h : size -> t
-(** [h size] sets height using the size scale. *)
-
-val h_auto : t
-(** Automatic height. *)
-
-val h_min : t
-(** Minimum content height. *)
-
-val h_max : t
-(** Maximum content height. *)
-
-val h_fit : t
-(** Fit-content height. *)
-
-val h_6 : t
-(** Height of 1.5rem (24px). *)
-
-val h_8 : t
-(** Height of 2rem (32px). *)
-
-val h_10 : t
-(** Height of 2.5rem (40px). *)
-
-val h_12 : t
-(** Height of 3rem (48px). *)
-
-val h_16 : t
-(** Height of 4rem (64px). *)
-
-val h_full : t
-(** Full height (100%). *)
-
-val min_w : spacing -> t
-(** [min_w spacing] sets minimum width using the spacing scale. *)
-
-val min_w_min : t
-(** Minimum width of min-content. *)
-
-val min_w_max : t
-(** Minimum width of max-content. *)
-
-val min_w_fit : t
-(** Minimum width of fit-content. *)
-
-val min_w_full : t
-(** Minimum width of 100%. *)
-
-val min_h : size -> t
-(** [min_h size] sets minimum height using the size scale. *)
-
-val min_h_min : t
-(** Minimum height of min-content. *)
-
-val min_h_max : t
-(** Minimum height of max-content. *)
-
-val min_h_fit : t
-(** Minimum height of fit-content. *)
-
-val min_h_screen : t
-(** Minimum height of 100vh. *)
-
-val max_w : spacing -> t
-(** [max_w spacing] sets maximum width using the spacing scale. *)
-
-val max_w_none : t
-(** No maximum width. *)
-
-val max_w_full : t
-(** Maximum width of 100%. *)
-
-val max_w_xs : t
-(** Maximum width of 20rem (320px). *)
-
-val max_w_sm : t
-(** Maximum width of 24rem (384px). *)
-
-val max_w_md : t
-(** Maximum width of 28rem (448px). *)
-
-val max_w_lg : t
-(** Maximum width of 32rem (512px). *)
-
-val max_w_xl : t
-(** Maximum width of 36rem (576px). *)
-
-val max_w_2xl : t
-(** Maximum width of 42rem (672px). *)
-
-val max_w_3xl : t
-(** Maximum width of 48rem (768px). *)
-
-val max_w_4xl : t
-(** Maximum width of 56rem (896px). *)
-
-val max_w_5xl : t
-(** Maximum width of 64rem (1024px). *)
-
-val max_w_6xl : t
-(** Maximum width of 72rem (1152px). *)
-
-val max_w_7xl : t
-(** Maximum width of 80rem (1280px). *)
-
-val max_h : size -> t
-(** [max_h size] sets maximum height using the size scale. *)
-
-val max_h_none : t
-(** No maximum height. *)
+val max_h : scale -> t
+(** [max_h scale] sets maximum height using the scale. *)
 
 (** {1 Layout}
     @see <https://tailwindcss.com/docs/display> Display
@@ -527,40 +522,54 @@ val max_h_none : t
     @see <https://tailwindcss.com/docs/position> Position *)
 
 val block : t
-(** Display block. *)
+(** Makes element a block - takes full width, stacks vertically. Default for
+    div, p, h1-h6. *)
 
 val inline : t
-(** Display inline. *)
+(** Makes element inline - flows with text, width based on content. Default for
+    span, a, strong. *)
 
 val inline_block : t
-(** Display inline-block. *)
+(** Hybrid - flows inline but can have width/height like a block. *)
 
 val flex : t
-(** Display flex. *)
+(** Creates a flex container for flexible layouts. Children can be arranged
+    horizontally/vertically with gaps.
+
+    Example:
+    {[
+      div
+        ~tw:[ flex; items_center; gap (int 4) ]
+        [ icon; span [ txt "Dashboard" ] ]
+    ]} *)
 
 val inline_flex : t
-(** Display inline-flex. *)
+(** Like flex but the container itself is inline. *)
 
 val grid : t
-(** Display grid. *)
+(** Creates a grid container for 2D layouts with rows and columns. More
+    structured than flexbox. *)
 
 val inline_grid : t
-(** Display inline-grid. *)
+(** Like grid but the container itself is inline. *)
 
 val hidden : t
-(** Hide element (display: none). *)
+(** Completely hides element - no space reserved, screen readers skip it. Use
+    [sr_only] to hide visually but keep accessible. *)
 
 val flex_col : t
-(** Flex direction column. *)
+(** Stacks flex items vertically (top to bottom). Changes the main axis to
+    vertical. *)
 
 val flex_row : t
-(** Flex direction row. *)
+(** Arranges flex items horizontally (left to right). This is the default for
+    flex containers. *)
 
 val flex_row_reverse : t
-(** Flex direction row-reverse. *)
+(** Arranges flex items horizontally but reversed (right to left). *)
 
 val flex_col_reverse : t
-(** Flex direction column-reverse. *)
+(** Stacks flex items vertically but reversed (bottom to top). *)
 
 val flex_wrap : t
 (** Flex wrap. *)
@@ -572,16 +581,33 @@ val flex_nowrap : t
 (** Prevent flex items from wrapping. *)
 
 val flex_1 : t
-(** Flex: 1 1 0% (grow and shrink). *)
+(** Item grows and shrinks as needed, ignoring initial size. Perfect for
+    elements that should fill available space equally.
+
+    Example:
+    {[
+      (* Three columns of equal width *)
+      div ~tw:[ flex ]
+        [
+          div ~tw:[ flex_1 ] [ content1 ];
+          (* 33.33% *)
+          div ~tw:[ flex_1 ] [ content2 ];
+          (* 33.33% *)
+          div ~tw:[ flex_1 ] [ content3 ];
+          (* 33.33% *)
+        ]
+    ]} *)
 
 val flex_auto : t
-(** Flex: 1 1 auto (grow and shrink from auto basis). *)
+(** Item grows and shrinks but considers its content size. Good for text that
+    should expand but not squish too much. *)
 
 val flex_initial : t
-(** Flex: 0 1 auto (shrink but not grow). *)
+(** Item can shrink but won't grow beyond its content. Default flex behavior. *)
 
 val flex_none : t
-(** Flex: none (no grow or shrink). *)
+(** Item stays at its natural size - won't grow or shrink. Use for fixed-size
+    elements like icons or buttons. *)
 
 val flex_grow : t
 (** Allow flex item to grow. *)
@@ -596,112 +622,99 @@ val flex_shrink_0 : t
 (** Prevent flex item from shrinking. *)
 
 val items_start : t
-(** Align items to start. *)
+(** Aligns flex/grid items to the start of their container's cross axis. In a
+    row, this is the top. In a column, this is the left. *)
 
 val items_end : t
-(** Align items to end. *)
+(** Aligns flex/grid items to the end of their container's cross axis. In a row,
+    this is the bottom. In a column, this is the right. *)
 
 val items_center : t
-(** Align items center. *)
+(** Centers flex/grid items along the container's cross axis. Very common for
+    vertically centering content. *)
 
 val items_baseline : t
-(** Align items to baseline. *)
+(** Aligns flex/grid items along their text baseline. Useful when items have
+    different font sizes. *)
 
 val items_stretch : t
-(** Stretch items to fill container. *)
+(** Stretches items to fill the container's cross axis. Default behavior - makes
+    all items same height in a row. *)
 
 val justify_start : t
-(** Justify content to start. *)
+(** Packs flex/grid items toward the start of the main axis. In a row (default),
+    items align left. In a column, items align top. *)
 
 val justify_end : t
-(** Justify content to end. *)
+(** Packs flex/grid items toward the end of the main axis. In a row, items align
+    right. In a column, items align bottom. *)
 
 val justify_center : t
-(** Justify content center. *)
+(** Centers flex/grid items along the main axis. Common for centering content
+    horizontally. *)
 
 val justify_between : t
-(** Justify content space-between. *)
+(** Distributes items evenly - first at start, last at end, equal space between.
+    Perfect for navigation bars and toolbars. *)
 
 val justify_around : t
-(** Justify content with space around. *)
+(** Distributes items evenly with equal space around each item. Items have
+    half-size space on the edges. *)
 
 val justify_evenly : t
-(** Justify content with equal space. *)
+(** Distributes items evenly with equal space between and around all items. All
+    gaps including edges are the same size. *)
 
 val grid_cols : int -> t
-(** [grid_cols n] sets number of grid columns. *)
+(** [grid_cols n] creates a grid with n equal columns.
+
+    Example:
+    {[
+      (* 3-column card layout *)
+      div
+        ~tw:[ grid; grid_cols 3; gap (int 4) ]
+        [
+          card1;
+          card2;
+          card3;
+          (* Each takes 1 column *)
+          card4;
+          card5;
+          card6;
+          (* Wraps to next row *)
+        ]
+    ]} *)
 
 val grid_rows : int -> t
-(** [grid_rows n] sets number of grid rows. *)
-
-val grid_cols_1 : t
-(** 1 grid column. *)
-
-val grid_cols_2 : t
-(** 2 grid columns. *)
-
-val grid_cols_3 : t
-(** 3 grid columns. *)
-
-val grid_cols_4 : t
-(** 4 grid columns. *)
-
-val grid_cols_5 : t
-(** 5 grid columns. *)
-
-val grid_cols_6 : t
-(** 6 grid columns. *)
-
-val grid_cols_7 : t
-(** 7 grid columns. *)
-
-val grid_cols_8 : t
-(** 8 grid columns. *)
-
-val grid_cols_9 : t
-(** 9 grid columns. *)
-
-val grid_cols_10 : t
-(** 10 grid columns. *)
-
-val grid_cols_11 : t
-(** 11 grid columns. *)
-
-val grid_cols_12 : t
-(** 12 grid columns. *)
-
-val grid_rows_1 : t
-(** 1 grid row. *)
-
-val grid_rows_2 : t
-(** 2 grid rows. *)
-
-val grid_rows_3 : t
-(** 3 grid rows. *)
-
-val grid_rows_4 : t
-(** 4 grid rows. *)
-
-val grid_rows_5 : t
-(** 5 grid rows. *)
-
-val grid_rows_6 : t
-(** 6 grid rows. *)
+(** [grid_rows n] creates a grid with n equal rows. *)
 
 val static : t
-(** Static positioning. *)
+(** Default positioning - element flows normally in the document. Ignores
+    top/right/bottom/left properties. *)
 
 val relative : t
-(** Position relative. *)
+(** Position relative to element's normal position. Can use
+    top/right/bottom/left to nudge from original spot. Creates positioning
+    context for absolute children. *)
 
 val absolute : t
-(** Position absolute. *)
+(** Removes from normal flow, positions relative to nearest positioned parent.
+    Use with top/right/bottom/left for exact placement.
+
+    Example:
+    {[
+      (* Notification badge on icon *)
+      div ~tw:[ relative ]
+        [ icon; span ~tw:[ absolute; top (-2); right (-2) ] [ txt "3" ] ]
+    ]} *)
 
 val fixed : t
-(** Position fixed. *)
+(** Like absolute but relative to viewport - stays in place when scrolling.
+    Common for headers, modals, and floating buttons. *)
 
 val sticky : t
-(** Position sticky. *)
+(** Hybrid - scrolls normally until it reaches viewport edge, then sticks. Great
+    for table headers and sidebars that follow scroll. *)
 
 val inset_0 : t
 (** Set all inset values to 0. *)
@@ -725,28 +738,35 @@ val left : int -> t
 (** [left n] sets left position value. *)
 
 val z : int -> t
-(** [z n] sets z-index value. *)
+(** [z n] controls stacking order - higher numbers appear on top.
 
-val z_10 : t
-(** Z-index of 10. *)
+    Common values:
+    - [z 0]: Default layer
+    - [z 10]: Dropdowns, tooltips
+    - [z 20]: Modals
+    - [z 30]: Notifications
+    - [z 40]: Critical overlays
+    - [z 50]: Maximum (use sparingly)
+
+    Negative values like [z (-1)] place elements behind others. *)
 
 (** {1 Typography}
     @see <https://tailwindcss.com/docs/font-size> Typography *)
 
 val text_xs : t
-(** Extra small text size (0.75rem). *)
+(** Extra small text (12px) - for captions, labels, fine print. *)
 
 val text_sm : t
-(** Small text size (0.875rem). *)
+(** Small text (14px) - for secondary content, form labels. *)
 
 val text_base : t
-(** Base text size (1rem). *)
+(** Base text (16px) - default body text size, good readability. *)
 
 val text_lg : t
-(** Large text size (1.125rem). *)
+(** Large text (18px) - for emphasized paragraphs, lead text. *)
 
 val text_xl : t
-(** Extra large text size (1.25rem). *)
+(** Extra large text (20px) - for section introductions. *)
 
 val text_2xl : t
 (** 2x large text size (1.5rem). *)
@@ -761,28 +781,39 @@ val text_5xl : t
 (** 5x large text size (3rem). *)
 
 val font_thin : t
-(** Font weight 100. *)
+(** Thinnest font weight (100) - use sparingly, may not be visible with all
+    fonts. *)
 
 val font_light : t
-(** Font weight 300. *)
+(** Light font weight (300) - for subtle, delicate text. *)
 
 val font_normal : t
-(** Font weight 400. *)
+(** Normal font weight (400) - default for body text. *)
 
 val font_medium : t
-(** Font weight 500. *)
+(** Medium font weight (500) - slightly bolder than normal, good for UI labels.
+*)
 
 val font_semibold : t
-(** Font weight 600. *)
+(** Semi-bold font weight (600) - for subheadings and emphasis. *)
 
 val font_bold : t
-(** Font weight 700. *)
+(** Bold font weight (700) - for headings and strong emphasis. *)
 
 val font_extrabold : t
-(** Font weight 800. *)
+(** Extra bold font weight (800) - for major headings. *)
 
 val font_black : t
-(** Font weight 900. *)
+(** Heaviest font weight (900) - for maximum impact, hero text. *)
+
+val font_sans : t
+(** Sans-serif font family. *)
+
+val font_serif : t
+(** Serif font family. *)
+
+val font_mono : t
+(** Monospace font family. *)
 
 val italic : t
 (** Italic text style. *)
@@ -812,22 +843,23 @@ val text_justify : t
 (** Justified text. *)
 
 val leading_none : t
-(** Line height of 1. *)
+(** Line height 1 - text lines touch. Only for large display text. *)
 
 val leading_tight : t
-(** Line height of 1.25. *)
+(** Line height 1.25 - compact spacing for headings. *)
 
 val leading_snug : t
-(** Line height of 1.375. *)
+(** Line height 1.375 - slightly tighter than normal. *)
 
 val leading_normal : t
-(** Line height of 1.5. *)
+(** Line height 1.5 - default, optimal readability for body text. *)
 
 val leading_relaxed : t
-(** Line height of 1.625. *)
+(** Line height 1.625 - more open, easier scanning for long text. *)
 
 val leading_loose : t
-(** Line height of 2. *)
+(** Line height 2 - very open, good for short text blocks that need breathing
+    room. *)
 
 val leading_6 : t
 (** Line height of 1.5rem. *)
@@ -866,73 +898,51 @@ val whitespace_pre_wrap : t
 (** Preserve whitespace and wrap. *)
 
 val antialiased : t
-(** Antialiased font smoothing. *)
+(** Enables antialiased font smoothing for better text rendering. This is
+    usually the default but can be explicitly set. *)
 
-val sm_text_2xl : t
-(** 2x large text on small screens. *)
-
-val sm_text_4xl : t
-(** 4x large text on small screens. *)
-
-val sm_text_5xl : t
-(** 5x large text on small screens. *)
-
-val sm_flex_row : t
-(** Flex row on small screens. *)
+type width = [ size | `Default ]
+(** Width options for borders and rings:
+    - [`None]: 0px
+    - [`Xs]: 1px
+    - [`Sm]: 2px  
+    - [`Default] or [`Md]: 3px (default for rings), 1px (default for borders)
+    - [`Lg]: 4px
+    - [`Xl]: 8px *)
 
 (** {1 Borders}
     @see <https://tailwindcss.com/docs/border-width> Borders *)
 
-val border : t
-(** Default border. *)
+val border : width -> t
+(** [border width] sets border width on all sides. Default is 1px when using
+    [`Default]. 
+    
+    The border color defaults to the current text color. To set a specific color:
+    - Use [border_color]: [border `Default; border_color ~shade:200 gray]
+    - Use [border_current] to explicitly use text color: [text blue; border `Default; border_current]
+    - Use [border_transparent] for invisible borders that preserve spacing. *)
 
 val border_t : t
-(** Top border. *)
+(** Top border (1px). *)
 
 val border_r : t
-(** Right border. *)
+(** Right border (1px). *)
 
 val border_b : t
-(** Bottom border. *)
+(** Bottom border (1px). *)
 
 val border_l : t
-(** Left border. *)
+(** Left border (1px). *)
 
-val border_0 : t
-(** No border width. *)
+val rounded : size -> t
+(** [rounded size] sets corner roundness.
 
-val border_2 : t
-(** Border width of 2px. *)
-
-val border_4 : t
-(** Border width of 4px. *)
-
-val border_8 : t
-(** Border width of 8px. *)
-
-val rounded : rounded -> t
-(** [rounded r] sets border radius using the rounded scale. *)
-
-val rounded_none : t
-(** No border radius. *)
-
-val rounded_sm : t
-(** Small border radius (0.125rem). *)
-
-val rounded_lg : t
-(** Large border radius (0.5rem). *)
-
-val rounded_xl : t
-(** Extra large border radius (0.75rem). *)
-
-val rounded_2xl : t
-(** 2x large border radius (1rem). *)
-
-val rounded_3xl : t
-(** 3x large border radius (1.5rem). *)
-
-val rounded_full : t
-(** Full border radius (9999px). *)
+    Common values:
+    - [rounded none]: Sharp corners (0px)
+    - [rounded sm]: Subtle rounding (2px)
+    - [rounded md]: Medium rounding (6px)
+    - [rounded lg]: Noticeably rounded (8px)
+    - [rounded full]: Fully rounded (9999px) - makes circles/pills *)
 
 val border_collapse : t
 (** Collapse table borders. *)
@@ -943,279 +953,72 @@ val border_separate : t
 val border_spacing : int -> t
 (** [border_spacing n] sets border spacing using spacing scale. *)
 
-val border_spacing_0 : t
-(** No border spacing. *)
-
-val border_spacing_1 : t
-(** Border spacing of 0.25rem. *)
-
-val border_spacing_2 : t
-(** Border spacing of 0.5rem. *)
-
-val border_spacing_4 : t
-(** Border spacing of 1rem. *)
-
-val border_spacing_8 : t
-(** Border spacing of 2rem. *)
-
 (** {1 Effects & Filters}
     @see <https://tailwindcss.com/docs/box-shadow> Effects
     @see <https://tailwindcss.com/docs/blur> Filters
     @see <https://tailwindcss.com/docs/backdrop-blur> Backdrop Filters *)
 
 val shadow : shadow -> t
-(** [shadow s] sets box shadow using the shadow scale. *)
+(** [shadow s] adds drop shadow for depth and elevation.
 
-val shadow_sm : t
-(** Small box shadow. *)
-
-val shadow_md : t
-(** Medium box shadow. *)
-
-val shadow_lg : t
-(** Large box shadow. *)
-
-val shadow_xl : t
-(** Extra large box shadow. *)
-
-val shadow_2xl : t
-(** 2x large box shadow. *)
-
-val shadow_inner : t
-(** Inner box shadow. *)
-
-val shadow_none : t
-(** Remove box shadow. *)
+    Common values:
+    - [shadow sm]: Subtle shadow for cards
+    - [shadow md]: Default shadow for raised elements
+    - [shadow lg]: Strong shadow for modals, dropdowns
+    - [shadow none]: Remove shadow
+    - [shadow inner]: Inset shadow for pressed/sunken effect *)
 
 val opacity : int -> t
-(** [opacity n] sets opacity (0-100). *)
+(** [opacity n] controls transparency (0-100).
+    - 0: Fully transparent (invisible but takes space)
+    - 50: Half transparent
+    - 100: Fully opaque (default)
 
-val opacity_10 : t
-(** 10% opacity. *)
-
-val opacity_25 : t
-(** 25% opacity. *)
-
-val opacity_30 : t
-(** 30% opacity. *)
-
-val opacity_50 : t
-(** 50% opacity. *)
-
-val hover_opacity_70 : t
-(** 70% opacity on hover. *)
+    Common for overlays, disabled states, and hover effects. *)
 
 val outline_none : t
 (** Remove outline. *)
 
-val ring : t
-(** Default focus ring. *)
-
-val ring_0 : t
-(** No focus ring. *)
-
-val ring_1 : t
-(** 1px focus ring. *)
-
-val ring_2 : t
-(** 2px focus ring. *)
-
-val ring_4 : t
-(** 4px focus ring. *)
-
-val ring_8 : t
-(** 8px focus ring. *)
-
-val ring_offset_2 : t
-(** 2px ring offset. *)
-
-val ring_white : t
-(** White focus ring. *)
+val ring : width -> t
+(** [ring width] adds an outline ring of the specified width. Rings use 
+    box-shadow and don't affect layout. 
+    
+    By default, rings are blue with 50% opacity. To customize:
+    - Use [ring_color] to change color: [ring `Sm; ring_color ~shade:500 purple]
+    - Rings are often used for focus states: [on_focus [ ring `Md ]]
+    - Unlike borders, rings don't take up space in the layout. *)
 
 val isolate : t
-(** Isolate element for stacking context. *)
-
-val blur_none : t
-(** No blur effect. *)
-
-val blur_sm : t
-(** Small blur (4px). *)
-
-val blur : t
-(** Default blur (8px). *)
-
-val blur_md : t
-(** Medium blur (12px). *)
-
-val blur_lg : t
-(** Large blur (16px). *)
-
-val blur_xl : t
-(** Extra large blur (24px). *)
-
-val blur_2xl : t
-(** 2x large blur (40px). *)
-
-val blur_3xl : t
-(** 3x large blur (64px). *)
+(** Creates a new stacking context to isolate z-index behavior. Useful to
+    prevent z-index values from affecting elements outside this container. *)
 
 val brightness : int -> t
 (** [brightness n] sets brightness filter (0-200, where 100 is normal). *)
 
-val brightness_0 : t
-(** 0% brightness (black). *)
-
-val brightness_50 : t
-(** 50% brightness. *)
-
-val brightness_75 : t
-(** 75% brightness. *)
-
-val brightness_90 : t
-(** 90% brightness. *)
-
-val brightness_95 : t
-(** 95% brightness. *)
-
-val brightness_100 : t
-(** 100% brightness (normal). *)
-
-val brightness_105 : t
-(** 105% brightness. *)
-
-val brightness_110 : t
-(** 110% brightness. *)
-
-val brightness_125 : t
-(** 125% brightness. *)
-
-val brightness_150 : t
-(** 150% brightness. *)
-
-val brightness_200 : t
-(** 200% brightness. *)
-
 val contrast : int -> t
 (** [contrast n] sets contrast filter (0-200, where 100 is normal). *)
 
-val contrast_0 : t
-(** 0% contrast. *)
-
-val contrast_50 : t
-(** 50% contrast. *)
-
-val contrast_75 : t
-(** 75% contrast. *)
-
-val contrast_100 : t
-(** 100% contrast (normal). *)
-
-val contrast_125 : t
-(** 125% contrast. *)
-
-val contrast_150 : t
-(** 150% contrast. *)
-
-val contrast_200 : t
-(** 200% contrast. *)
-
-val grayscale_0 : t
-(** No grayscale (full color). *)
-
-val grayscale : t
-(** Full grayscale. *)
-
-val backdrop_blur_none : t
-(** No backdrop blur. *)
-
-val backdrop_blur_sm : t
-(** Small backdrop blur (4px). *)
-
-val backdrop_blur : t
-(** Default backdrop blur (8px). *)
-
-val backdrop_blur_md : t
-(** Medium backdrop blur (12px). *)
-
-val backdrop_blur_lg : t
-(** Large backdrop blur (16px). *)
-
-val backdrop_blur_xl : t
-(** Extra large backdrop blur (24px). *)
-
-val backdrop_blur_2xl : t
-(** 2x large backdrop blur (40px). *)
-
-val backdrop_blur_3xl : t
-(** 3x large backdrop blur (64px). *)
-
 val backdrop_brightness : int -> t
-(** [backdrop_brightness n] sets backdrop brightness filter (0-200, where 100 is
-    normal). *)
+(** [backdrop_brightness n] applies brightness filter to content behind element.
+    Values: 0-200, where 100 is normal. Useful for frosted glass effects.
 
-val backdrop_brightness_0 : t
-(** 0% backdrop brightness (black). *)
-
-val backdrop_brightness_50 : t
-(** 50% backdrop brightness. *)
-
-val backdrop_brightness_75 : t
-(** 75% backdrop brightness. *)
-
-val backdrop_brightness_90 : t
-(** 90% backdrop brightness. *)
-
-val backdrop_brightness_95 : t
-(** 95% backdrop brightness. *)
-
-val backdrop_brightness_100 : t
-(** 100% backdrop brightness (normal). *)
-
-val backdrop_brightness_105 : t
-(** 105% backdrop brightness. *)
-
-val backdrop_brightness_110 : t
-(** 110% backdrop brightness. *)
-
-val backdrop_brightness_125 : t
-(** 125% backdrop brightness. *)
-
-val backdrop_brightness_150 : t
-(** 150% backdrop brightness. *)
-
-val backdrop_brightness_200 : t
-(** 200% backdrop brightness. *)
+    Example:
+    {[
+      (* Frosted glass overlay *)
+      div
+        ~tw:
+          [
+            backdrop_brightness 75;
+            backdrop_saturate 150;
+            bg ~shade:100 white;
+            bg_opacity 30;
+          ]
+        [ txt "Overlay content" ]
+    ]} *)
 
 val backdrop_contrast : int -> t
 (** [backdrop_contrast n] sets backdrop contrast filter (0-200, where 100 is
     normal). *)
-
-val backdrop_contrast_0 : t
-(** 0% backdrop contrast. *)
-
-val backdrop_contrast_50 : t
-(** 50% backdrop contrast. *)
-
-val backdrop_contrast_75 : t
-(** 75% backdrop contrast. *)
-
-val backdrop_contrast_100 : t
-(** 100% backdrop contrast (normal). *)
-
-val backdrop_contrast_125 : t
-(** 125% backdrop contrast. *)
-
-val backdrop_contrast_150 : t
-(** 150% backdrop contrast. *)
-
-val backdrop_contrast_200 : t
-(** 200% backdrop contrast. *)
-
-val backdrop_grayscale_0 : t
-(** No backdrop grayscale (full color). *)
-
-val backdrop_grayscale : t
-(** Full backdrop grayscale. *)
 
 val backdrop_opacity : int -> t
 (** [backdrop_opacity n] sets backdrop opacity filter (0-100). *)
@@ -1223,21 +1026,6 @@ val backdrop_opacity : int -> t
 val backdrop_saturate : int -> t
 (** [backdrop_saturate n] sets backdrop saturation filter (0-200, where 100 is
     normal). *)
-
-val backdrop_saturate_0 : t
-(** 0% backdrop saturation. *)
-
-val backdrop_saturate_50 : t
-(** 50% backdrop saturation. *)
-
-val backdrop_saturate_100 : t
-(** 100% backdrop saturation (normal). *)
-
-val backdrop_saturate_150 : t
-(** 150% backdrop saturation. *)
-
-val backdrop_saturate_200 : t
-(** 200% backdrop saturation. *)
 
 (** {1 Transitions & Animations}
     @see <https://tailwindcss.com/docs/animation> Animations *)
@@ -1249,7 +1037,20 @@ val transition_all : t
 (** Transition all properties. *)
 
 val transition_colors : t
-(** Transition color properties. *)
+(** Smoothly animates color changes (background, text, border). Essential for
+    hover effects to feel polished.
+
+    Example:
+    {[
+      button
+        ~tw:
+          [
+            bg blue;
+            transition_colors;
+            (* Smooth color change *)
+            on_hover [ bg ~shade:700 blue ];
+          ]
+    ]} *)
 
 val transition_opacity : t
 (** Transition opacity. *)
@@ -1261,11 +1062,15 @@ val transition_transform : t
 (** Transition transform. *)
 
 val scale : int -> t
-(** [scale n] sets scale transformation (percentage, e.g., 105 for scale-105).
-*)
+(** [scale n] resizes element by percentage (100 = normal size).
 
-val scale_150 : t
-(** Scale to 150%. *)
+    Examples:
+    - [scale 95]: Slightly smaller (95%)
+    - [scale 100]: Normal size
+    - [scale 105]: Slightly larger (105%) - nice for hover effects
+    - [scale 150]: 1.5x larger
+
+    Often combined with transition_transform for smooth scaling. *)
 
 val rotate : int -> t
 (** [rotate n] sets rotate transformation (degrees). *)
@@ -1285,23 +1090,24 @@ val transform_none : t
 val transform_gpu : t
 (** Use GPU acceleration for transforms. *)
 
-val sm_transform_none : t
-(** Remove transform on small screens. *)
-
 val animate_none : t
 (** No animation. *)
 
 val animate_spin : t
-(** Spin animation (1s linear infinite). *)
+(** Spin animation - rotates element 360° continuously. Perfect for loading
+    spinners. *)
 
 val animate_ping : t
-(** Ping animation (1s cubic-bezier infinite). *)
+(** Ping animation - scales and fades out like a radar ping. Great for
+    notification badges or attention-grabbing indicators. *)
 
 val animate_pulse : t
-(** Pulse animation (2s cubic-bezier infinite). *)
+(** Pulse animation - gently fades in and out. Useful for skeleton screens or
+    loading placeholders. *)
 
 val animate_bounce : t
-(** Bounce animation (1s infinite). *)
+(** Bounce animation - makes element bounce up and down. Good for scroll
+    indicators or playful UI elements. *)
 
 (** {1 Tables}
     @see <https://tailwindcss.com/docs/table-layout> Tables *)
@@ -1316,31 +1122,24 @@ val table_fixed : t
     @see <https://github.com/tailwindlabs/tailwindcss-forms> Forms Plugin *)
 
 val form_input : t
-(** Base styles for input elements. *)
+(** Base styles for input elements - resets browser defaults and provides
+    consistent styling across browsers. Use with input elements. *)
 
 val form_textarea : t
-(** Base styles for textarea elements. *)
+(** Base styles for textarea elements - provides consistent cross-browser
+    appearance and behavior. *)
 
 val form_select : t
-(** Base styles for select elements. *)
+(** Base styles for select dropdowns - normalizes appearance across browsers
+    while maintaining native functionality. *)
 
 val form_checkbox : t
-(** Base styles for checkbox inputs. *)
+(** Base styles for checkbox inputs - provides custom styling while maintaining
+    accessibility. *)
 
 val form_radio : t
-(** Base styles for radio inputs. *)
-
-val focus_ring : t
-(** Focus ring utility (3px). *)
-
-val focus_ring_2 : t
-(** Focus ring utility (2px). *)
-
-val focus_ring_blue_500 : t
-(** Blue focus ring color. *)
-
-val focus_border_blue_500 : t
-(** Blue focus border color. *)
+(** Base styles for radio inputs - provides custom styling while maintaining
+    accessibility. *)
 
 (** {1 Interactivity & Scroll}
     @see <https://tailwindcss.com/docs/scroll-snap-type> Scroll Snap *)
@@ -1385,13 +1184,17 @@ val overflow_auto : t
 (** Automatic overflow handling. *)
 
 val overflow_hidden : t
-(** Hide overflow content. *)
+(** Clips content that exceeds container bounds - no scrolling. Common for::
+    - Image containers to prevent overflow
+    - Modals to prevent body scrolling
+    - Containers with rounded corners *)
 
 val overflow_visible : t
-(** Show overflow content. *)
+(** Content can extend beyond container bounds (default behavior). *)
 
 val overflow_scroll : t
-(** Always show scrollbars. *)
+(** Always shows scrollbars even if content fits. Use overflow_auto instead for
+    better UX. *)
 
 val overflow_x_auto : t
 (** Auto horizontal overflow. *)
@@ -1421,10 +1224,22 @@ val snap_none : t
 (** No scroll snapping. *)
 
 val snap_x : t
-(** Horizontal scroll snapping. *)
+(** Horizontal scroll snapping for carousel-like interfaces. Must be used with
+    snap_start/center/end on children.
+
+    Example:
+    {[
+      (* Horizontal carousel *)
+      div
+        ~tw:[ flex; overflow_x_auto; snap_x; snap_mandatory ]
+        [
+          div ~tw:[ snap_center; flex_shrink_0; w full ] [ img1 ];
+          div ~tw:[ snap_center; flex_shrink_0; w full ] [ img2 ];
+        ]
+    ]} *)
 
 val snap_y : t
-(** Vertical scroll snapping. *)
+(** Vertical scroll snapping. Similar to snap_x but for vertical scrolling. *)
 
 val snap_both : t
 (** Both horizontal and vertical scroll snapping. *)
@@ -1460,124 +1275,226 @@ val scroll_smooth : t
 (** Smooth scroll behavior. *)
 
 val object_contain : t
-(** Scale content to fit container. *)
+(** Scales image to fit container while preserving aspect ratio. The entire
+    image will be visible but may have empty space.
+
+    Example:
+    {[
+      img ~tw:[ object_contain; h (int 48); w full ] ~src:"..." ()
+    ]} *)
 
 val object_cover : t
-(** Scale content to cover container. *)
+(** Scales image to cover entire container while preserving aspect ratio. Parts
+    of the image may be clipped to fill the container. *)
 
 val object_fill : t
-(** Stretch content to fill container. *)
+(** Stretches image to fill container, ignoring aspect ratio. May cause
+    distortion. *)
 
 val object_none : t
-(** Content retains original size. *)
+(** Image retains original size, may overflow or underflow container. *)
 
 val object_scale_down : t
-(** Scale down content if needed. *)
+(** Scales down only if image is larger than container, otherwise original size.
+*)
 
 val sr_only : t
-(** Screen reader only (visually hidden). *)
+(** Screen reader only - visually hides content while keeping it accessible. Use
+    this for content that should be read by screen readers but not visible.
+
+    Example:
+    {[
+      label
+        [
+          span ~tw:[ sr_only ] [ txt "Search" ];
+          input ~at:[ At.type_ "search" ] [];
+        ]
+    ]} *)
 
 val not_sr_only : t
-(** Not screen reader only. *)
-
-val line_clamp_1 : t
-(** Clamp text to 1 line. *)
-
-val line_clamp_2 : t
-(** Clamp text to 2 lines. *)
-
-val line_clamp_3 : t
-(** Clamp text to 3 lines. *)
-
-val line_clamp_4 : t
-(** Clamp text to 4 lines. *)
-
-val line_clamp_5 : t
-(** Clamp text to 5 lines. *)
-
-val line_clamp_6 : t
-(** Clamp text to 6 lines. *)
-
-val line_clamp_none : t
-(** Remove line clamping. *)
+(** Reverses sr_only - makes previously screen-reader-only content visible. *)
 
 (** {1 State & Responsive Modifiers} *)
 
-val hover : t -> t
-(** [hover style] applies style on hover. *)
+val on_hover : t list -> t
+(** [on_hover styles] applies multiple styles on hover. *)
 
-val focus : t -> t
-(** [focus style] applies style on focus. *)
+val on_focus : t list -> t
+(** [on_focus styles] applies multiple styles on focus. *)
 
 val focus_visible : t
-(** Focus-visible pseudo-class. *)
+(** Shows focus ring only for keyboard navigation, not mouse clicks. This
+    provides better UX by showing focus indicators only when needed. *)
 
 val active : t -> t
 (** [active style] applies style on active state. *)
 
+val on_active : t list -> t
+(** [on_active styles] applies multiple styles on active state. *)
+
 val disabled : t -> t
 (** [disabled style] applies style when disabled. *)
 
-val group_hover : t -> t
-(** [group_hover style] applies style when parent group is hovered. *)
+val on_disabled : t list -> t
+(** [on_disabled styles] applies multiple styles when disabled. *)
 
-val group_focus : t -> t
-(** [group_focus style] applies style when parent group is focused. *)
+val on_group_hover : t list -> t
+(** [on_group_hover styles] applies styles to this element when its parent with
+    the [group] class is hovered. The parent must have the [group] class for
+    this to work.
+
+    See {!group} for usage examples. *)
+
+val on_group_focus : t list -> t
+(** [on_group_focus styles] applies styles to this element when its parent with
+    the [group] class is focused. The parent must have the [group] class for
+    this to work. *)
 
 val dark : t -> t
 (** [dark style] applies style in dark mode. *)
 
-val sm : t -> t
-(** [sm style] applies style on small screens and up (640px+). *)
+val on_dark : t list -> t
+(** [on_dark styles] applies multiple styles in dark mode. *)
 
-val md : t -> t
-(** [md style] applies style on medium screens and up (768px+). *)
+val on_sm : t list -> t
+(** [on_sm styles] applies styles on small screens and up (640px+).
+    Mobile-first: base styles apply to mobile, these override for larger
+    screens.
 
-val lg : t -> t
-(** [lg style] applies style on large screens and up (1024px+). *)
+    Example:
+    {[
+      div
+        ~tw:
+          [
+            text_base;
+            (* Mobile: normal text *)
+            on_sm [ text_lg ] (* Tablet+: larger text *);
+          ]
+    ]} *)
 
-val xl : t -> t
-(** [xl style] applies style on extra large screens and up (1280px+). *)
+val on_md : t list -> t
+(** [on_md styles] applies styles on medium screens and up (768px+). Typically
+    tablet-sized devices. *)
 
-val xl2 : t -> t
-(** [xl2 style] applies style on 2x large screens and up (1536px+). *)
+val on_lg : t list -> t
+(** [on_lg styles] applies styles on large screens and up (1024px+). Typically
+    laptops and smaller desktops. *)
 
-val md_block : t
-(** Block display on medium screens. *)
+val on_xl : t list -> t
+(** [on_xl styles] applies styles on extra large screens and up (1280px+).
+    Desktop monitors. *)
+
+val on_2xl : t list -> t
+(** [on_2xl styles] applies styles on 2x large screens and up (1536px+). Large
+    desktop monitors. *)
 
 val peer : t
-(** Marker class for peer relationships. *)
+(** Marker class for peer relationships. Use this on an element to enable
+    peer-based styling on its siblings.
+
+    Example:
+    {[
+      (* When checkbox is checked, label text becomes bold *)
+      input ~at:[ At.type_ "checkbox" ] ~tw:[ peer ] [];
+      label ~tw:[ peer_checked font_bold ] [ txt "Accept terms" ]
+    ]} *)
 
 val group : t
-(** Marker class for group relationships. *)
+(** Marker class for group relationships. Add this to a parent element to enable
+    group-based styling on its children.
 
-val peer_hover : t -> t
-(** [peer_hover style] applies style when a sibling peer element is hovered. *)
+    Example:
+    {[
+      (* When hovering the card, both title and description change color *)
+      div
+        ~tw:[ group; p (int 4); border ]
+        [
+          h3 ~tw:[ on_group_hover [ text blue ] ] [ txt "Title" ];
+          p
+            ~tw:[ on_group_hover [ text ~shade:700 gray ] ]
+            [ txt "Description" ];
+        ]
+    ]} *)
 
-val peer_focus : t -> t
-(** [peer_focus style] applies style when a sibling peer element is focused. *)
+val on_peer_hover : t list -> t
+(** [on_peer_hover styles] applies styles when a sibling peer element is
+    hovered. *)
+
+val on_peer_focus : t list -> t
+(** [on_peer_focus styles] applies styles when a sibling peer element is
+    focused. *)
 
 val peer_checked : t -> t
 (** [peer_checked style] applies style when a sibling peer checkbox/radio is
     checked. *)
 
 val aria_checked : t -> t
-(** [aria_checked style] applies style when aria-checked="true". *)
+(** [aria_checked style] applies style when aria-checked="true". Useful for
+    custom checkbox/radio styling with proper accessibility. *)
 
 val aria_expanded : t -> t
-(** [aria_expanded style] applies style when aria-expanded="true". *)
+(** [aria_expanded style] applies style when aria-expanded="true". Common for
+    accordions, dropdowns, and collapsible sections. *)
 
 val aria_selected : t -> t
-(** [aria_selected style] applies style when aria-selected="true". *)
+(** [aria_selected style] applies style when aria-selected="true". Used in
+    custom select menus, tabs, and list selections. *)
 
-val aria_disabled : t -> t
-(** [aria_disabled style] applies style when aria-disabled="true". *)
+val on_aria_disabled : t list -> t
+(** [on_aria_disabled styles] applies styles when aria-disabled="true". Ensures
+    disabled states are properly styled for accessibility. *)
+
+(** {2 Data Attribute Variants}
+    @see <https://tailwindcss.com/docs/hover-focus-and-other-states#data-attributes>
+      Data Attributes *)
+
+val data_state : string -> t -> t
+(** [data_state value style] applies style when data-state="value". Common in UI
+    libraries for component states.
+
+    Example:
+    {[
+      (* Styles applied when data-state="open" *)
+      div ~tw:[ data_state "open" (opacity 100); opacity 0 ] [ content ]
+    ]} *)
+
+val data_variant : string -> t -> t
+(** [data_variant value style] applies style when data-variant="value". Useful
+    for component variants without JavaScript. *)
+
+val on_data_active : t list -> t
+(** [on_data_active styles] applies styles when data-active attribute is
+    present. *)
+
+val on_data_inactive : t list -> t
+(** [on_data_inactive styles] applies styles when data-inactive attribute is
+    present. *)
+
+val data_custom : string -> string -> t -> t
+(** [data_custom key value style] applies style when data-[key]="[value]". *)
 
 (** {1 Prose Typography}
+
+    The prose classes provide beautiful typographic defaults for long-form
+    content like articles, blog posts, or documentation. They automatically
+    style headings, paragraphs, lists, code blocks, and more.
+
     @see <https://tailwindcss.com/docs/typography-plugin> Typography Plugin *)
 
 val prose : t
-(** Default prose styling. *)
+(** Default prose styling for article-like content. Automatically styles h1-h6,
+    p, ul, ol, blockquote, code, and more.
+
+    Example:
+    {[
+      article
+        ~tw:[ prose; prose_lg; max_w none ]
+        [
+          h1 [ txt "Article Title" ];
+          p [ txt "This paragraph will be beautifully styled..." ];
+          (* All child elements get appropriate typography *)
+        ]
+    ]} *)
 
 val prose_sm : t
 (** Small prose styling. *)
@@ -1591,14 +1508,31 @@ val prose_xl : t
 val prose_gray : t
 (** Gray prose styling. *)
 
+val line_clamp : int -> t
+(** [line_clamp n] truncates text to n lines with ellipsis. Use 0 to remove
+    clamping. Useful for consistent card heights.
+
+    Example:
+    {[
+      p
+        ~tw:[ line_clamp 3 ]
+        [ txt "This very long text will be truncated after three lines..." ]
+    ]} *)
+
 (** {1 Class Generation & Internals} *)
 
 val to_class : t -> string
 (** [to_class style] generates a class name from a style. *)
 
 val to_classes : t list -> string
-(** [to_classes styles] generates a space-separated string of class names from a
-    list of styles. *)
+(** [to_classes styles] converts your style list to a CSS class string. This is
+    the main function you'll use with HTML elements.
+
+    Example:
+    {[
+      let button_styles = [ bg blue; text white; px (int 4); py (int 2) ] in
+      button ~at:[ At.class_ (to_classes button_styles) ] [ txt "Click" ]
+    ]} *)
 
 val to_string : t -> string
 (** [to_string style] converts a single style to a class string. *)
@@ -1606,33 +1540,138 @@ val to_string : t -> string
 val classes_to_string : t list -> string
 (** [classes_to_string styles] is an alias for to_classes. *)
 
-val to_css_properties : t -> Css.property list
-(** [to_css_properties style] converts a Tw style to CSS property-value pairs.
-*)
-
-val to_css_rule : selector:string -> t list -> Css.rule
-(** [to_css_rule ~selector styles] converts a list of Tw styles to a CSS rule
-    with given selector. *)
-
-val to_stylesheet : (string * t list) list -> Css.stylesheet
-(** [to_stylesheet pairs] generates a stylesheet from a list of (selector,
-    styles) pairs. *)
-
-val of_tw : t list -> Css.stylesheet
-(** [of_tw styles] generates CSS stylesheet for a list of Tw classes. *)
-
 val color_to_string : color -> string
 (** [color_to_string c] converts a color to its string representation. *)
-
-val spacing_to_class_suffix : int -> string
-(** [spacing_to_class_suffix n] converts spacing integer to its class suffix. *)
 
 val pp : t Core.Pp.t
 (** [pp t] pretty-prints Tailwind class [t]. *)
 
+(** {2 CSS Generation}
+
+    This library generates Tailwind-like class names using [to_classes].
+
+    {b Important}: Class tracking and CSS file generation should be handled by
+    the library user. For example, the {!Html} module collects all used Tw
+    classes and generates the appropriate CSS file.
+
+    For dynamic styles that change at runtime, use [to_inline_style] to generate
+    CSS properties directly for the style attribute. *)
+
+val to_inline_style : t list -> string
+(** [to_inline_style styles] generates inline CSS for the style attribute.
+    
+    {{b Note:}} This generates {{i only}} the CSS properties for the given styles,
+    without any Tailwind reset/prelude. The reset is only included in [to_css] 
+    since it's meant for complete stylesheets, not individual elements.
+    
+    Perfect for tweaking individual HTML nodes with custom styles:
+    {[
+      (* Create inline styles *)
+      let inline_styles = to_inline_style [
+        bg ~shade:100 blue;
+        p (int 4);
+        rounded md;
+        text white;
+      ] in
+      
+      (* Use in HTML *)
+      Html.div ~at:[Html.At.style inline_styles] [
+        Html.txt "This div has inline styles"
+      ]
+      (* Generates: style="background-color:rgb(219 234 254);padding:1rem;border-radius:0.375rem;color:rgb(255 255 255)" *)
+    ]}
+    
+    {{b When to use [to_inline_style] vs [to_css]:}}
+    
+    {{b Use [to_inline_style] when:}}
+    - You need dynamic styles that change at runtime
+    - You want to override specific styles on individual elements
+    - You're working with existing HTML that you can't modify classes for
+    - You need precise control over a single element's styling
+    
+    {{b Use [to_css] (preferred) when:}}
+    - You want to generate a stylesheet that can be cached and reused
+    - You're building a full website with consistent styling
+    - You want better performance (CSS classes are more efficient than inline styles)
+    
+    {{b Performance considerations:}}
+    Inline styles are {{i significantly less performant}} for large-scale use compared 
+    to stylesheets because:
+    - They increase HTML payload size (styles are repeated for each element)
+    - They cannot be cached by the browser like external stylesheets
+    - They have higher CSS specificity, making them harder to override
+    - They don't benefit from CSS compression and minification
+    
+    Use [to_inline_style] sparingly for dynamic or element-specific styling only. *)
+
+(** {3 Legacy/Advanced CSS Generation} *)
+
+val to_css_properties : t -> Css.property list
+(** [to_css_properties style] extracts raw CSS properties from a style. Mainly
+    for internal use or advanced custom CSS generation. *)
+
+val to_css_rule : selector:string -> t list -> Css.rule
+(** [to_css_rule ~selector styles] creates a CSS rule with a custom selector.
+    For advanced use cases where you need precise control. *)
+
+val css_of_classes : (string * t list) list -> Css.stylesheet
+(** [css_of_classes pairs] generates a stylesheet from CSS selector/styles
+    pairs.
+
+    Each pair is [(selector, styles)] where:
+    - [selector] is a CSS selector string (e.g., ".my-class", "#header", "div
+      p")
+    - [styles] is a list of Tw styles to apply to that selector
+
+    Example:
+    {[
+      css_of_classes
+        [
+          (".card", [ bg white; p (int 4); rounded md ]);
+          ("#header", [ bg ~shade:900 gray; text white ]);
+          ("nav a", [ text blue; on_hover [ text ~shade:700 blue ] ]);
+        ]
+    ]}
+
+    For most use cases, prefer [to_css] which handles class generation
+    automatically. *)
+
+val to_css : ?reset:bool -> t list -> Css.stylesheet
+(** [to_css ?reset styles] generates a CSS stylesheet for the given styles.
+
+    @param reset Whether to include CSS reset rules (default: [true])
+
+    When [reset=true] (default), includes:
+    - CSS reset rules (normalize margins/padding, set box-sizing, base
+      typography)
+    - The generated utility classes for your specific styles
+
+    When [reset=false], includes only the utility classes.
+
+    Use this to generate your main stylesheet for inclusion in HTML [<head>]. *)
+
 val aspect_ratio : float -> float -> t
-(** [aspect_ratio width height] sets custom aspect ratio (e.g., aspect_ratio
-    1318. 752.). *)
+(** [aspect_ratio width height] maintains element proportions.
+
+    Example:
+    {[
+      (* 16:9 video container *)
+      div ~tw:[ aspect_ratio 16. 9.; bg black ] [ video ]
+    ]} *)
 
 val clip_path : string -> t
-(** [clip_path value] sets custom clip-path for complex shapes. *)
+(** [clip_path value] clips element to custom shape using SVG path or shape.
+
+    Example:
+    {[
+      (* Create a triangular badge/indicator *)
+      span
+        ~tw:
+          [
+            clip_path "polygon(50% 0%, 0% 100%, 100% 100%)";
+            bg red;
+            w (int 6);
+            h (int 6);
+          ]
+        []
+    ]} *)

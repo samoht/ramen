@@ -65,7 +65,7 @@ let test_render_partial () =
 
   let socials =
     {
-      Ui.Socials.hover = Some [ Ui.Tw.text ~shade:600 Ui.Tw.Blue ];
+      Ui.Socials.hover = Some [ Ui.Tw.text ~shade:600 Ui.Tw.blue ];
       site;
       palette = Ui.Colors.default_palette;
     }

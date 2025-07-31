@@ -3,15 +3,18 @@
 module F = Fmt
 open Ui
 open Html
+open Tw
 module Fmt = F
 
 let file = "papers.ml"
 
 (* Helper to render paper venue and year *)
 let render_venue paper =
-  p
-    ~tw:[ Tw.text_sm; Tw.text_gray_600; Tw.mb (Int 2) ]
-    [ txt (Fmt.str "%s (%s)" paper.Core.Paper.where paper.Core.Paper.year) ]
+  Html.p
+    ~tw:[ text_sm; text ~shade:600 gray; mb (int 2) ]
+    [
+      Html.txt (Fmt.str "%s (%s)" paper.Core.Paper.where paper.Core.Paper.year);
+    ]
 
 (* Helper to render authors list *)
 let render_authors authors =
@@ -21,38 +24,40 @@ let render_authors authors =
     |> String.concat ", "
   in
   div
-    ~tw:[ Tw.text_sm; Tw.text_gray_700; Tw.mb (Int 4) ]
-    [ txt "Authors: "; txt author_names ]
+    ~tw:[ text_sm; text ~shade:700 gray; mb (int 4) ]
+    [ Html.txt "Authors: "; Html.txt author_names ]
 
 (* Helper to render abstract if present *)
 let render_abstract = function
-  | None -> void
+  | None -> Html.empty
   | Some abstract ->
-      div ~tw:[ Tw.text_gray_700; Tw.mb (Int 4) ] [ p [ txt abstract ] ]
+      div
+        ~tw:[ text ~shade:700 gray; mb (int 4) ]
+        [ Html.p [ Html.txt abstract ] ]
 
 (* Helper to render file links *)
 let render_files files =
-  if files = [] then void
+  if files = [] then Html.empty
   else
     div
-      ~tw:[ Tw.flex; Tw.gap (Int 4) ]
+      ~tw:[ flex; gap (int 4) ]
       (List.map
          (fun (file : Core.Paper.file) ->
            a
              ~at:[ At.href file.url ]
              ~tw:
                [
-                 Tw.text ~shade:600 Tw.Blue;
-                 Tw.hover (Tw.text ~shade:800 Tw.Blue);
-                 Tw.underline;
+                 text ~shade:600 blue;
+                 on_hover [ text ~shade:800 blue ];
+                 underline;
                ]
-             [ txt file.name ])
+             [ Html.txt file.name ])
          files)
 
 (* Helper to render a single paper *)
 let render_paper ~palette paper =
   article
-    ~tw:[ Tw.bg_white; Tw.p (Int 6); Tw.rounded_lg; Tw.shadow_md ]
+    ~tw:[ bg white; p (int 6); rounded lg; shadow md ]
     [
       Heading.h2 ~palette paper.Core.Paper.title;
       render_venue paper;
@@ -71,12 +76,12 @@ let render ~site ~papers =
         [
           Heading.h1 ~palette:Ui.Colors.default_palette page_title;
           (if papers = [] then
-             p
-               ~tw:[ Tw.text_gray_600; Tw.italic ]
-               [ txt "No papers available at this time." ]
+             Html.p
+               ~tw:[ text ~shade:600 gray; italic ]
+               [ Html.txt "No papers available at this time." ]
            else
-             div
-               ~tw:[ Tw.space_y (Int 8) ]
+             Html.div
+               ~tw:[ flex; flex_col; gap (int 8) ]
                (List.map
                   (render_paper ~palette:Ui.Colors.default_palette)
                   papers));

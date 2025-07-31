@@ -1,25 +1,24 @@
 (* Icon components for the site *)
 
 open Html
+open Tw
 
 module D = struct
-  let color palette =
-    [ Tw.text_white; Tw.(bg ~shade:600 palette.Colors.primary) ]
+  let color palette = [ text white; bg ~shade:600 palette.Colors.primary ]
 end
 
 let _wrap ?(size = `Normal) palette icon =
   let size_classes =
     match size with
-    | `Normal -> [ Tw.h_10; Tw.w_10 ]
-    | `Small -> [ Tw.h_6; Tw.w_6 ]
+    | `Normal -> [ h (int 10); w (int 10) ]
+    | `Small -> [ h (int 6); w (int 6) ]
   in
-  let base_classes = [ Tw.p_1; Tw.rounded_lg ] in
+  let base_classes = [ p (int 1); rounded lg ] in
   div
     ~tw:(base_classes @ D.color palette @ size_classes)
     [
       div
-        ~tw:
-          [ Tw.flex; Tw.items_center; Tw.justify_center; Tw.h_full; Tw.w_full ]
+        ~tw:[ flex; items_center; justify_center; h full; w full ]
         [ of_htmlit icon ];
     ]
 

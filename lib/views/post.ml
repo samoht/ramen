@@ -1,6 +1,7 @@
 module F = Fmt
 open Ui
 open Html
+open Tw
 module Fmt = F
 
 (* Return the source file path for a blog post *)
@@ -11,20 +12,18 @@ let author (b : Core.Blog.author) =
   let link_to_author = Core.Page.create_blog_index ~author:b 1 in
   a
     ~at:[ At.href (Core.Page.url link_to_author) ]
-    ~tw:[ Tw.text_gray_700; Tw.hover_text_gray_900; Tw.font_medium ]
+    ~tw:[ text ~shade:700 gray; on_hover [ text ~shade:900 gray ]; font_medium ]
     [ txt author_name ]
 
 let back =
   nav
-    ~tw:[ Tw.mb (Int 6) ]
+    ~tw:[ mb (int 6) ]
     [
       a
         ~at:[ At.href "/blog/" ]
         ~tw:
           [
-            Tw.text ~shade:700 Gray;
-            Tw.hover (Tw.text ~shade:900 Gray);
-            Tw.font_medium;
+            text ~shade:700 gray; on_hover [ text ~shade:900 gray ]; font_medium;
           ]
         [ txt "← Back to Blog" ];
     ]
@@ -34,34 +33,34 @@ let authors l =
   match author_links with
   | [] -> void
   | [ single ] ->
-      span ~tw:[ Tw.text_sm; Tw.text ~shade:600 Gray ] [ txt "By "; single ]
+      span ~tw:[ text_sm; text ~shade:600 gray ] [ txt "By "; single ]
   | multiple ->
       div
-        ~tw:[ Tw.text_sm; Tw.text ~shade:600 Gray ]
+        ~tw:[ text_sm; text ~shade:600 gray ]
         (txt "By " :: List.concat_map (fun a -> [ a; txt ", " ]) multiple)
 
 let tag str =
   let index = Core.Page.create_blog_index ~tag:str 1 in
   a
     ~at:[ At.href (Core.Page.url index) ]
-    ~tw:[ Tw.text_gray_600; Tw.hover (Tw.text ~shade:800 Gray); Tw.text_sm ]
+    ~tw:[ text ~shade:600 gray; on_hover [ text ~shade:800 gray ]; text_sm ]
     [ txt "#"; txt str ]
 
 let tags (item : Core.Blog.t) =
   match item.tags with
   | [] -> void
-  | tags -> div ~tw:[ Tw.flex; Tw.gap (Int 2) ] (List.map tag tags)
+  | tags -> div ~tw:[ flex; gap (int 2) ] (List.map tag tags)
 
 let source_links (item : Core.Blog.t) =
   match item.links with
   | [] -> void
   | links ->
       div
-        ~tw:[ Tw.mt (Int 2); Tw.text_sm; Tw.text ~shade:600 Gray ]
+        ~tw:[ mt (int 2); text_sm; text ~shade:600 gray ]
         [
           txt "Originally posted on: ";
           span
-            ~tw:[ Tw.inline_flex; Tw.gap (Int 2) ]
+            ~tw:[ inline_flex; gap (int 2) ]
             (List.mapi
                (fun i link ->
                  let platform =
@@ -88,9 +87,9 @@ let source_links (item : Core.Blog.t) =
                        ~at:[ At.href link; At.target "_blank" ]
                        ~tw:
                          [
-                           Tw.text_gray_700;
-                           Tw.hover_text_gray_900;
-                           Tw.underline;
+                           text ~shade:700 gray;
+                           on_hover [ text ~shade:900 gray ];
+                           underline;
                          ]
                        [ txt platform ];
                    ])
@@ -102,38 +101,32 @@ let html_of_title title = String.trim title
 (* Render the header section of a blog post *)
 let render_header_section (blog : Core.Blog.t) =
   section
-    ~tw:
-      [
-        Tw.bg_white;
-        Tw.border_b;
-        Tw.border_color ~shade:200 Gray;
-        Tw.py (Int 24);
-      ]
+    ~tw:[ bg white; border_b; border_color ~shade:200 gray; py (int 24) ]
     [
       div
-        ~tw:[ Tw.max_w_4xl; Tw.mx_auto; Tw.px (Int 6) ]
+        ~tw:[ max_w (rem 56.0) (* 4xl = 56rem *); mx auto; px (int 6) ]
         [
           back;
           (* Title and metadata *)
           h1
-            ~tw:[ Tw.text_3xl; Tw.font_bold; Tw.text_gray_900; Tw.mb (Int 4) ]
+            ~tw:[ text_3xl; font_bold; text ~shade:900 gray; mb (int 4) ]
             [ txt (html_of_title blog.title) ];
           div
             ~tw:
               [
-                Tw.flex;
-                Tw.flex_col;
-                Tw.sm_flex_row;
-                Tw.sm Tw.items_baseline;
-                Tw.sm Tw.justify_between;
-                Tw.gap (Int 2);
-                Tw.mb (Int 2);
+                flex;
+                flex_col;
+                on_sm [ flex_row ];
+                on_sm [ items_baseline ];
+                on_sm [ justify_between ];
+                gap (int 2);
+                mb (int 2);
               ]
             [
               authors blog.authors;
               time
                 ~at:[ At.datetime (Core.Blog.date blog) ]
-                ~tw:[ Tw.text_sm; Tw.text_gray_500; Tw.whitespace_nowrap ]
+                ~tw:[ text_sm; text ~shade:500 gray; whitespace_nowrap ]
                 [ txt (Core.Blog.pretty_date blog) ];
             ];
           tags blog;
@@ -144,13 +137,13 @@ let render_header_section (blog : Core.Blog.t) =
 (* Render the content section of a blog post *)
 let render_content_section (blog : Core.Blog.t) =
   section
-    ~tw:[ Tw.py (Int 8); Tw.bg_white ]
+    ~tw:[ py (int 8); bg white ]
     [
       div
-        ~tw:[ Tw.max_w_4xl; Tw.mx_auto; Tw.px (Int 6) ]
+        ~tw:[ max_w (rem 56.0) (* 4xl = 56rem *); mx auto; px (int 6) ]
         [
           div
-            ~tw:[ Tw.prose; Tw.prose_gray; Tw.max_w_none; Tw.mt (Int 8) ]
+            ~tw:[ prose; prose_gray; max_w none; mt (int 8) ]
             [ raw blog.body_html ];
         ];
     ]

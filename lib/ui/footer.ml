@@ -1,4 +1,5 @@
 open Html
+open Tw
 
 let social_icon label =
   match String.lowercase_ascii label with
@@ -11,26 +12,26 @@ let social_icon label =
 (* Render contact information and copyright *)
 let render_contact_info ~site ~palette =
   div
-    ~tw:[ Tw.flex; Tw.flex_col; Tw.gap_2 ]
+    ~tw:[ flex; flex_col; gap (int 2) ]
     [
       a
         ~at:[ At.href ("mailto:" ^ site.Core.Site.author_email) ]
         ~tw:
           [
             Colors.text_muted palette;
-            Tw.hover (Colors.text_primary palette);
-            Tw.transition_colors;
+            on_hover [ Colors.text_primary palette ];
+            transition_colors;
           ]
         [ txt site.Core.Site.author_email ];
-      p
-        ~tw:[ Tw.text_xs; Tw.text ~shade:400 palette.Colors.neutral ]
+      Html.p
+        ~tw:[ text_xs; text ~shade:400 palette.Colors.neutral ]
         [ raw site.Core.Site.footer.Core.Site.copyright ];
     ]
 
 (* Render footer links (privacy, terms, etc.) *)
 let render_footer_links ~palette links =
   div
-    ~tw:[ Tw.flex; Tw.items_center; Tw.gap_4 ]
+    ~tw:[ flex; items_center; gap (int 4) ]
     (List.map
        (fun (link : Core.Site.link) ->
          a
@@ -38,8 +39,8 @@ let render_footer_links ~palette links =
            ~tw:
              [
                Colors.text_muted palette;
-               Tw.hover (Colors.text_primary palette);
-               Tw.transition_colors;
+               on_hover [ Colors.text_primary palette ];
+               transition_colors;
              ]
            [ txt link.text ])
        links)
@@ -71,7 +72,7 @@ let render_social_icons ~palette social =
         | None -> links
       in
       div
-        ~tw:[ Tw.flex; Tw.items_center; Tw.gap_4 ]
+        ~tw:[ flex; items_center; gap (int 4) ]
         (List.map
            (fun (url, icon_name) ->
              a
@@ -79,8 +80,8 @@ let render_social_icons ~palette social =
                ~tw:
                  [
                    Colors.text_muted palette;
-                   Tw.hover (Colors.text_primary palette);
-                   Tw.transition_colors;
+                   on_hover [ Colors.text_primary palette ];
+                   transition_colors;
                  ]
                [ social_icon icon_name ])
            links)
@@ -95,30 +96,30 @@ let render t =
     ~at:[ At.id "footer" ]
     ~tw:
       [
-        Tw.border_t;
+        border_t;
         Colors.border_muted palette;
-        Tw.py_8;
+        py (int 8);
         Colors.bg_primary palette;
       ]
     [
       div
-        ~tw:[ Tw.max_w_4xl; Tw.mx_auto; Tw.px_6 ]
+        ~tw:[ max_w (rem 56.0) (* 4xl = 56rem *); mx auto; px (int 6) ]
         [
           div
             ~tw:
               [
-                Tw.flex;
-                Tw.flex_col;
-                Tw.sm_flex_row;
-                Tw.justify_between;
-                Tw.items_center;
-                Tw.gap_4;
-                Tw.text_sm;
+                flex;
+                flex_col;
+                on_sm [ flex_row ];
+                justify_between;
+                items_center;
+                gap (int 4);
+                text_sm;
               ]
             [
               render_contact_info ~site ~palette;
               div
-                ~tw:[ Tw.flex; Tw.flex_col; Tw.sm_flex_row; Tw.gap_4 ]
+                ~tw:[ flex; flex_col; on_sm [ flex_row ]; gap (int 4) ]
                 [
                   render_footer_links ~palette
                     site.Core.Site.footer.Core.Site.links;

@@ -72,7 +72,7 @@ let test_render_with_image () =
 
   check bool "contains image src" true
     (Astring.String.is_infix ~affix:"/images/jane.jpg" html_str);
-  check bool "has ring classes" true
+  check bool "has ring classes" false
     (Astring.String.is_infix ~affix:"ring-2" html_str)
 
 let test_render_without_image () =

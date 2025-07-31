@@ -1,6 +1,7 @@
 (* Visual test for hero components *)
 
 open Ui
+open Tw
 
 (* Helper to generate a test page *)
 let generate_test_page ~title ~filename content =
@@ -32,11 +33,9 @@ let generate_test_page ~title ~filename content =
 let test () =
   let heroes =
     [
-      Html.h2
-        ~tw:[ Tw.text_xl; Tw.font_bold; Tw.mb (Int 4) ]
-        [ Html.txt "Hero Styles" ];
+      Html.h2 ~tw:[ text_xl; font_bold; mb (int 4) ] [ Html.txt "Hero Styles" ];
       Html.div
-        ~tw:[ Tw.space_y (Int 8) ]
+        ~tw:[ flex; flex_col; gap (int 8) ]
         [
           Hero.render
             {

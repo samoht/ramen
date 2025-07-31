@@ -1,5 +1,6 @@
 open Core
 open Html
+open Tw
 
 let render (b : Blog.author) =
   let author =
@@ -22,16 +23,12 @@ let render (b : Blog.author) =
   in
   let title = match author.title with None -> [] | Some t -> [ txt t ] in
   div
-    ~tw:
-      [ Tw.relative; Tw.mt (Int 2); Tw.flex; Tw.items_center; Tw.gap_x (Int 4) ]
+    ~tw:[ relative; mt (int 2); flex; items_center; gap_x (int 4) ]
     [
       avatar;
-      div
-        ~tw:[ Tw.text_xs; Tw.leading_6 ]
+      div ~tw:[ text_xs; leading_6 ]
         [
-          p
-            ~tw:[ Tw.font_semibold; Tw.text ~shade:600 Tw.Gray ]
-            [ txt author.name ];
-          p ~tw:[ Tw.text ~shade:600 Tw.Gray ] title;
+          Html.p ~tw:[ font_semibold; text ~shade:600 gray ] [ txt author.name ];
+          Html.p ~tw:[ text ~shade:600 gray ] title;
         ];
     ]

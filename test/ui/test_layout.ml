@@ -1,6 +1,7 @@
 (** Tests for the Layout module *)
 
 open Alcotest
+open Ui.Tw
 
 let test_render () =
   let site =
@@ -111,8 +112,8 @@ let test_to_tw () =
   let content =
     [
       Ui.Html.div
-        ~tw:[ Ui.Tw.p (Int 4); Ui.Tw.bg_white ]
-        [ Ui.Html.span ~tw:[ Ui.Tw.text_gray_900 ] [ Ui.Html.txt "Text" ] ];
+        ~tw:[ p (int 4); bg white ]
+        [ Ui.Html.span ~tw:[ text ~shade:900 gray ] [ Ui.Html.txt "Text" ] ];
     ]
   in
 

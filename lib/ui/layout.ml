@@ -1,4 +1,5 @@
 open Html
+open Tw
 
 type config = { main_css : string; js : string list }
 
@@ -144,7 +145,7 @@ let render ~title ?description ?og ?links ~site page inner =
   let head config = head (headers config) in
   let body_html =
     body
-      ~tw:Tw.[ antialiased; min_h_screen ]
+      ~tw:[ antialiased; min_h screen ]
       [
         Header.render
           {
@@ -154,9 +155,9 @@ let render ~title ?description ?og ?links ~site page inner =
             palette = Colors.default_palette;
           };
         div
-          ~tw:Tw.[ min_h_screen; flex; flex_col ]
+          ~tw:[ min_h screen; flex; flex_col ]
           [
-            main ~tw:Tw.[ isolate; flex ] inner;
+            main ~tw:[ isolate; flex ] inner;
             Footer.render { site; palette = Colors.default_palette };
           ];
       ]

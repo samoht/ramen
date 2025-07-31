@@ -1,10 +1,9 @@
-module F = Fmt
 open Ui
-open Html
-module Fmt = F
+open Html.At
+open Tw
 
 let footer ?filter ~number_of_pages page =
-  if number_of_pages = 1 then void
+  if number_of_pages = 1 then Html.empty
   else
     let url i = Core.Page.url (Core.Page.create_blog_index ?filter i) in
     let pages =
@@ -12,23 +11,23 @@ let footer ?filter ~number_of_pages page =
           let i = i + 1 in
           let active = i = page in
           if active then
-            span
-              ~tw:[ Tw.px (Tw.Int 2); Tw.font_bold ]
-              [ txt (string_of_int i) ]
+            Html.span
+              ~tw:[ px (int 2); font_bold ]
+              [ Html.txt (string_of_int i) ]
           else
-            a
-              ~at:[ At.href (url i) ]
+            Html.a
+              ~at:[ href (url i) ]
               ~tw:
                 [
-                  Tw.px (Tw.Int 2);
-                  Tw.text_black;
-                  Tw.underline;
-                  Tw.hover (Tw.text ~shade:600 Tw.Gray);
+                  px (int 2);
+                  text black;
+                  underline;
+                  on_hover [ text ~shade:600 gray ];
                 ]
-              [ txt (string_of_int i) ])
+              [ Html.txt (string_of_int i) ])
     in
     match pages with
-    | [] -> void
+    | [] -> Html.empty
     | _ ->
         let prev =
           if page = 1 then []
@@ -42,15 +41,15 @@ let footer ?filter ~number_of_pages page =
           else
             [ Button.render ~variant:Outline ~href:(url (page + 1)) "Next →" ]
         in
-        div
+        Html.div
           ~tw:
             [
-              Tw.mt (Tw.Int 16);
-              Tw.text_center;
-              Tw.flex;
-              Tw.items_center;
-              Tw.justify_center;
-              Tw.gap (Tw.Int 4);
+              mt (int 16);
+              text_center;
+              flex;
+              items_center;
+              justify_center;
+              gap (int 4);
             ]
           (prev @ pages @ next)
 
@@ -119,100 +118,84 @@ let render_hero_section ~site filter =
 
 (* Render a single tag pill *)
 let render_tag_pill tag =
-  a
+  Html.a
     ~at:
-      [
-        At.href
-          (Core.Page.url (Core.Page.create_blog_index ~filter:(Tag tag) 1));
-      ]
+      [ href (Core.Page.url (Core.Page.create_blog_index ~filter:(Tag tag) 1)) ]
     ~tw:
       [
-        Tw.inline_block;
-        Tw.px (Tw.Int 4);
-        Tw.py (Tw.Int 2);
-        Tw.bg ~shade:100 Tw.Gray;
-        Tw.text ~shade:700 Tw.Gray;
-        Tw.rounded_full;
-        Tw.text_sm;
-        Tw.font_medium;
-        Tw.hover (Tw.bg ~shade:100 Tw.Sky);
-        Tw.hover (Tw.text ~shade:700 Tw.Sky);
-        Tw.transition_all;
+        inline_block;
+        px (int 4);
+        py (int 2);
+        bg ~shade:100 gray;
+        text ~shade:700 gray;
+        rounded full;
+        text_sm;
+        font_medium;
+        on_hover [ bg ~shade:100 sky; text ~shade:700 sky ];
+        transition_all;
       ]
-    [ txt ("#" ^ tag) ]
+    [ Html.txt ("#" ^ tag) ]
 
 (* Render tag section for unfiltered blog page *)
 let render_tag_section ~all_tags filter =
   match filter with
   | None ->
-      div
-        ~tw:
-          [
-            Tw.max_w_4xl;
-            Tw.mx_auto;
-            Tw.px (Int 6);
-            Tw.text_center;
-            Tw.mb (Int 12);
-          ]
+      Html.div
+        ~tw:[ max_w xl_4; mx auto; px (int 6); text_center; mb (int 12) ]
         [
-          div
-            ~tw:[ Tw.flex; Tw.flex_wrap; Tw.justify_center; Tw.gap (Int 2) ]
+          Html.div
+            ~tw:[ flex; flex_wrap; justify_center; gap (int 2) ]
             (List.map render_tag_pill all_tags);
         ]
-  | _ -> void
+  | _ -> Html.empty
 
 (* Render post header with title and date *)
 let render_post_header (post : Core.Blog.t) =
   Html.div
     ~tw:
       [
-        Tw.flex;
-        Tw.flex_col;
-        Tw.sm Tw.flex_row;
-        Tw.sm Tw.items_baseline;
-        Tw.sm Tw.justify_between;
-        Tw.gap (Int 2);
-        Tw.mb (Int 2);
+        flex;
+        flex_col;
+        on_sm [ flex_row ];
+        on_sm [ items_baseline ];
+        on_sm [ justify_between ];
+        gap (int 2);
+        mb (int 2);
       ]
     [
-      Html.h3
-        ~tw:[ Tw.text_xl; Tw.font_semibold ]
+      Html.h3 ~tw:[ text_xl; font_semibold ]
         [
           Html.a
-            ~at:[ At.href (Fmt.str "/blog/%s/" post.slug) ]
+            ~at:[ href (Fmt.str "/blog/%s/" post.slug) ]
             ~tw:
               [
-                Tw.text ~shade:900 Tw.Gray;
-                Tw.hover (Tw.text ~shade:700 Tw.Sky);
-                Tw.transition_colors;
+                text ~shade:900 gray;
+                on_hover [ text ~shade:700 sky ];
+                transition_colors;
               ]
             [ Html.txt post.title ];
         ];
       Html.time
-        ~at:[ At.datetime (Core.Blog.date post) ]
-        ~tw:[ Tw.text_sm; Tw.text ~shade:500 Tw.Gray; Tw.whitespace_nowrap ]
+        ~at:[ datetime (Core.Blog.date post) ]
+        ~tw:[ text_sm; text ~shade:500 gray; whitespace_nowrap ]
         [ Html.txt (Core.Blog.pretty_date post) ];
     ]
 
 (* Render post tags *)
 let render_post_tags tags =
   Html.div
-    ~tw:[ Tw.flex; Tw.gap (Int 2) ]
+    ~tw:[ flex; gap (int 2) ]
     (List.map
        (fun tag ->
          Html.a
            ~at:
              [
-               At.href
+               href
                  (Core.Page.url
                     (Core.Page.create_blog_index ~filter:(Tag tag) 1));
              ]
            ~tw:
-             [
-               Tw.text_sm;
-               Tw.text ~shade:700 Tw.Sky;
-               Tw.hover (Tw.text ~shade:800 Tw.Sky);
-             ]
+             [ text_sm; text ~shade:700 sky; on_hover [ text ~shade:800 sky ] ]
            [ Html.txt ("#" ^ tag) ])
        tags)
 
@@ -222,7 +205,7 @@ let render_blog_post_item (post : Core.Blog.t) =
     [
       render_post_header post;
       Html.p
-        ~tw:[ Tw.text ~shade:600 Tw.Gray; Tw.leading_relaxed; Tw.mb (Int 3) ]
+        ~tw:[ text ~shade:600 gray; leading_relaxed; mb (int 3) ]
         [ Html.txt post.description ];
       render_post_tags post.tags;
     ]
@@ -256,14 +239,14 @@ let render ~site ~blog_posts:_ ~all_tags
     [
       render_hero_section ~site filter;
       render_tag_section ~all_tags filter;
-      section
-        ~tw:[ Tw.bg_white; Tw.pt (Int 8) ]
+      Html.section
+        ~tw:[ bg white; pt (int 8) ]
         [
-          div
-            ~tw:[ Tw.max_w_4xl; Tw.mx_auto; Tw.px (Int 6) ]
+          Html.div
+            ~tw:[ max_w (rem 56.0) (* 4xl = 56rem *); mx auto; px (int 6) ]
             [
-              div
-                ~tw:[ Tw.space_y (Int 8) ]
+              Html.div
+                ~tw:[ flex; flex_col; gap (int 8) ]
                 (List.map render_blog_post_item posts);
               footer ?filter ~number_of_pages page;
             ];

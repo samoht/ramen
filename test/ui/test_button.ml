@@ -1,6 +1,7 @@
 (* Visual test for button components *)
 
 open Ui
+open Tw
 
 (* Helper to generate a test page *)
 let generate_test_page ~title ~filename content =
@@ -21,7 +22,7 @@ let generate_test_page ~title ~filename content =
               ();
           ];
         Html.body
-          [ Html.div ~tw:[ Tw.p (Int 8); Tw.max_w_4xl; Tw.mx_auto ] content ];
+          [ Html.div ~tw:[ p (int 8); max_w (rem 56.0); mx auto ] content ];
       ]
   in
   let html = Html.to_string ~doctype:true page in
@@ -34,10 +35,8 @@ let generate_test_page ~title ~filename content =
 let button_section ~title ~buttons =
   Html.div
     [
-      Html.h3
-        ~tw:[ Tw.text_lg; Tw.font_semibold; Tw.mb (Int 2) ]
-        [ Html.txt title ];
-      Html.div ~tw:[ Tw.flex; Tw.gap (Int 4) ] buttons;
+      Html.h3 ~tw:[ text_lg; font_semibold; mb (int 2) ] [ Html.txt title ];
+      Html.div ~tw:[ flex; gap (int 4) ] buttons;
     ]
 
 let test_buttons () =
@@ -52,7 +51,7 @@ let test_buttons () =
     [
       Button.render ~variant:Secondary ~href:"#" "Secondary Button";
       Html.div
-        ~tw:[ Tw.flex; Tw.items_center; Tw.gap (Int 2) ]
+        ~tw:[ flex; items_center; gap (int 2) ]
         [ Icon.github; Button.render ~variant:Secondary ~href:"#" "With Icon" ];
     ]
   in
@@ -66,10 +65,10 @@ let test_buttons () =
   let buttons =
     [
       Html.h2
-        ~tw:[ Tw.text_xl; Tw.font_bold; Tw.mb (Int 4) ]
+        ~tw:[ text_xl; font_bold; mb (int 4) ]
         [ Html.txt "Button Variants" ];
       Html.div
-        ~tw:[ Tw.space_y (Int 4) ]
+        ~tw:[ flex; flex_col; gap (int 4) ]
         [
           button_section ~title:"Primary Buttons" ~buttons:primary_buttons;
           button_section ~title:"Secondary Buttons" ~buttons:secondary_buttons;

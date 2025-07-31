@@ -214,7 +214,7 @@ let generate ~data_dir ~output_dir ~minify ~data =
   in
 
   (* Generate CSS from collected Tailwind styles *)
-  let stylesheet = Ui.Tw.of_tw tw_styles in
+  let stylesheet = Ui.Tw.to_css tw_styles in
   let css_content = Ui.Css.to_string ~minify stylesheet in
 
   let css_path = root / "css" / "main.css" in

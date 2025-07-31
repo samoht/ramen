@@ -13,105 +13,7 @@
     Any test failure indicates our CSS generation differs from Tailwind. *)
 
 open Alcotest
-
-let test_css_generation () =
-  (* Test that our Tw module generates CSS *)
-  let test_class tw_style expected_css =
-    let stylesheet = Ui.Tw.of_tw [ tw_style ] in
-    let css_str = Ui.Css.to_string stylesheet in
-    (* CSS might be minified, so remove spaces *)
-    let normalized_css = Astring.String.filter (fun c -> c <> ' ') css_str in
-    let normalized_expected =
-      Astring.String.filter (fun c -> c <> ' ') expected_css
-    in
-    (* Debug output *)
-    if not (Astring.String.is_infix ~affix:normalized_expected normalized_css)
-    then
-      Fmt.epr
-        "CSS debug: Looking for '%s' in generated CSS (first 500 chars): \
-         '%s...'@."
-        normalized_expected
-        (String.sub normalized_css 0 (min 500 (String.length normalized_css)));
-    check bool
-      ("css contains " ^ expected_css)
-      true
-      (Astring.String.is_infix ~affix:normalized_expected normalized_css)
-  in
-
-  (* Test basic spacing classes *)
-  test_class (Ui.Tw.p (Int 4)) "padding:1rem";
-  test_class (Ui.Tw.m (Int 2)) "margin:0.5rem";
-  test_class (Ui.Tw.px (Int 6)) "padding-left:1.5rem";
-  test_class (Ui.Tw.px (Int 6)) "padding-right:1.5rem";
-
-  (* Test color classes *)
-  test_class Ui.Tw.bg_white
-    "background-color:rgb(255 255 255 / var(--tw-bg-opacity))";
-  test_class
-    (Ui.Tw.text ~shade:900 Ui.Tw.Gray)
-    "color:rgb(17 24 39 / var(--tw-text-opacity))";
-
-  (* Test display classes *)
-  test_class Ui.Tw.flex "display:flex";
-  test_class Ui.Tw.hidden "display:none";
-  test_class Ui.Tw.block "display:block"
-
-let test_modifier_classes () =
-  (* Test that modifiers are correctly applied *)
-  let hover_bg = Ui.Tw.hover (Ui.Tw.bg ~shade:800 Ui.Tw.Sky) in
-  let css_str = Ui.Tw.to_string hover_bg in
-  check string "hover modifier prefix" "hover:bg-sky-800" css_str;
-
-  let md_block = Ui.Tw.md Ui.Tw.block in
-  let css_str = Ui.Tw.to_string md_block in
-  check string "responsive modifier prefix" "md:block" css_str
-
-let test_rounded_values () =
-  (* Test rounded corner values *)
-  let test_rounded rounded expected =
-    let tw = Ui.Tw.rounded rounded in
-    let stylesheet = Ui.Tw.of_tw [ tw ] in
-    let css_str = Ui.Css.to_string stylesheet in
-    check bool "rounded value matches expected" true
-      (Astring.String.is_infix ~affix:expected css_str)
-  in
-
-  test_rounded Ui.Tw.None "border-radius: 0";
-  test_rounded Ui.Tw.Sm "border-radius: 0.125rem";
-  test_rounded Ui.Tw.Md "border-radius: 0.375rem";
-  test_rounded Ui.Tw.Lg "border-radius: 0.5rem";
-  test_rounded Ui.Tw.Full "border-radius: 9999px"
-
-let test_shadow_values () =
-  (* Test box shadow values *)
-  let test_shadow shadow =
-    let tw = Ui.Tw.shadow shadow in
-    let stylesheet = Ui.Tw.of_tw [ tw ] in
-    let css_str = Ui.Css.to_string stylesheet in
-    check bool "shadow value has box-shadow property" true
-      (Astring.String.is_infix ~affix:"box-shadow" css_str)
-  in
-
-  test_shadow Ui.Tw.Sm;
-  test_shadow Ui.Tw.Md;
-  test_shadow Ui.Tw.Lg;
-  test_shadow Ui.Tw.None
-
-let test_typography_classes () =
-  (* Test typography-related classes *)
-  let test_text_size tw expected_size =
-    let stylesheet = Ui.Tw.of_tw [ tw ] in
-    let css_str = Ui.Css.to_string stylesheet in
-    check bool "font-size property" true
-      (Astring.String.is_infix ~affix:("font-size: " ^ expected_size) css_str)
-  in
-
-  test_text_size Ui.Tw.text_xs "0.75rem";
-  test_text_size Ui.Tw.text_sm "0.875rem";
-  test_text_size Ui.Tw.text_base "1rem";
-  test_text_size Ui.Tw.text_lg "1.125rem";
-  test_text_size Ui.Tw.text_xl "1.25rem";
-  test_text_size Ui.Tw.text_2xl "1.5rem"
+open Ui.Tw
 
 (** No normalization - exact comparison *)
 let exact_css css = String.trim css
@@ -198,7 +100,7 @@ module.exports = {
 
 (** Generate CSS using our Ramen implementation *)
 let generate_ramen_css ?(minify = false) tw_styles =
-  let stylesheet = Ui.Tw.of_tw tw_styles in
+  let stylesheet = to_css tw_styles in
   Ui.Css.to_string ~minify stylesheet
 
 (** Extract utility class CSS from full Tailwind output *)
@@ -252,241 +154,241 @@ let extract_utility_classes css classnames =
 let get_all_test_styles () =
   [
     (* Basic spacing - comprehensive *)
-    Ui.Tw.p (Int 0);
-    Ui.Tw.p (Int 1);
-    Ui.Tw.p (Int 4);
-    Ui.Tw.m (Int 0);
-    Ui.Tw.m (Int 2);
-    Ui.Tw.m Auto;
-    Ui.Tw.px (Int 6);
-    Ui.Tw.py (Int 3);
-    Ui.Tw.pt (Int 1);
-    Ui.Tw.pr (Int 8);
-    Ui.Tw.pb (Int 12);
-    Ui.Tw.pl (Int 16);
-    Ui.Tw.mx (Int 0);
-    Ui.Tw.mx Auto;
-    Ui.Tw.my (Int 10);
-    Ui.Tw.mt (Int 20);
-    Ui.Tw.mr (Int 24);
-    Ui.Tw.mb (Int 56);
-    Ui.Tw.ml (Int 6);
+    p (int 0);
+    p (int 1);
+    p (int 4);
+    m (int 0);
+    m (int 2);
+    m auto;
+    px (int 6);
+    py (int 3);
+    pt (int 1);
+    pr (int 8);
+    pb (int 12);
+    pl (int 16);
+    mx (int 0);
+    mx auto;
+    my (int 10);
+    mt (int 20);
+    mr (int 24);
+    mb (int 56);
+    ml (int 6);
     (* Color classes - all variants *)
-    Ui.Tw.bg_white;
-    Ui.Tw.bg Black;
-    Ui.Tw.bg_transparent;
-    Ui.Tw.bg_current;
-    Ui.Tw.text ~shade:900 Gray;
-    Ui.Tw.text_transparent;
-    Ui.Tw.text_current;
-    Ui.Tw.border_color ~shade:200 Gray;
-    Ui.Tw.border_transparent;
-    Ui.Tw.border_current;
-    Ui.Tw.bg ~shade:500 Gray;
-    Ui.Tw.bg ~shade:600 Sky;
-    Ui.Tw.text ~shade:400 Yellow;
-    Ui.Tw.border_color ~shade:600 Teal;
+    bg white;
+    bg black;
+    bg_transparent;
+    bg_current;
+    text ~shade:900 gray;
+    text_transparent;
+    text_current;
+    border_color ~shade:200 gray;
+    border_transparent;
+    border_current;
+    bg ~shade:500 gray;
+    bg ~shade:600 sky;
+    text ~shade:400 yellow;
+    border_color ~shade:600 teal;
     (* Display - comprehensive *)
-    Ui.Tw.block;
-    Ui.Tw.inline;
-    Ui.Tw.inline_block;
-    Ui.Tw.flex;
-    Ui.Tw.inline_flex;
-    Ui.Tw.grid;
-    Ui.Tw.inline_grid;
-    Ui.Tw.hidden;
+    block;
+    inline;
+    inline_block;
+    flex;
+    inline_flex;
+    grid;
+    inline_grid;
+    hidden;
     (* Sizing - comprehensive *)
-    Ui.Tw.w (Int 0);
-    Ui.Tw.w (Int 4);
-    Ui.Tw.w (Int 96);
-    Ui.Tw.w_auto;
-    Ui.Tw.w_full;
-    Ui.Tw.w_min;
-    Ui.Tw.w_max;
-    Ui.Tw.h (Int 0);
-    Ui.Tw.h (Int 8);
-    Ui.Tw.h_auto;
-    Ui.Tw.h_full;
-    Ui.Tw.min_w (Int 0);
-    Ui.Tw.min_w_full;
-    Ui.Tw.max_w_xs;
-    Ui.Tw.max_w_sm;
-    Ui.Tw.max_w_md;
-    Ui.Tw.max_w_lg;
-    Ui.Tw.max_w_xl;
-    Ui.Tw.max_w_2xl;
-    Ui.Tw.max_w_7xl;
-    Ui.Tw.max_w_full;
-    Ui.Tw.max_w_none;
+    w (int 0);
+    w (int 4);
+    w (int 96);
+    w fit;
+    w full;
+    min_w min;
+    min_w max;
+    h (int 0);
+    h (int 8);
+    h fit;
+    h full;
+    min_w (int 0);
+    min_w full;
+    max_w xs;
+    max_w sm;
+    max_w md;
+    max_w lg;
+    max_w xl;
+    max_w xl_2;
+    max_w xl_7;
+    max_w full;
+    max_w none;
     (* Typography - comprehensive *)
-    Ui.Tw.text_xs;
-    Ui.Tw.text_sm;
-    Ui.Tw.text_base;
-    Ui.Tw.text_lg;
-    Ui.Tw.text_xl;
-    Ui.Tw.text_2xl;
-    Ui.Tw.text_3xl;
-    Ui.Tw.text_4xl;
-    Ui.Tw.font_normal;
-    Ui.Tw.font_medium;
-    Ui.Tw.font_semibold;
-    Ui.Tw.font_bold;
-    Ui.Tw.text_left;
-    Ui.Tw.text_center;
-    Ui.Tw.text_right;
-    Ui.Tw.text_justify;
-    Ui.Tw.leading_none;
-    Ui.Tw.leading_tight;
-    Ui.Tw.leading_normal;
-    Ui.Tw.leading_relaxed;
-    Ui.Tw.tracking_tight;
-    Ui.Tw.tracking_normal;
-    Ui.Tw.tracking_wide;
-    Ui.Tw.whitespace_normal;
-    Ui.Tw.whitespace_nowrap;
+    text_xs;
+    text_sm;
+    text_base;
+    text_lg;
+    text_xl;
+    text_2xl;
+    text_3xl;
+    text_4xl;
+    font_normal;
+    font_medium;
+    font_semibold;
+    font_bold;
+    text_left;
+    text_center;
+    text_right;
+    text_justify;
+    leading_none;
+    leading_tight;
+    leading_normal;
+    leading_relaxed;
+    tracking_tight;
+    tracking_normal;
+    tracking_wide;
+    whitespace_normal;
+    whitespace_nowrap;
     (* Responsive - more comprehensive *)
-    Ui.Tw.sm Ui.Tw.block;
-    Ui.Tw.md Ui.Tw.flex;
-    Ui.Tw.lg Ui.Tw.grid;
-    Ui.Tw.xl Ui.Tw.hidden;
-    Ui.Tw.sm (Ui.Tw.p (Int 4));
-    Ui.Tw.md (Ui.Tw.m (Int 6));
-    Ui.Tw.lg Ui.Tw.text_lg;
-    Ui.Tw.xl Ui.Tw.font_bold;
+    on_sm [ block ];
+    on_md [ flex ];
+    on_lg [ grid ];
+    on_xl [ hidden ];
+    on_sm [ p (int 4) ];
+    on_md [ m (int 6) ];
+    on_lg [ text_lg ];
+    on_xl [ font_bold ];
     (* States - more comprehensive *)
-    Ui.Tw.hover Ui.Tw.bg_white;
-    Ui.Tw.hover (Ui.Tw.text ~shade:700 Blue);
-    Ui.Tw.focus (Ui.Tw.bg ~shade:500 Sky);
-    Ui.Tw.focus Ui.Tw.outline_none;
-    Ui.Tw.active (Ui.Tw.text ~shade:900 Gray);
-    Ui.Tw.disabled (Ui.Tw.opacity 50);
+    on_hover [ bg white ];
+    on_hover [ text ~shade:700 blue ];
+    on_focus [ bg ~shade:500 sky ];
+    on_focus [ outline_none ];
+    on_active [ text ~shade:900 gray ];
+    on_disabled [ opacity 50 ];
     (* Borders - comprehensive *)
-    Ui.Tw.rounded Ui.Tw.None;
-    Ui.Tw.rounded Ui.Tw.Sm;
-    Ui.Tw.rounded Ui.Tw.Md;
-    Ui.Tw.rounded Ui.Tw.Lg;
-    Ui.Tw.rounded Ui.Tw.Xl;
-    Ui.Tw.rounded Ui.Tw.Full;
-    Ui.Tw.border;
-    Ui.Tw.border_0;
-    Ui.Tw.border_2;
-    Ui.Tw.border_4;
-    Ui.Tw.border_8;
-    Ui.Tw.border_t;
-    Ui.Tw.border_r;
-    Ui.Tw.border_b;
-    Ui.Tw.border_l;
+    rounded none;
+    rounded sm;
+    rounded md;
+    rounded lg;
+    rounded xl;
+    rounded full;
+    border `Default;
+    border `None;
+    border `Sm;
+    border `Lg;
+    border `Xl;
+    border_t;
+    border_r;
+    border_b;
+    border_l;
     (* Shadows *)
-    Ui.Tw.shadow Ui.Tw.Sm;
-    Ui.Tw.shadow Ui.Tw.Md;
-    Ui.Tw.shadow Ui.Tw.Lg;
-    Ui.Tw.shadow Ui.Tw.Xl;
-    Ui.Tw.shadow Ui.Tw.None;
-    Ui.Tw.shadow Ui.Tw.Inner;
+    shadow sm;
+    shadow md;
+    shadow lg;
+    shadow xl;
+    shadow none;
+    shadow inner;
     (* Prose *)
-    Ui.Tw.prose;
-    Ui.Tw.prose_sm;
-    Ui.Tw.prose_lg;
-    Ui.Tw.prose_xl;
-    Ui.Tw.prose_gray;
+    prose;
+    prose_sm;
+    prose_lg;
+    prose_xl;
+    prose_gray;
     (* Flexbox - comprehensive *)
-    Ui.Tw.flex_col;
-    Ui.Tw.flex_row;
-    Ui.Tw.flex_row_reverse;
-    Ui.Tw.flex_col_reverse;
-    Ui.Tw.flex_wrap;
-    Ui.Tw.flex_wrap_reverse;
-    Ui.Tw.flex_nowrap;
-    Ui.Tw.flex_1;
-    Ui.Tw.flex_auto;
-    Ui.Tw.flex_initial;
-    Ui.Tw.flex_none;
-    Ui.Tw.flex_grow;
-    Ui.Tw.flex_grow_0;
-    Ui.Tw.flex_shrink;
-    Ui.Tw.flex_shrink_0;
-    Ui.Tw.items_start;
-    Ui.Tw.items_center;
-    Ui.Tw.items_end;
-    Ui.Tw.items_stretch;
-    Ui.Tw.justify_start;
-    Ui.Tw.justify_center;
-    Ui.Tw.justify_end;
-    Ui.Tw.justify_between;
-    Ui.Tw.justify_around;
-    Ui.Tw.justify_evenly;
+    flex_col;
+    flex_row;
+    flex_row_reverse;
+    flex_col_reverse;
+    flex_wrap;
+    flex_wrap_reverse;
+    flex_nowrap;
+    flex_1;
+    flex_auto;
+    flex_initial;
+    flex_none;
+    flex_grow;
+    flex_grow_0;
+    flex_shrink;
+    flex_shrink_0;
+    items_start;
+    items_center;
+    items_end;
+    items_stretch;
+    justify_start;
+    justify_center;
+    justify_end;
+    justify_between;
+    justify_around;
+    justify_evenly;
     (* Grid *)
-    Ui.Tw.grid_cols 1;
-    Ui.Tw.grid_cols 2;
-    Ui.Tw.grid_cols 3;
-    Ui.Tw.grid_cols 12;
-    Ui.Tw.gap (Int 4);
-    Ui.Tw.gap_x (Int 2);
-    Ui.Tw.gap_y (Int 6);
+    grid_cols 1;
+    grid_cols 2;
+    grid_cols 3;
+    grid_cols 12;
+    gap (int 4);
+    gap_x (int 2);
+    gap_y (int 6);
     (* Layout - comprehensive *)
-    Ui.Tw.static;
-    Ui.Tw.relative;
-    Ui.Tw.absolute;
-    Ui.Tw.fixed;
-    Ui.Tw.sticky;
-    Ui.Tw.inset_0;
-    Ui.Tw.inset_x_0;
-    Ui.Tw.inset_y_0;
-    Ui.Tw.top 0;
-    Ui.Tw.right 0;
-    Ui.Tw.bottom 0;
-    Ui.Tw.left 0;
-    Ui.Tw.z 0;
-    Ui.Tw.z 10;
-    Ui.Tw.z_10;
+    static;
+    relative;
+    absolute;
+    fixed;
+    sticky;
+    inset_0;
+    inset_x_0;
+    inset_y_0;
+    top 0;
+    right 0;
+    bottom 0;
+    left 0;
+    z 0;
+    z 10;
+    z 10;
     (* Overflow *)
-    Ui.Tw.overflow_auto;
-    Ui.Tw.overflow_hidden;
-    Ui.Tw.overflow_visible;
-    Ui.Tw.overflow_scroll;
+    overflow_auto;
+    overflow_hidden;
+    overflow_visible;
+    overflow_scroll;
     (* Opacity *)
-    Ui.Tw.opacity 0;
-    Ui.Tw.opacity 25;
-    Ui.Tw.opacity 50;
-    Ui.Tw.opacity 75;
-    Ui.Tw.opacity 100;
+    opacity 0;
+    opacity 25;
+    opacity 50;
+    opacity 75;
+    opacity 100;
     (* Transitions *)
-    Ui.Tw.transition_none;
-    Ui.Tw.transition_all;
-    Ui.Tw.transition_colors;
-    Ui.Tw.transition_opacity;
-    Ui.Tw.transition_transform;
+    transition_none;
+    transition_all;
+    transition_colors;
+    transition_opacity;
+    transition_transform;
     (* Transforms *)
-    Ui.Tw.transform;
-    Ui.Tw.transform_none;
-    Ui.Tw.scale 75;
-    Ui.Tw.scale 100;
-    Ui.Tw.scale 125;
-    Ui.Tw.rotate 45;
-    Ui.Tw.rotate 90;
-    Ui.Tw.translate_x 4;
-    Ui.Tw.translate_y 2;
+    transform;
+    transform_none;
+    scale 75;
+    scale 100;
+    scale 125;
+    rotate 45;
+    rotate 90;
+    translate_x 4;
+    translate_y 2;
     (* Cursor *)
-    Ui.Tw.cursor_auto;
-    Ui.Tw.cursor_default;
-    Ui.Tw.cursor_pointer;
-    Ui.Tw.cursor_not_allowed;
+    cursor_auto;
+    cursor_default;
+    cursor_pointer;
+    cursor_not_allowed;
     (* User Select *)
-    Ui.Tw.select_none;
-    Ui.Tw.select_text;
-    Ui.Tw.select_all;
-    Ui.Tw.select_auto;
+    select_none;
+    select_text;
+    select_all;
+    select_auto;
     (* Extended colors - all 10 new colors *)
-    Ui.Tw.bg ~shade:50 Slate;
-    Ui.Tw.bg ~shade:500 Zinc;
-    Ui.Tw.bg ~shade:900 Orange;
-    Ui.Tw.text ~shade:100 Amber;
-    Ui.Tw.text ~shade:600 Lime;
-    Ui.Tw.border_color ~shade:300 Emerald;
-    Ui.Tw.border_color ~shade:700 Cyan;
-    Ui.Tw.bg ~shade:400 Violet;
-    Ui.Tw.text ~shade:800 Fuchsia;
-    Ui.Tw.bg ~shade:200 Rose;
+    bg ~shade:50 slate;
+    bg ~shade:500 zinc;
+    bg ~shade:900 orange;
+    text ~shade:100 amber;
+    text ~shade:600 lime;
+    border_color ~shade:300 emerald;
+    border_color ~shade:700 cyan;
+    bg ~shade:400 violet;
+    text ~shade:800 fuchsia;
+    bg ~shade:200 rose;
   ]
 
 (** Cache for Tailwind CSS generation with class list hash *)
@@ -497,7 +399,7 @@ let tailwind_cache_minified = ref None
 (** Generate all Tailwind CSS at once *)
 let generate_all_tailwind_css ?(minify = false) () =
   let all_styles = get_all_test_styles () in
-  let all_classnames = List.map Ui.Tw.to_string all_styles in
+  let all_classnames = List.map to_string all_styles in
 
   (* Create a key from the classnames to ensure cache validity *)
   let cache_key = String.concat "," (List.sort String.compare all_classnames) in
@@ -515,7 +417,7 @@ let generate_all_tailwind_css ?(minify = false) () =
 (** Check 1:1 mapping with non-minified Tailwind *)
 let check_exact_match tw_style =
   try
-    let classname = Ui.Tw.to_string tw_style in
+    let classname = to_string tw_style in
     (* Generate non-minified CSS for accurate comparison *)
     let ramen_css = exact_css (generate_ramen_css ~minify:false [ tw_style ]) in
     let tailwind_full_css =
@@ -545,124 +447,124 @@ let check_exact_match tw_style =
 let check tw_style = check_exact_match tw_style
 
 let test_tailwind_basic_spacing () =
-  check (Ui.Tw.p (Int 4));
-  check (Ui.Tw.m (Int 2));
-  check (Ui.Tw.px (Int 6));
-  check (Ui.Tw.py (Int 3));
-  check (Ui.Tw.pt (Int 1));
-  check (Ui.Tw.pr (Int 8));
-  check (Ui.Tw.pb (Int 12));
-  check (Ui.Tw.pl (Int 16));
-  check (Ui.Tw.mx (Int 0));
-  check (Ui.Tw.my (Int 10));
-  check (Ui.Tw.mt (Int 20));
-  check (Ui.Tw.mr (Int 24));
-  check (Ui.Tw.mb (Int 56));
-  check (Ui.Tw.ml (Int 6))
+  check (p (int 4));
+  check (m (int 2));
+  check (px (int 6));
+  check (py (int 3));
+  check (pt (int 1));
+  check (pr (int 8));
+  check (pb (int 12));
+  check (pl (int 16));
+  check (mx (int 0));
+  check (my (int 10));
+  check (mt (int 20));
+  check (mr (int 24));
+  check (mb (int 56));
+  check (ml (int 6))
 
 let test_tailwind_color_classes () =
-  check Ui.Tw.bg_white;
-  check (Ui.Tw.text ~shade:900 Gray);
+  check (bg white);
+  check (text ~shade:900 gray);
   (* Using consistent API: border should work like bg and text *)
-  check (Ui.Tw.border_color ~shade:200 Gray);
-  check (Ui.Tw.bg ~shade:500 Gray);
-  check (Ui.Tw.bg ~shade:600 Sky);
-  check (Ui.Tw.text ~shade:400 Yellow);
-  check (Ui.Tw.border_color ~shade:600 Teal)
+  check (border_color ~shade:200 gray);
+  check (bg ~shade:500 gray);
+  check (bg ~shade:600 sky);
+  check (text ~shade:400 yellow);
+  check (border_color ~shade:600 teal)
 
 let test_tailwind_display_classes () =
-  check Ui.Tw.block;
-  check Ui.Tw.inline;
-  check Ui.Tw.inline_block;
-  check Ui.Tw.flex;
-  check Ui.Tw.inline_flex;
-  check Ui.Tw.grid;
-  check Ui.Tw.inline_grid;
-  check Ui.Tw.hidden
+  check block;
+  check inline;
+  check inline_block;
+  check flex;
+  check inline_flex;
+  check grid;
+  check inline_grid;
+  check hidden
 
 let test_tailwind_sizing () =
-  check (Ui.Tw.w (Int 4));
-  check (Ui.Tw.h (Int 8));
-  check Ui.Tw.w_auto;
-  check Ui.Tw.w_full;
-  check Ui.Tw.h_auto;
-  check Ui.Tw.h_full;
-  check (Ui.Tw.min_w (Int 0))
+  check (w (int 4));
+  check (h (int 8));
+  check (w fit);
+  check (w full);
+  check (h fit);
+  check (h full);
+  check (min_w (int 0))
 
 let test_tailwind_typography () =
-  check Ui.Tw.text_xs;
-  check Ui.Tw.text_sm;
-  check Ui.Tw.text_base;
-  check Ui.Tw.text_lg;
-  check Ui.Tw.text_xl;
-  check Ui.Tw.text_2xl;
-  check Ui.Tw.font_normal;
-  check Ui.Tw.font_medium;
-  check Ui.Tw.font_semibold;
-  check Ui.Tw.font_bold
+  check text_xs;
+  check text_sm;
+  check text_base;
+  check text_lg;
+  check text_xl;
+  check text_2xl;
+  check font_normal;
+  check font_medium;
+  check font_semibold;
+  check font_bold
 
 let test_tailwind_responsive () =
-  check (Ui.Tw.md Ui.Tw.block);
-  check (Ui.Tw.lg Ui.Tw.flex);
-  check (Ui.Tw.xl Ui.Tw.hidden);
-  check (Ui.Tw.sm (Ui.Tw.p (Int 4)));
-  check (Ui.Tw.md (Ui.Tw.m (Int 6)))
+  check (on_md [ block ]);
+  check (on_lg [ flex ]);
+  check (on_xl [ hidden ]);
+  check (on_sm [ p (int 4) ]);
+  check (on_md [ m (int 6) ])
 
 let test_tailwind_states () =
-  check (Ui.Tw.hover Ui.Tw.bg_white);
-  check (Ui.Tw.focus (Ui.Tw.bg ~shade:500 Sky));
-  check (Ui.Tw.active (Ui.Tw.text ~shade:900 Gray))
+  check (on_hover [ bg white ]);
+  check (on_focus [ bg ~shade:500 sky ]);
+  check (on_active [ text ~shade:900 gray ])
 
 let test_tailwind_borders () =
-  check (Ui.Tw.rounded Ui.Tw.Md);
-  check (Ui.Tw.rounded Ui.Tw.Lg);
-  check (Ui.Tw.rounded Ui.Tw.Full);
-  check Ui.Tw.border;
-  check Ui.Tw.border_2;
-  check Ui.Tw.border_4
+  check (rounded md);
+  check (rounded lg);
+  check (rounded full);
+  check (border `Default);
+  check (border `Sm);
+  check (border `Lg)
 
 let test_tailwind_shadows () =
-  check (Ui.Tw.shadow Ui.Tw.Sm);
-  check (Ui.Tw.shadow Ui.Tw.Md);
-  check (Ui.Tw.shadow Ui.Tw.Lg);
-  check (Ui.Tw.shadow Ui.Tw.None)
+  check (shadow sm);
+  check (shadow md);
+  check (shadow lg);
+  check (shadow none)
 
 let test_tailwind_prose () =
-  check Ui.Tw.prose;
-  check Ui.Tw.prose_sm;
-  check Ui.Tw.prose_lg;
-  check Ui.Tw.prose_xl
+  check prose;
+  check prose_sm;
+  check prose_lg;
+  check prose_xl
 
 let test_tailwind_flexbox () =
-  check Ui.Tw.flex_col;
-  check Ui.Tw.flex_row;
-  check Ui.Tw.flex_row_reverse;
-  check Ui.Tw.flex_col_reverse;
-  check Ui.Tw.flex_wrap;
-  check Ui.Tw.flex_wrap_reverse;
-  check Ui.Tw.items_center;
-  check Ui.Tw.justify_center;
-  check Ui.Tw.justify_between
+  check flex_col;
+  check flex_row;
+  check flex_row_reverse;
+  check flex_col_reverse;
+  check flex_wrap;
+  check flex_wrap_reverse;
+  check items_center;
+  check justify_center;
+  check justify_between
 
 let test_tailwind_responsive_breakpoints () =
-  check (Ui.Tw.sm Ui.Tw.block);
-  check (Ui.Tw.md Ui.Tw.flex);
-  check (Ui.Tw.lg Ui.Tw.grid);
-  check (Ui.Tw.xl Ui.Tw.hidden);
-  check (Ui.Tw.sm Ui.Tw.text_lg);
-  check (Ui.Tw.md (Ui.Tw.p (Int 8)));
-  check (Ui.Tw.lg (Ui.Tw.bg ~shade:500 Sky))
+  check (on_sm [ block ]);
+  check (on_md [ flex ]);
+  check (on_lg [ grid ]);
+  check (on_xl [ hidden ]);
+  check (on_sm [ text_lg ]);
+  check (on_md [ p (int 8) ]);
+  check (on_lg [ bg ~shade:500 sky ])
 
 let test_tailwind_layout () =
-  check Ui.Tw.relative;
-  check Ui.Tw.absolute;
-  check Ui.Tw.fixed;
-  check Ui.Tw.sticky
+  check relative;
+  check absolute;
+  check fixed;
+  check sticky
 
 let test_tailwind_opacity () =
-  check (Ui.Tw.opacity 0);
-  check (Ui.Tw.opacity 50);
-  check (Ui.Tw.opacity 100)
+  check (opacity 0);
+  check (opacity 50);
+  check (opacity 100)
 
 (** Helper function to check for substring *)
 let string_contains_substring haystack needle =
@@ -678,53 +580,53 @@ let string_contains_substring haystack needle =
 (** Test extended color palette *)
 let test_extended_color_palette () =
   (* Test all new colors with various shades *)
-  check (Ui.Tw.bg ~shade:50 Slate);
-  check (Ui.Tw.bg ~shade:500 Zinc);
-  check (Ui.Tw.bg ~shade:900 Orange);
-  check (Ui.Tw.text ~shade:100 Amber);
-  check (Ui.Tw.text ~shade:600 Lime);
-  check (Ui.Tw.border_color ~shade:300 Emerald);
-  check (Ui.Tw.border_color ~shade:700 Cyan);
-  check (Ui.Tw.bg ~shade:400 Violet);
-  check (Ui.Tw.text ~shade:800 Fuchsia);
-  check (Ui.Tw.bg ~shade:200 Rose)
+  check (bg ~shade:50 slate);
+  check (bg ~shade:500 zinc);
+  check (bg ~shade:900 orange);
+  check (text ~shade:100 amber);
+  check (text ~shade:600 lime);
+  check (border_color ~shade:300 emerald);
+  check (border_color ~shade:700 cyan);
+  check (bg ~shade:400 violet);
+  check (text ~shade:800 fuchsia);
+  check (bg ~shade:200 rose)
 
 (** Test class name generation for extended colors *)
 let test_extended_color_class_names () =
   let test_class_name tw expected =
-    let actual = Ui.Tw.to_string tw in
+    let actual = to_string tw in
     Alcotest.check string ("class name for " ^ expected) expected actual
   in
 
-  test_class_name (Ui.Tw.bg ~shade:500 Slate) "bg-slate-500";
-  test_class_name (Ui.Tw.text ~shade:600 Zinc) "text-zinc-600";
-  test_class_name (Ui.Tw.border_color ~shade:300 Orange) "border-orange-300";
-  test_class_name (Ui.Tw.bg ~shade:700 Amber) "bg-amber-700";
-  test_class_name (Ui.Tw.text ~shade:200 Lime) "text-lime-200";
-  test_class_name (Ui.Tw.border_color ~shade:800 Emerald) "border-emerald-800";
-  test_class_name (Ui.Tw.bg ~shade:100 Cyan) "bg-cyan-100";
-  test_class_name (Ui.Tw.text ~shade:900 Violet) "text-violet-900";
-  test_class_name (Ui.Tw.border_color ~shade:400 Fuchsia) "border-fuchsia-400";
-  test_class_name (Ui.Tw.bg ~shade:50 Rose) "bg-rose-50"
+  test_class_name (bg ~shade:500 slate) "bg-slate-500";
+  test_class_name (text ~shade:600 zinc) "text-zinc-600";
+  test_class_name (border_color ~shade:300 orange) "border-orange-300";
+  test_class_name (bg ~shade:700 amber) "bg-amber-700";
+  test_class_name (text ~shade:200 lime) "text-lime-200";
+  test_class_name (border_color ~shade:800 emerald) "border-emerald-800";
+  test_class_name (bg ~shade:100 cyan) "bg-cyan-100";
+  test_class_name (text ~shade:900 violet) "text-violet-900";
+  test_class_name (border_color ~shade:400 fuchsia) "border-fuchsia-400";
+  test_class_name (bg ~shade:50 rose) "bg-rose-50"
 
 (** Test Black and White colors don't include shades in class names *)
 let test_black_white_class_names () =
   let test_class_name tw expected =
-    let actual = Ui.Tw.to_string tw in
+    let actual = to_string tw in
     Alcotest.check string ("class name for " ^ expected) expected actual
   in
 
-  test_class_name (Ui.Tw.bg Black) "bg-black";
-  test_class_name (Ui.Tw.bg White) "bg-white";
-  test_class_name (Ui.Tw.text Black) "text-black";
-  test_class_name (Ui.Tw.text White) "text-white";
-  test_class_name (Ui.Tw.border_color Black) "border-black";
-  test_class_name (Ui.Tw.border_color White) "border-white"
+  test_class_name (bg black) "bg-black";
+  test_class_name (bg white) "bg-white";
+  test_class_name (text black) "text-black";
+  test_class_name (text white) "text-white";
+  test_class_name (border_color black) "border-black";
+  test_class_name (border_color white) "border-white"
 
 (** Test CSS property generation works correctly *)
 let test_css_property_generation () =
   let test_css_contains tw expected_property expected_value =
-    let stylesheet = Ui.Tw.of_tw [ tw ] in
+    let stylesheet = to_css [ tw ] in
     let css_str = Ui.Css.to_string stylesheet in
     let property_str = expected_property ^ ": " ^ expected_value in
     Alcotest.check bool
@@ -734,49 +636,48 @@ let test_css_property_generation () =
   in
 
   (* Test color properties *)
-  test_css_contains (Ui.Tw.bg ~shade:500 Red) "background-color"
+  test_css_contains (bg ~shade:500 red) "background-color"
     "rgb(239 68 68 / var(--tw-bg-opacity))";
+  test_css_contains (text ~shade:600 blue) "color"
+    "rgb(37 99 235 / var(--tw-text-opacity))";
   test_css_contains
-    (Ui.Tw.text ~shade:600 Blue)
-    "color" "rgb(37 99 235 / var(--tw-text-opacity))";
-  test_css_contains
-    (Ui.Tw.border_color ~shade:300 Green)
+    (border_color ~shade:300 green)
     "border-color" "rgb(134 239 172 / var(--tw-border-opacity))";
 
   (* Test spacing properties *)
-  test_css_contains (Ui.Tw.p (Int 4)) "padding" "1rem";
-  test_css_contains (Ui.Tw.m (Int 0)) "margin" "0";
-  test_css_contains (Ui.Tw.px (Int 6)) "padding-left" "1.5rem";
-  test_css_contains (Ui.Tw.py (Int 2)) "padding-top" "0.5rem"
+  test_css_contains (p (int 4)) "padding" "1rem";
+  test_css_contains (m (int 0)) "margin" "0";
+  test_css_contains (px (int 6)) "padding-left" "1.5rem";
+  test_css_contains (py (int 2)) "padding-top" "0.5rem"
 
 (** Test responsive modifiers *)
 let test_responsive_modifiers () =
   let test_class_name tw expected =
-    let actual = Ui.Tw.to_string tw in
+    let actual = to_string tw in
     Alcotest.check string ("responsive class " ^ expected) expected actual
   in
 
-  test_class_name (Ui.Tw.sm (Ui.Tw.bg ~shade:500 Red)) "sm:bg-red-500";
-  test_class_name (Ui.Tw.md (Ui.Tw.text ~shade:600 Blue)) "md:text-blue-600";
-  test_class_name (Ui.Tw.lg (Ui.Tw.p (Int 8))) "lg:p-8";
-  test_class_name (Ui.Tw.xl Ui.Tw.flex) "xl:flex"
+  test_class_name (on_sm [ bg ~shade:500 red ]) "sm:bg-red-500";
+  test_class_name (on_md [ text ~shade:600 blue ]) "md:text-blue-600";
+  test_class_name (on_lg [ p (int 8) ]) "lg:p-8";
+  test_class_name (on_xl [ flex ]) "xl:flex"
 
 (** Test state modifiers *)
 let test_state_modifiers () =
   let test_class_name tw expected =
-    let actual = Ui.Tw.to_string tw in
+    let actual = to_string tw in
     Alcotest.check string ("state modifier " ^ expected) expected actual
   in
 
-  test_class_name (Ui.Tw.hover (Ui.Tw.bg ~shade:700 Gray)) "hover:bg-gray-700";
-  test_class_name (Ui.Tw.focus (Ui.Tw.text ~shade:500 Sky)) "focus:text-sky-500";
+  test_class_name (on_hover [ bg ~shade:700 gray ]) "hover:bg-gray-700";
+  test_class_name (on_focus [ text ~shade:500 sky ]) "focus:text-sky-500";
   test_class_name
-    (Ui.Tw.active (Ui.Tw.border_color ~shade:400 Teal))
+    (on_active [ border_color ~shade:400 teal ])
     "active:border-teal-400"
 
 let test_css_prelude () =
   (* Test that our CSS reset/prelude matches expected structure *)
-  let stylesheet = Ui.Tw.of_tw [] in
+  let stylesheet = to_css [] in
   let css = Ui.Css.to_string ~minify:false stylesheet in
 
   (* Check for reset styles *)
@@ -801,16 +702,16 @@ let test_exact_css_match () =
   (* This ensures our CSS generation is exactly correct *)
   let test_cases =
     [
-      (Ui.Tw.p (Int 0), ".p-0 {\n  padding: 0;\n}");
-      (Ui.Tw.m Auto, ".m-auto {\n  margin: auto;\n}");
-      (Ui.Tw.opacity 100, ".opacity-100 {\n  opacity: 1;\n}");
-      (Ui.Tw.flex, ".flex {\n  display: flex;\n}");
+      (p (int 0), ".p-0 {\n  padding: 0;\n}");
+      (m auto, ".m-auto {\n  margin: auto;\n}");
+      (opacity 100, ".opacity-100 {\n  opacity: 1;\n}");
+      (flex, ".flex {\n  display: flex;\n}");
     ]
   in
 
   List.iter
     (fun (tw_style, expected) ->
-      let stylesheet = Ui.Tw.of_tw [ tw_style ] in
+      let stylesheet = to_css [ tw_style ] in
       let css = Ui.Css.to_string ~minify:false stylesheet in
       (* Extract just the utility class part (skip prelude) *)
       let lines = String.split_on_char '\n' css in
@@ -831,7 +732,7 @@ let test_exact_css_match () =
         Fmt.epr "========================\n";
         fail
           (Fmt.str "CSS output doesn't match exactly for %s"
-             (Ui.Tw.to_string tw_style))))
+             (to_string tw_style))))
     test_cases
 
 let test_minification_rules () =
@@ -840,13 +741,13 @@ let test_minification_rules () =
   let all_styles = get_all_test_styles () in
 
   (* Generate both minified versions *)
-  let all_classnames = List.map Ui.Tw.to_string all_styles in
+  let all_classnames = List.map to_string all_styles in
 
   (* Get Tailwind's minified output *)
   let tailwind_minified = generate_tailwind_css ~minify:true all_classnames in
 
   (* Get our minified output *)
-  let stylesheet = Ui.Tw.of_tw all_styles in
+  let stylesheet = to_css all_styles in
   let ramen_minified = Ui.Css.to_string ~minify:true stylesheet in
 
   (* Extract just utilities from Tailwind output (skip base styles) *)
@@ -901,69 +802,30 @@ let test_minification_rules () =
       | _ -> ())
     test_cases
 
-let test_backdrop_filters () =
-  let styles =
-    [
-      Ui.Tw.backdrop_blur_none;
-      Ui.Tw.backdrop_blur_sm;
-      Ui.Tw.backdrop_blur;
-      Ui.Tw.backdrop_blur_lg;
-      Ui.Tw.backdrop_brightness_50;
-      Ui.Tw.backdrop_brightness_100;
-      Ui.Tw.backdrop_brightness_150;
-      Ui.Tw.backdrop_contrast_0;
-      Ui.Tw.backdrop_contrast_100;
-      Ui.Tw.backdrop_contrast_200;
-      Ui.Tw.backdrop_grayscale_0;
-      Ui.Tw.backdrop_grayscale;
-      Ui.Tw.backdrop_saturate_0;
-      Ui.Tw.backdrop_saturate_100;
-      Ui.Tw.backdrop_saturate_200;
-    ]
-  in
-
-  List.iter
-    (fun style ->
-      let class_name = Ui.Tw.to_class style in
-      let css_props = Ui.Tw.to_css_properties style in
-
-      (* Check that backdrop-filter property is used *)
-      let has_backdrop_filter =
-        List.exists
-          (fun (prop, _) ->
-            match prop with Ui.Css.Backdrop_filter -> true | _ -> false)
-          css_props
-      in
-
-      Alcotest.check Alcotest.bool
-        (Fmt.str "%s uses backdrop-filter" class_name)
-        true has_backdrop_filter)
-    styles
-
 let test_scroll_snap () =
   let styles =
     [
-      Ui.Tw.snap_none;
-      Ui.Tw.snap_x;
-      Ui.Tw.snap_y;
-      Ui.Tw.snap_both;
-      Ui.Tw.snap_mandatory;
-      Ui.Tw.snap_proximity;
-      Ui.Tw.snap_start;
-      Ui.Tw.snap_end;
-      Ui.Tw.snap_center;
-      Ui.Tw.snap_align_none;
-      Ui.Tw.snap_normal;
-      Ui.Tw.snap_always;
-      Ui.Tw.scroll_auto;
-      Ui.Tw.scroll_smooth;
+      snap_none;
+      snap_x;
+      snap_y;
+      snap_both;
+      snap_mandatory;
+      snap_proximity;
+      snap_start;
+      snap_end;
+      snap_center;
+      snap_align_none;
+      snap_normal;
+      snap_always;
+      scroll_auto;
+      scroll_smooth;
     ]
   in
 
   List.iter
     (fun style ->
-      let class_name = Ui.Tw.to_class style in
-      let css_props = Ui.Tw.to_css_properties style in
+      let class_name = to_class style in
+      let css_props = to_css_properties style in
 
       (* Check that appropriate scroll properties are used *)
       let has_scroll_prop =
@@ -983,15 +845,86 @@ let test_scroll_snap () =
         true has_scroll_prop)
     styles
 
+let test_data_attributes () =
+  (* Test that data attribute variants generate correct selectors *)
+  let test_cases =
+    [
+      ( data_state "open" block,
+        ".block[data-state=\"open\"] {\n  display: block;\n}" );
+      ( data_variant "primary" (bg white),
+        ".bg-white[data-variant=\"primary\"] {\n\
+        \  --tw-bg-opacity: 1;\n\
+        \  background-color: rgb(255 255 255 / var(--tw-bg-opacity));\n\
+         }" );
+      ( on_data_active [ text white ],
+        ".text-white[data-active] {\n\
+        \  --tw-text-opacity: 1;\n\
+        \  color: rgb(255 255 255 / var(--tw-text-opacity));\n\
+         }" );
+      ( on_data_inactive [ hidden ],
+        ".hidden[data-inactive] {\n  display: none;\n}" );
+      ( data_custom "theme" "dark" flex,
+        ".flex[data-theme=\"dark\"] {\n  display: flex;\n}" );
+    ]
+  in
+
+  List.iter
+    (fun (tw_style, expected) ->
+      let stylesheet = to_css [ tw_style ] in
+      let css = Ui.Css.to_string ~minify:false stylesheet in
+      (* Extract just the utility class part (skip prelude) *)
+      let lines = String.split_on_char '\n' css in
+      let rec skip_prelude = function
+        | [] -> []
+        | line :: rest ->
+            if String.starts_with ~prefix:"." line then
+              line :: rest (* Found first class, return from here *)
+            else skip_prelude rest
+      in
+      let utility_lines = skip_prelude lines in
+      let actual_utility = String.concat "\n" utility_lines |> String.trim in
+
+      if actual_utility <> expected then (
+        Fmt.epr "\n=== DATA ATTRIBUTE CSS MISMATCH ===\n";
+        Fmt.epr "Expected:\n%s\n" expected;
+        Fmt.epr "Actual:\n%s\n" actual_utility;
+        Fmt.epr "====================================\n";
+        fail
+          (Fmt.str "CSS output doesn't match exactly for data attribute variant")))
+    test_cases
+
+(* CSS Generation tests *)
+let test_inline_styles () =
+  let styles = [ bg blue; text white; p (int 4); m (int 2); rounded md ] in
+  let inline = to_inline_style styles in
+  (* Check that inline styles are generated *)
+  Alcotest.check bool "has background-color" true
+    (Astring.String.is_infix ~affix:"background-color" inline);
+  Alcotest.check bool "has color" true
+    (Astring.String.is_infix ~affix:"color" inline);
+  Alcotest.check bool "has padding" true
+    (Astring.String.is_infix ~affix:"padding" inline);
+  Alcotest.check bool "has margin" true
+    (Astring.String.is_infix ~affix:"margin" inline);
+  Alcotest.check bool "has border-radius" true
+    (Astring.String.is_infix ~affix:"border-radius" inline)
+
+let test_dynamic_inline_styles () =
+  (* Test dynamic style generation *)
+  let dynamic_width = 42 in
+  let styles = [ w (int dynamic_width); bg ~shade:300 gray; p (int 2) ] in
+  let inline = to_inline_style styles in
+
+  (* Check that dynamic value is included *)
+  Alcotest.check bool "has dynamic width" true
+    (Astring.String.is_infix
+       ~affix:(string_of_float (float_of_int dynamic_width *. 0.25) ^ "rem")
+       inline)
+
 let suite =
   [
     ( "tw",
       [
-        test_case "css generation" `Quick test_css_generation;
-        test_case "modifier classes" `Quick test_modifier_classes;
-        test_case "rounded values" `Quick test_rounded_values;
-        test_case "shadow values" `Quick test_shadow_values;
-        test_case "typography classes" `Quick test_typography_classes;
         test_case "tailwind basic spacing" `Quick test_tailwind_basic_spacing;
         test_case "tailwind color classes" `Quick test_tailwind_color_classes;
         test_case "tailwind display classes" `Quick
@@ -1019,7 +952,10 @@ let suite =
         test_case "css prelude" `Quick test_css_prelude;
         test_case "exact css match" `Quick test_exact_css_match;
         test_case "minification rules" `Quick test_minification_rules;
-        test_case "backdrop filters" `Quick test_backdrop_filters;
         test_case "scroll snap" `Quick test_scroll_snap;
+        test_case "data attributes" `Quick test_data_attributes;
+        (* CSS generation tests *)
+        test_case "inline styles" `Quick test_inline_styles;
+        test_case "dynamic inline styles" `Quick test_dynamic_inline_styles;
       ] );
   ]

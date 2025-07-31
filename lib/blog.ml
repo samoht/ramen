@@ -119,6 +119,12 @@ let of_raw ~body ~path fm =
 type filter = [%import: Core.Blog.filter] [@@deriving show]
 type index = [%import: Core.Blog.index] [@@deriving show]
 
+(* Error helpers for consistent error formatting *)
+let err_yaml_parse file e =
+  Error (Fmt.str "YAML parsing error in %s: %s" file e)
+
+let err_no_frontmatter file = Error (Fmt.str "No frontmatter found in %s" file)
+
 (* Load a single blog post from file *)
 let load_post blog_dir file =
   let path = Filename.concat blog_dir file in
@@ -133,8 +139,8 @@ let load_post blog_dir file =
       | Ok parsed_fm ->
           let post = of_raw ~body:fm.body ~path:file parsed_fm in
           Ok post
-      | Error (`Msg e) -> Error (Fmt.str "YAML parsing error in %s: %s" file e))
-  | Ok None -> Error (Fmt.str "No frontmatter found in %s" file)
+      | Error (`Msg e) -> err_yaml_parse file e)
+  | Ok None -> err_no_frontmatter file
   | Error e ->
       Error
         (Fmt.str "Frontmatter parsing error in %s: %s" file

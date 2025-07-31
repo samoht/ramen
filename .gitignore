@@ -8,6 +8,8 @@ _opam/
 .idea/
 *.swp
 *~
+*.backup
+#*#
 
 # OS files
 .DS_Store
