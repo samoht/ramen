@@ -5,7 +5,7 @@ repos:
         name: Auto format with dune
         entry: dune fmt --auto
         language: system
-        types: [ocaml]
+        files: ^$
         stages: [pre-commit]
 
       - id: remove-claude-attribution
