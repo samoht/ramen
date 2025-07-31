@@ -1231,6 +1231,14 @@ let ring (w : width) =
         (Custom "--tw-ring-shadow", shadow_value);
       ] )
 
+let ring_color ?(shade = 500) color =
+  let class_name =
+    match color with
+    | Black | White -> Core.Pp.str [ "ring-"; color_name color ]
+    | _ -> Core.Pp.str [ "ring-"; color_name color; "-"; string_of_int shade ]
+  in
+  Style (class_name, [])
+
 let isolate = Style ("isolate", [ (Display, "isolate") ])
 let overflow_auto = Style ("overflow-auto", [ (Overflow, "auto") ])
 let overflow_hidden = Style ("overflow-hidden", [ (Overflow, "hidden") ])
@@ -1415,6 +1423,54 @@ let bg_gradient_to_br =
           "linear-gradient(to bottom right, var(--tw-gradient-stops))" );
       ] )
 
+let bg_gradient_to_t =
+  Style
+    ( "bg-gradient-to-t",
+      [
+        ( Background_image,
+          "linear-gradient(to top, var(--tw-gradient-stops))" );
+      ] )
+
+let bg_gradient_to_tr =
+  Style
+    ( "bg-gradient-to-tr",
+      [
+        ( Background_image,
+          "linear-gradient(to top right, var(--tw-gradient-stops))" );
+      ] )
+
+let bg_gradient_to_r =
+  Style
+    ( "bg-gradient-to-r",
+      [
+        ( Background_image,
+          "linear-gradient(to right, var(--tw-gradient-stops))" );
+      ] )
+
+let bg_gradient_to_bl =
+  Style
+    ( "bg-gradient-to-bl",
+      [
+        ( Background_image,
+          "linear-gradient(to bottom left, var(--tw-gradient-stops))" );
+      ] )
+
+let bg_gradient_to_l =
+  Style
+    ( "bg-gradient-to-l",
+      [
+        ( Background_image,
+          "linear-gradient(to left, var(--tw-gradient-stops))" );
+      ] )
+
+let bg_gradient_to_tl =
+  Style
+    ( "bg-gradient-to-tl",
+      [
+        ( Background_image,
+          "linear-gradient(to top left, var(--tw-gradient-stops))" );
+      ] )
+
 let antialiased =
   Style
     ( "antialiased",
@@ -1467,6 +1523,42 @@ let contrast n =
   let value = string_of_float (float_of_int n /. 100.0) in
   Style (class_name, [ (Filter, "contrast(" ^ value ^ ")") ])
 
+let blur = function
+  | `None -> Style ("blur-none", [ (Filter, "blur(0)") ])
+  | `Xs -> Style ("blur-xs", [ (Filter, "blur(2px)") ])
+  | `Sm -> Style ("blur-sm", [ (Filter, "blur(4px)") ])
+  | `Md -> Style ("blur", [ (Filter, "blur(8px)") ])
+  | `Lg -> Style ("blur-lg", [ (Filter, "blur(16px)") ])
+  | `Xl -> Style ("blur-xl", [ (Filter, "blur(24px)") ])
+  | `Xl_2 -> Style ("blur-2xl", [ (Filter, "blur(40px)") ])
+  | `Xl_3 -> Style ("blur-3xl", [ (Filter, "blur(64px)") ])
+  | `Full -> Style ("blur-full", [ (Filter, "blur(9999px)") ])
+
+let grayscale n =
+  let class_name = if n = 0 then "grayscale-0" else "grayscale" in
+  let value = string_of_float (float_of_int n /. 100.0) in
+  Style (class_name, [ (Filter, "grayscale(" ^ value ^ ")") ])
+
+let saturate n =
+  let class_name = "saturate-" ^ string_of_int n in
+  let value = string_of_float (float_of_int n /. 100.0) in
+  Style (class_name, [ (Filter, "saturate(" ^ value ^ ")") ])
+
+let sepia n =
+  let class_name = if n = 0 then "sepia-0" else "sepia" in
+  let value = string_of_float (float_of_int n /. 100.0) in
+  Style (class_name, [ (Filter, "sepia(" ^ value ^ ")") ])
+
+let invert n =
+  let class_name = if n = 0 then "invert-0" else "invert" in
+  let value = string_of_float (float_of_int n /. 100.0) in
+  Style (class_name, [ (Filter, "invert(" ^ value ^ ")") ])
+
+let hue_rotate n =
+  let class_name = "hue-rotate-" ^ string_of_int n in
+  let value = string_of_int n ^ "deg" in
+  Style (class_name, [ (Filter, "hue-rotate(" ^ value ^ ")") ])
+
 let backdrop_brightness n =
   let class_name = Core.Pp.str [ "backdrop-brightness-"; string_of_int n ] in
   Style
@@ -1507,6 +1599,17 @@ let backdrop_saturate n =
             [ "saturate("; string_of_float (float_of_int n /. 100.); ")" ] );
       ] )
 
+let backdrop_blur = function
+  | `None -> Style ("backdrop-blur-none", [ (Backdrop_filter, "blur(0)") ])
+  | `Xs -> Style ("backdrop-blur-xs", [ (Backdrop_filter, "blur(2px)") ])
+  | `Sm -> Style ("backdrop-blur-sm", [ (Backdrop_filter, "blur(4px)") ])
+  | `Md -> Style ("backdrop-blur", [ (Backdrop_filter, "blur(8px)") ])
+  | `Lg -> Style ("backdrop-blur-lg", [ (Backdrop_filter, "blur(12px)") ])
+  | `Xl -> Style ("backdrop-blur-xl", [ (Backdrop_filter, "blur(16px)") ])
+  | `Xl_2 -> Style ("backdrop-blur-2xl", [ (Backdrop_filter, "blur(24px)") ])
+  | `Xl_3 -> Style ("backdrop-blur-3xl", [ (Backdrop_filter, "blur(40px)") ])
+  | `Full -> Style ("backdrop-blur-full", [ (Backdrop_filter, "blur(9999px)") ])
+
 (* Animation utilities *)
 let animate_none = Style ("animate-none", [ (Animation, "none") ])
 
@@ -1525,6 +1628,46 @@ let animate_pulse =
 
 let animate_bounce =
   Style ("animate-bounce", [ (Animation, "bounce 1s infinite") ])
+
+(* Transition utilities *)
+let duration n =
+  let class_name = "duration-" ^ string_of_int n in
+  let value = string_of_int n ^ "ms" in
+  Style (class_name, [ (Custom "transition-duration", value) ])
+
+let ease_linear = Style ("ease-linear", [ (Custom "transition-timing-function", "linear") ])
+let ease_in = Style ("ease-in", [ (Custom "transition-timing-function", "cubic-bezier(0.4, 0, 1, 1)") ])
+let ease_out = Style ("ease-out", [ (Custom "transition-timing-function", "cubic-bezier(0, 0, 0.2, 1)") ])
+let ease_in_out = Style ("ease-in-out", [ (Custom "transition-timing-function", "cubic-bezier(0.4, 0, 0.2, 1)") ])
+
+(* Appearance utilities *)
+let appearance_none = Style ("appearance-none", [ (Appearance, "none") ])
+
+(* Resize utilities *)
+let resize_none = Style ("resize-none", [ (Resize, "none") ])
+let resize_y = Style ("resize-y", [ (Resize, "vertical") ])
+let resize_x = Style ("resize-x", [ (Resize, "horizontal") ])
+let resize = Style ("resize", [ (Resize, "both") ])
+
+(* Will-change utilities *)
+let will_change_auto = Style ("will-change-auto", [ (Custom "will-change", "auto") ])
+let will_change_scroll = Style ("will-change-scroll", [ (Custom "will-change", "scroll-position") ])
+let will_change_contents = Style ("will-change-contents", [ (Custom "will-change", "contents") ])
+let will_change_transform = Style ("will-change-transform", [ (Custom "will-change", "transform") ])
+
+(* Contain utilities *)
+let contain_none = Style ("contain-none", [ (Custom "contain", "none") ])
+let contain_content = Style ("contain-content", [ (Custom "contain", "content") ])
+let contain_layout = Style ("contain-layout", [ (Custom "contain", "layout") ])
+let contain_paint = Style ("contain-paint", [ (Custom "contain", "paint") ])
+let contain_size = Style ("contain-size", [ (Custom "contain", "size") ])
+
+(* Object position utilities *)
+let object_top = Style ("object-top", [ (Custom "object-position", "top") ])
+let object_right = Style ("object-right", [ (Custom "object-position", "right") ])
+let object_bottom = Style ("object-bottom", [ (Custom "object-position", "bottom") ])
+let object_left = Style ("object-left", [ (Custom "object-position", "left") ])
+let object_center = Style ("object-center", [ (Custom "object-position", "center") ])
 
 (* Table utilities *)
 let table_auto = Style ("table-auto", [ (Table_layout, "auto") ])
@@ -1643,11 +1786,15 @@ let group = Style ("group", []) (* Marker class for group relationships *)
 
 (* Peer modifiers *)
 let peer_checked style = Modified (Peer_checked, style)
+let on_peer_checked styles = Group (List.map (fun s -> Modified (Peer_checked, s)) styles)
 
 (* ARIA state modifiers *)
 let aria_checked style = Modified (Aria_checked, style)
 let aria_expanded style = Modified (Aria_expanded, style)
 let aria_selected style = Modified (Aria_selected, style)
+let on_aria_checked styles = Group (List.map (fun s -> Modified (Aria_checked, s)) styles)
+let on_aria_expanded styles = Group (List.map (fun s -> Modified (Aria_expanded, s)) styles)
+let on_aria_selected styles = Group (List.map (fun s -> Modified (Aria_selected, s)) styles)
 
 (* Data attribute modifiers *)
 let data_state value style = Modified (Data_state value, style)

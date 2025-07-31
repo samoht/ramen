@@ -362,6 +362,24 @@ val bg_gradient_to_b : t
 val bg_gradient_to_br : t
 (** Creates a gradient from top-left to bottom-right (diagonal). *)
 
+val bg_gradient_to_t : t
+(** Creates a gradient from bottom to top. *)
+
+val bg_gradient_to_tr : t
+(** Creates a gradient from bottom-left to top-right. *)
+
+val bg_gradient_to_r : t
+(** Creates a gradient from left to right. *)
+
+val bg_gradient_to_bl : t
+(** Creates a gradient from top-right to bottom-left. *)
+
+val bg_gradient_to_l : t
+(** Creates a gradient from right to left. *)
+
+val bg_gradient_to_tl : t
+(** Creates a gradient from bottom-right to top-left. *)
+
 val from_color : ?shade:int -> color -> t
 (** [from_color ?shade c] sets the starting color of a gradient. *)
 
@@ -475,7 +493,7 @@ val w : scale -> t
     - [w (int 24)]: Fixed width of 6rem (96px)
     - [w screen]: Full viewport width
     - [w max]: Shrink to content width
-    - [w (rem 20.0)]: Custom width in rem *)
+    - [w (rem 20.0)]: Custom width in rem. *)
 
 val h : scale -> t
 (** [h scale] sets element height.
@@ -484,7 +502,7 @@ val h : scale -> t
     - [h full]: 100% of parent height
     - [h screen]: Full viewport height (great for hero sections)
     - [h (int 16)]: Fixed height of 4rem (64px)
-    - [h auto]: Height based on content (default) *)
+    - [h auto]: Height based on content (default). *)
 
 val min_w : scale -> t
 (** [min_w scale] sets minimum width. *)
@@ -500,7 +518,7 @@ val max_w : max_scale -> t
     - [max_w xl_2]: ~42rem - optimal for article text (65-75 characters)
     - [max_w xl_4]: ~56rem - for wider content sections
     - [max_w full]: Allow full width
-    - [max_w screen]: Never exceed viewport width *)
+    - [max_w screen]: Never exceed viewport width. *)
 
 val max_h : scale -> t
 (** [max_h scale] sets maximum height using the scale. *)
@@ -932,7 +950,7 @@ val rounded : size -> t
     - [rounded sm]: Subtle rounding (2px)
     - [rounded md]: Medium rounding (6px)
     - [rounded lg]: Noticeably rounded (8px)
-    - [rounded full]: Fully rounded (9999px) - makes circles/pills *)
+    - [rounded full]: Fully rounded (9999px) - makes circles/pills. *)
 
 val border_collapse : t
 (** Collapse table borders. *)
@@ -956,13 +974,13 @@ val shadow : shadow -> t
     - [shadow md]: Default shadow for raised elements
     - [shadow lg]: Strong shadow for modals, dropdowns
     - [shadow none]: Remove shadow
-    - [shadow inner]: Inset shadow for pressed/sunken effect *)
+    - [shadow inner]: Inset shadow for pressed/sunken effect. *)
 
 val opacity : int -> t
 (** [opacity n] controls transparency (0-100).
     - 0: Fully transparent (invisible but takes space)
     - 50: Half transparent
-    - 100: Fully opaque (default) *)
+    - 100: Fully opaque (default). *)
 
 val outline_none : t
 (** Remove outline. *)
@@ -976,6 +994,9 @@ val ring : width -> t
     - Rings are often used for focus states: [on_focus [ ring `Md ]]
     - Unlike borders, rings don't take up space in the layout. *)
 
+val ring_color : ?shade:int -> color -> t
+(** [ring_color ?shade color] sets the color of outline rings. *)
+
 val isolate : t
 (** Creates a new stacking context to isolate z-index behavior. Useful to
     prevent z-index values from affecting elements outside this container. *)
@@ -985,6 +1006,24 @@ val brightness : int -> t
 
 val contrast : int -> t
 (** [contrast n] sets contrast filter (0-200, where 100 is normal). *)
+
+val blur : size -> t
+(** [blur size] sets the blur filter. *)
+
+val grayscale : int -> t
+(** [grayscale n] sets the grayscale filter (0-100). *)
+
+val saturate : int -> t
+(** [saturate n] sets the saturation filter (0-200, where 100 is normal). *)
+
+val sepia : int -> t
+(** [sepia n] sets the sepia filter (0-100). *)
+
+val invert : int -> t
+(** [invert n] sets the invert filter (0-100). *)
+
+val hue_rotate : int -> t
+(** [hue_rotate n] rotates the hue by n degrees. *)
 
 val backdrop_brightness : int -> t
 (** [backdrop_brightness n] applies brightness filter to content behind element.
@@ -999,7 +1038,7 @@ val backdrop_brightness : int -> t
             backdrop_brightness 75;
             backdrop_saturate 150;
             bg ~shade:100 white;
-            bg_opacity 30;
+            opacity 30;
           ]
         [ txt "Overlay content" ]
     ]} *)
@@ -1014,6 +1053,9 @@ val backdrop_opacity : int -> t
 val backdrop_saturate : int -> t
 (** [backdrop_saturate n] sets backdrop saturation filter (0-200, where 100 is
     normal). *)
+
+val backdrop_blur : size -> t
+(** [backdrop_blur size] applies blur filter to content behind element. *)
 
 (** {1 Transitions & Animations}
     @see <https://tailwindcss.com/docs/animation> Animations *)
@@ -1050,6 +1092,21 @@ val transition_shadow : t
 
 val transition_transform : t
 (** Transition transform. *)
+
+val duration : int -> t
+(** [duration n] sets transition duration in milliseconds. *)
+
+val ease_linear : t
+(** Linear transition timing function. *)
+
+val ease_in : t
+(** Ease-in transition timing function. *)
+
+val ease_out : t
+(** Ease-out transition timing function. *)
+
+val ease_in_out : t
+(** Ease-in-out transition timing function. *)
 
 val scale : int -> t
 (** [scale n] resizes element by percentage (100 = normal size).
@@ -1288,6 +1345,63 @@ val object_scale_down : t
 (** Scales down only if image is larger than container, otherwise original size.
 *)
 
+val object_top : t
+(** Sets object position to top. *)
+
+val object_right : t
+(** Sets object position to right. *)
+
+val object_bottom : t
+(** Sets object position to bottom. *)
+
+val object_left : t
+(** Sets object position to left. *)
+
+val object_center : t
+(** Sets object position to center. *)
+
+val appearance_none : t
+(** Removes default browser styling from form elements. *)
+
+val resize_none : t
+(** Prevents textarea resizing. *)
+
+val resize_y : t
+(** Allows vertical resizing only. *)
+
+val resize_x : t
+(** Allows horizontal resizing only. *)
+
+val resize : t
+(** Allows both horizontal and vertical resizing. *)
+
+val will_change_auto : t
+(** Sets will-change to auto. *)
+
+val will_change_scroll : t
+(** Optimizes for scroll position changes. *)
+
+val will_change_contents : t
+(** Optimizes for content changes. *)
+
+val will_change_transform : t
+(** Optimizes for transform changes. *)
+
+val contain_none : t
+(** No containment. *)
+
+val contain_content : t
+(** Contains layout and paint. *)
+
+val contain_layout : t
+(** Contains layout only. *)
+
+val contain_paint : t
+(** Contains paint only. *)
+
+val contain_size : t
+(** Contains size. *)
+
 val sr_only : t
 (** Screen reader only - visually hides content while keeping it accessible. Use
     this for content that should be read by screen readers but not visible.
@@ -1418,17 +1532,30 @@ val peer_checked : t -> t
 (** [peer_checked style] applies style when a sibling peer checkbox/radio is
     checked. *)
 
+val on_peer_checked : t list -> t
+(** [on_peer_checked styles] applies multiple styles when a sibling peer checkbox/radio is
+    checked. *)
+
 val aria_checked : t -> t
 (** [aria_checked style] applies style when aria-checked="true". Useful for
     custom checkbox/radio styling with proper accessibility. *)
+
+val on_aria_checked : t list -> t
+(** [on_aria_checked styles] applies multiple styles when aria-checked="true". *)
 
 val aria_expanded : t -> t
 (** [aria_expanded style] applies style when aria-expanded="true". Common for
     accordions, dropdowns, and collapsible sections. *)
 
+val on_aria_expanded : t list -> t
+(** [on_aria_expanded styles] applies multiple styles when aria-expanded="true". *)
+
 val aria_selected : t -> t
 (** [aria_selected style] applies style when aria-selected="true". Used in
     custom select menus, tabs, and list selections. *)
+
+val on_aria_selected : t list -> t
+(** [on_aria_selected styles] applies multiple styles when aria-selected="true". *)
 
 val on_aria_disabled : t list -> t
 (** [on_aria_disabled styles] applies styles when aria-disabled="true". Ensures

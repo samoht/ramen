@@ -36,48 +36,79 @@ let tailwind_files temp_dir classnames =
       (String.concat " " classnames)
   in
 
-  let input_css_content =
-    "@tailwind base;\n@tailwind components;\n@tailwind utilities;\n"
-  in
-
-  let config_content =
-    {|
-module.exports = {
-  content: ["./input.html"],
-  theme: {
-    extend: {},
-  },
-  plugins: [
-    require('@tailwindcss/typography')
-  ],
-}
-  |}
-  in
+  (* For Tailwind v4, use the single import directive *)
+  let input_css_content = "@import \"tailwindcss\";" in
 
   write_file (Filename.concat temp_dir "input.html") html_content;
-  write_file (Filename.concat temp_dir "input.css") input_css_content;
-  write_file (Filename.concat temp_dir "tailwind.config.js") config_content
+  write_file (Filename.concat temp_dir "input.css") input_css_content
+  (* No config file needed for v4 basic usage *)
 
-(** Generate CSS using the official tailwindcss binary *)
+(** Global flag to track if version has been checked *)
+let version_checked = ref false
+
+(** Check if tailwindcss v4 is available - only once per test run *)
+let check_tailwindcss_available () =
+  if !version_checked then () else (
+    version_checked := true;
+    
+    (* Check if tailwindcss binary exists *)
+    let binary_check = Sys.command "which tailwindcss > /dev/null 2>&1" in
+    if binary_check <> 0 then
+      failwith
+        "tailwindcss binary not found in PATH.\n\
+         Please install Tailwind CSS v4:\n\
+         - npm install -g @tailwindcss/cli@latest\n\
+         - Or use your package manager\n\n\
+         These tests require the tailwindcss binary.";
+
+    (* Get and verify the version *)
+    let temp_file = Filename.temp_file "tw_version" ".txt" in
+    let version_cmd = "tailwindcss --help 2>&1 | head -1 > " ^ temp_file in
+    let exit_code = Sys.command version_cmd in
+    if exit_code = 0 then (
+      let ic = open_in temp_file in
+      let version_line = input_line ic in
+      close_in ic;
+      Sys.remove temp_file;
+      
+      (* Expected format: "≈ tailwindcss v4.1.11" *)
+      if not (String.contains version_line '4') then
+        failwith
+          (Fmt.str
+             "Expected Tailwind CSS v4.x but found: %s\n\
+              These tests are designed for Tailwind CSS v4.\n\
+              Please install v4: npm install -g @tailwindcss/cli@latest"
+             version_line)
+      else
+        Printf.printf "Using %s for tests\n" version_line
+    ) else (
+      Sys.remove temp_file;
+      failwith "Could not determine Tailwind CSS version"
+    )
+  )
+
+(** Generate CSS using the official tailwindcss binary - use project directory *)
 let generate_tailwind_css ?(minify = false) classnames =
-  let temp_dir = Filename.temp_dir "ramen_test" "" in
+  check_tailwindcss_available ();
+  (* Create test directory in project root where tailwindcss can resolve imports *)
+  let temp_dir = "temp_tailwind_test" in
+  let _ = Sys.command (Fmt.str "mkdir -p %s" temp_dir) in
   let css_file = Filename.concat temp_dir "output.css" in
 
   tailwind_files temp_dir classnames;
 
-  (* Run tailwindcss *)
+  (* Run local tailwindcss binary - v4 with content scanning *)
   let minify_flag = if minify then " --minify" else "" in
   let cmd =
     Fmt.str
-      "cd %s && tailwindcss -c tailwind.config.js -i input.css -o %s%s \
-       2>/dev/null"
-      temp_dir css_file minify_flag
+      "tailwindcss --input %s/input.css --output %s --content '%s/input.html'%s"
+      temp_dir css_file temp_dir minify_flag
   in
   let exit_code = Sys.command cmd in
 
   (if exit_code <> 0 then
      let _ = Sys.command (Fmt.str "rm -rf %s" temp_dir) in
-     failwith "tailwindcss command failed");
+     failwith (Fmt.str "tailwindcss v4 command failed: %s (exit code: %d)" cmd exit_code));
 
   (* Read generated CSS *)
   let ic = open_in css_file in
@@ -256,26 +287,162 @@ let typography_test_styles =
 
 let responsive_test_styles =
   [
-    (* Responsive - more comprehensive *)
+    (* Responsive - comprehensive coverage *)
+    (* Display *)
     on_sm [ block ];
+    on_sm [ inline_block ];
+    on_sm [ flex ];
+    on_sm [ hidden ];
     on_md [ flex ];
+    on_md [ grid ];
+    on_md [ inline ];
     on_lg [ grid ];
+    on_lg [ block ];
     on_xl [ hidden ];
+    on_xl [ flex ];
+    
+    (* Spacing *)
     on_sm [ p (int 4) ];
+    on_sm [ m (int 2) ];
+    on_sm [ px (int 6) ];
+    on_sm [ py (int 3) ];
     on_md [ m (int 6) ];
+    on_md [ p (int 8) ];
+    on_md [ mt (int 4) ];
+    on_md [ mb (int 10) ];
+    on_lg [ p (int 12) ];
+    on_lg [ mx auto ];
+    on_xl [ m (int 0) ];
+    on_xl [ p (int 16) ];
+    
+    (* Typography *)
+    on_sm [ text_sm ];
+    on_sm [ font_normal ];
+    on_md [ text_base ];
+    on_md [ font_medium ];
     on_lg [ text_lg ];
+    on_lg [ font_semibold ];
+    on_xl [ text_xl ];
     on_xl [ font_bold ];
+    
+    (* Width/Height *)
+    on_sm [ w full ];
+    on_sm [ h (int 32) ];
+    on_md [ w (int 64) ];
+    on_md [ h full ];
+    on_lg [ w (int 96) ];
+    on_lg [ max_w xl_4 ];
+    on_xl [ w screen ];
+    on_xl [ min_h screen ];
+    
+    (* Flexbox *)
+    on_sm [ flex_row ];
+    on_sm [ items_center ];
+    on_sm [ justify_between ];
+    on_md [ flex_col ];
+    on_md [ items_start ];
+    on_md [ gap (int 4) ];
+    on_lg [ flex_row_reverse ];
+    on_lg [ justify_evenly ];
+    on_xl [ flex_wrap ];
+    
+    (* Grid *)
+    on_sm [ grid_cols 1 ];
+    on_md [ grid_cols 2 ];
+    on_lg [ grid_cols 3 ];
+    on_xl [ grid_cols 4 ];
+    
+    (* Position *)
+    on_sm [ relative ];
+    on_md [ absolute ];
+    on_lg [ fixed ];
+    on_xl [ sticky ];
+    
+    (* Colors *)
+    on_sm [ bg white ];
+    on_sm [ text black ];
+    on_md [ bg ~shade:100 gray ];
+    on_md [ text ~shade:700 blue ];
+    on_lg [ bg ~shade:500 sky ];
+    on_lg [ border_color ~shade:300 gray ];
+    on_xl [ bg black ];
+    on_xl [ text white ];
+    
+    (* Borders *)
+    on_sm [ border `Default ];
+    on_sm [ rounded md ];
+    on_md [ border `Lg ];
+    on_md [ rounded lg ];
+    on_lg [ border_t ];
+    on_lg [ rounded full ];
+    on_xl [ border `None ];
+    
+    (* Effects *)
+    on_sm [ shadow sm ];
+    on_md [ shadow md ];
+    on_lg [ shadow lg ];
+    on_xl [ shadow none ];
+    on_sm [ opacity 75 ];
+    on_md [ opacity 100 ];
+    
+    (* Overflow *)
+    on_sm [ overflow_hidden ];
+    on_md [ overflow_auto ];
+    on_lg [ overflow_visible ];
+    on_xl [ overflow_scroll ];
   ]
 
 let states_test_styles =
   [
-    (* States - more comprehensive *)
+    (* States - comprehensive coverage *)
+    (* Hover states *)
     on_hover [ bg white ];
     on_hover [ text ~shade:700 blue ];
+    on_hover [ border_color ~shade:400 gray ];
+    on_hover [ shadow lg ];
+    on_hover [ opacity 80 ];
+    on_hover [ scale 105 ];
+    on_hover [ translate_y (-1) ];
+    
+    (* Focus states *)
     on_focus [ bg ~shade:500 sky ];
     on_focus [ outline_none ];
+    on_focus [ ring `Lg ];
+    on_focus [ ring_color ~shade:400 blue ];
+    on_focus [ border_color ~shade:500 blue ];
+    on_focus [ shadow md ];
+    
+    (* Active states *)
     on_active [ text ~shade:900 gray ];
+    on_active [ bg ~shade:200 gray ];
+    on_active [ scale 95 ];
+    on_active [ shadow sm ];
+    
+    (* Disabled states *)
     on_disabled [ opacity 50 ];
+    on_disabled [ cursor_not_allowed ];
+    on_disabled [ bg ~shade:100 gray ];
+    on_disabled [ text ~shade:400 gray ];
+    
+    (* Group states *)
+    on_group_hover [ bg ~shade:100 blue ];
+    on_group_hover [ text ~shade:700 blue ];
+    on_group_focus [ ring `Md ];
+    
+    (* Peer states *)
+    on_peer_hover [ text ~shade:600 green ];
+    on_peer_focus [ bg ~shade:50 green ];
+    on_peer_checked [ text ~shade:700 green ];
+    
+    (* ARIA states *)
+    on_aria_expanded [ rotate 180 ];
+    on_aria_selected [ bg ~shade:100 blue ];
+    on_aria_checked [ bg ~shade:500 green ];
+    on_aria_disabled [ opacity 40 ];
+    
+    (* Data attribute states *)
+    on_data_active [ bg ~shade:200 blue ];
+    on_data_inactive [ bg ~shade:50 gray ];
   ]
 
 let borders_test_styles =
@@ -430,12 +597,150 @@ let extended_colors_test_styles =
     bg ~shade:200 rose;
   ]
 
+let filter_test_styles =
+  [
+    (* Filters *)
+    blur sm;
+    blur md;
+    blur lg;
+    blur xl;
+    blur none;
+    brightness 50;
+    brightness 100;
+    brightness 150;
+    contrast 50;
+    contrast 100;
+    contrast 200;
+    grayscale 0;
+    grayscale 100;
+    saturate 0;
+    saturate 100;
+    saturate 200;
+    sepia 0;
+    sepia 100;
+    invert 0;
+    invert 100;
+    hue_rotate 0;
+    hue_rotate 180;
+    
+    (* Backdrop filters *)
+    backdrop_blur sm;
+    backdrop_blur md;
+    backdrop_blur lg;
+    backdrop_brightness 50;
+    backdrop_brightness 100;
+    backdrop_contrast 125;
+    backdrop_saturate 150;
+    backdrop_opacity 80;
+  ]
+
+let animation_test_styles =
+  [
+    (* Animations *)
+    animate_spin;
+    animate_ping;
+    animate_pulse;
+    animate_bounce;
+    animate_none;
+    
+    (* Transition durations *)
+    duration 75;
+    duration 100;
+    duration 150;
+    duration 200;
+    duration 300;
+    duration 500;
+    duration 700;
+    duration 1000;
+    
+    (* Transition timing *)
+    ease_linear;
+    ease_in;
+    ease_out;
+    ease_in_out;
+  ]
+
+let form_test_styles =
+  [
+    (* Form utilities *)
+    appearance_none;
+    resize_none;
+    resize_y;
+    resize_x;
+    resize;
+  ]
+
+let gradient_test_styles =
+  [
+    (* Gradients *)
+    bg_gradient_to_t;
+    bg_gradient_to_tr;
+    bg_gradient_to_r;
+    bg_gradient_to_br;
+    bg_gradient_to_b;
+    bg_gradient_to_bl;
+    bg_gradient_to_l;
+    bg_gradient_to_tl;
+    from_color ~shade:100 blue;
+    from_color ~shade:500 purple;
+    to_color ~shade:500 pink;
+    to_color ~shade:900 red;
+  ]
+
+let special_test_styles =
+  [
+    (* Special utilities *)
+    sr_only;
+    not_sr_only;
+    pointer_events_none;
+    pointer_events_auto;
+    will_change_auto;
+    will_change_scroll;
+    will_change_contents;
+    will_change_transform;
+    contain_none;
+    contain_content;
+    contain_layout;
+    contain_paint;
+    contain_size;
+  ]
+
+let object_test_styles =
+  [
+    (* Object fit/position *)
+    object_contain;
+    object_cover;
+    object_fill;
+    object_none;
+    object_scale_down;
+    object_top;
+    object_right;
+    object_bottom;
+    object_left;
+    object_center;
+  ]
+
+let line_clamp_test_styles =
+  [
+    (* Line clamp *)
+    line_clamp 1;
+    line_clamp 2;
+    line_clamp 3;
+    line_clamp 4;
+    line_clamp 5;
+    line_clamp 6;
+    line_clamp 0;
+  ]
+
 let all_test_styles () =
   spacing_test_styles @ color_test_styles @ display_test_styles
   @ sizing_test_styles @ typography_test_styles @ responsive_test_styles
   @ states_test_styles @ borders_test_styles @ shadows_test_styles
   @ prose_test_styles @ flexbox_test_styles @ grid_test_styles
   @ layout_test_styles @ misc_test_styles @ extended_colors_test_styles
+  @ filter_test_styles @ animation_test_styles @ form_test_styles
+  @ gradient_test_styles @ special_test_styles @ object_test_styles
+  @ line_clamp_test_styles
 
 (** Cache for Tailwind CSS generation with class list hash *)
 let tailwind_cache_unminified = ref None
@@ -460,7 +765,7 @@ let generate_all_tailwind_css ?(minify = false) () =
       cache := Some (cache_key, css);
       css
 
-(** Check 1:1 mapping with non-minified Tailwind *)
+(** Check 1:1 mapping with non-minified Tailwind - uses cached CSS *)
 let check_exact_match tw_style =
   try
     let classname = to_string tw_style in
@@ -798,10 +1103,9 @@ let extract_utilities_from_tailwind tailwind_minified =
 
 let test_minification_rules () =
   let all_styles = all_test_styles () in
-  let all_classnames = List.map to_string all_styles in
 
-  (* Get Tailwind's minified output *)
-  let tailwind_minified = generate_tailwind_css ~minify:true all_classnames in
+  (* Get Tailwind's minified output - use the existing cache mechanism *)
+  let tailwind_minified = generate_all_tailwind_css ~minify:true () in
   let tailwind_utilities = extract_utilities_from_tailwind tailwind_minified in
 
   (* Get our minified output *)
